@@ -155,14 +155,12 @@ function LandingPage() {
               </div>
             </div>
             <div className="relative">
-              <div className="aspect-square rounded-3xl bg-gradient-to-br from-teal-100 to-teal-200 p-8 shadow-2xl">
-                <div className="w-full h-full bg-white rounded-2xl flex items-center justify-center">
-                  <div className="text-center p-8">
-                    <div className="text-8xl mb-4">🧺</div>
-                    <p className="text-2xl font-semibold text-gray-800">Fresh & Clean</p>
-                    <p className="text-gray-600 mt-2">Professional Care</p>
-                  </div>
-                </div>
+              <div className="aspect-square rounded-3xl overflow-hidden shadow-2xl">
+                <img 
+                  src="https://images.unsplash.com/photo-1627564359646-5972788cec65?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTY2NzZ8MHwxfHNlYXJjaHwxfHxjbGVhbiUyMGZvbGRlZCUyMGNsb3RoZXN8ZW58MHx8fHwxNzYwMzc1NjMwfDA&ixlib=rb-4.1.0&q=85"
+                  alt="Clean folded laundry"
+                  className="w-full h-full object-cover"
+                />
               </div>
               <div className="absolute -bottom-6 -left-6 bg-white rounded-2xl shadow-xl p-6 max-w-xs">
                 <div className="flex items-center gap-4">
