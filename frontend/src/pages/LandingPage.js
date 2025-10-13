@@ -89,10 +89,13 @@ function LandingPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-20">
             <div className="flex items-center space-x-3">
-              <div className="w-12 h-12 bg-gradient-to-br from-teal-400 to-teal-600 rounded-xl flex items-center justify-center">
-                <span className="text-2xl text-white font-bold">∞</span>
+              <div className="w-14 h-14 bg-gradient-to-br from-teal-400 to-teal-600 rounded-2xl flex items-center justify-center shadow-lg">
+                <Droplets className="w-8 h-8 text-white" />
               </div>
-              <span className="text-2xl font-bold text-gray-900">Clienty</span>
+              <div>
+                <span className="text-2xl font-bold text-gray-900">Clienty</span>
+                <p className="text-xs text-teal-600 font-medium">Laundry Solutions</p>
+              </div>
             </div>
             <div className="hidden md:flex items-center space-x-8">
               <a href="#services" className="text-gray-700 hover:text-teal-500 transition-colors font-medium">Services</a>
