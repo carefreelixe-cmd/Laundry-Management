@@ -1,53 +1,118 @@
-import { useEffect } from "react";
-import "@/App.css";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-import axios from "axios";
+import React, { useState, useEffect } from 'react';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import axios from 'axios';
+import '@/App.css';
+
+// Pages
+import LandingPage from './pages/LandingPage';
+import LoginPage from './pages/LoginPage';
+import OwnerDashboard from './pages/OwnerDashboard';
+import AdminDashboard from './pages/AdminDashboard';
+import CustomerDashboard from './pages/CustomerDashboard';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
 
-const Home = () => {
-  const helloWorldApi = async () => {
+// Auth Context
+export const AuthContext = React.createContext();
+
+function App() {
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+      fetchCurrentUser();
+    } else {
+      setLoading(false);
+    }
+  }, []);
+
+  const fetchCurrentUser = async () => {
     try {
-      const response = await axios.get(`${API}/`);
-      console.log(response.data.message);
-    } catch (e) {
-      console.error(e, `errored out requesting / api`);
+      const response = await axios.get(`${API}/auth/me`);
+      setUser(response.data);
+    } catch (error) {
+      console.error('Failed to fetch user', error);
+      localStorage.removeItem('token');
+      delete axios.defaults.headers.common['Authorization'];
+    } finally {
+      setLoading(false);
     }
   };
 
-  useEffect(() => {
-    helloWorldApi();
-  }, []);
+  const login = async (email, password) => {
+    const response = await axios.post(`${API}/auth/login`, { email, password });
+    const { access_token, user: userData } = response.data;
+    localStorage.setItem('token', access_token);
+    axios.defaults.headers.common['Authorization'] = `Bearer ${access_token}`;
+    setUser(userData);
+    return userData;
+  };
+
+  const logout = () => {
+    localStorage.removeItem('token');
+    delete axios.defaults.headers.common['Authorization'];
+    setUser(null);
+  };
+
+  const ProtectedRoute = ({ children, allowedRoles }) => {
+    if (loading) return <div className="flex items-center justify-center h-screen">Loading...</div>;
+    if (!user) return <Navigate to="/login" />;
+    if (allowedRoles && !allowedRoles.includes(user.role)) {
+      return <Navigate to="/" />;
+    }
+    return children;
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-screen bg-gray-50">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-500 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div>
-      <header className="App-header">
-        <a
-          className="App-link"
-          href="https://emergent.sh"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <img src="https://avatars.githubusercontent.com/in/1201222?s=120&u=2686cf91179bbafbc7a71bfbc43004cf9ae1acea&v=4" />
-        </a>
-        <p className="mt-5">Building something incredible ~!</p>
-      </header>
-    </div>
-  );
-};
-
-function App() {
-  return (
-    <div className="App">
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Home />}>
-            <Route index element={<Home />} />
-          </Route>
-        </Routes>
-      </BrowserRouter>
-    </div>
+    <AuthContext.Provider value={{ user, login, logout, API }}>
+      <div className="App">
+        <BrowserRouter>
+          <Routes>
+            <Route path="/" element={<LandingPage />} />
+            <Route path="/login" element={user ? <Navigate to={`/dashboard/${user.role}`} /> : <LoginPage />} />
+            <Route
+              path="/dashboard/owner"
+              element={
+                <ProtectedRoute allowedRoles={['owner']}>
+                  <OwnerDashboard />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/dashboard/admin"
+              element={
+                <ProtectedRoute allowedRoles={['admin']}>
+                  <AdminDashboard />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/dashboard/customer"
+              element={
+                <ProtectedRoute allowedRoles={['customer']}>
+                  <CustomerDashboard />
+                </ProtectedRoute>
+              }
+            />
+          </Routes>
+        </BrowserRouter>
+      </div>
+    </AuthContext.Provider>
   );
 }
 
