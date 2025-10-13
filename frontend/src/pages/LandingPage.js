@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Phone, Mail, MapPin, Check, Star, Clock, Shield, Users } from 'lucide-react';
+import { Phone, Mail, MapPin, Check, Star, Clock, Shield, Users, Shirt, Sparkles, Wind, Building2, Droplets, Package, TrendingUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -19,25 +19,25 @@ function LandingPage() {
       title: 'Wash & Fold',
       description: 'Professional washing, drying, and folding service with attention to detail',
       price: 'From $25',
-      icon: '👕'
+      icon: Shirt
     },
     {
       title: 'Dry Cleaning',
       description: 'Expert dry cleaning for delicate garments and formal wear',
       price: 'From $15',
-      icon: '🎩'
+      icon: Sparkles
     },
     {
       title: 'Ironing Service',
       description: 'Crisp and professional ironing for shirts, pants, and more',
       price: 'From $20',
-      icon: '👔'
+      icon: Wind
     },
     {
       title: 'Commercial Laundry',
       description: 'Bulk laundry solutions for businesses, hotels, and restaurants',
       price: 'Custom Quote',
-      icon: '🏢'
+      icon: Building2
     }
   ];
 
