@@ -4,7 +4,7 @@ import { AuthContext } from '../App';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Eye, EyeOff } from 'lucide-react';
+import { Eye, EyeOff, Droplets } from 'lucide-react';
 
 function LoginPage() {
   const navigate = useNavigate();
@@ -38,10 +38,13 @@ function LoginPage() {
           className="flex items-center space-x-3 hover:opacity-80 transition-opacity"
           data-testid="back-home-btn"
         >
-          <div className="w-12 h-12 bg-gradient-to-br from-teal-400 to-teal-600 rounded-xl flex items-center justify-center">
-            <span className="text-2xl text-white font-bold">∞</span>
+          <div className="w-14 h-14 bg-gradient-to-br from-teal-400 to-teal-600 rounded-2xl flex items-center justify-center shadow-lg">
+            <Droplets className="w-8 h-8 text-white" />
           </div>
-          <span className="text-2xl font-bold text-gray-900">Clienty</span>
+          <div>
+            <span className="text-2xl font-bold text-gray-900">Clienty</span>
+            <p className="text-xs text-teal-600 font-medium">Laundry Solutions</p>
+          </div>
         </button>
       </div>
 
