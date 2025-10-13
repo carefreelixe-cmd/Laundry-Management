@@ -420,7 +420,7 @@ function LandingPage() {
             <div>
               <div className="flex items-center space-x-3 mb-4">
                 <div className="w-10 h-10 bg-gradient-to-br from-teal-400 to-teal-600 rounded-lg flex items-center justify-center">
-                  <span className="text-xl text-white font-bold">∞</span>
+                  <Droplets className="w-6 h-6 text-white" />
                 </div>
                 <span className="text-xl font-bold">Clienty</span>
               </div>
