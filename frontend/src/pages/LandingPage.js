@@ -234,21 +234,21 @@ function LandingPage() {
           <div className="grid md:grid-cols-3 gap-8">
             <div className="text-center">
               <div className="w-20 h-20 bg-teal-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                <span className="text-3xl font-bold text-teal-600">1</span>
+                <Package className="w-10 h-10 text-teal-600" />
               </div>
               <h3 className="text-2xl font-bold text-gray-900 mb-3">Schedule Pickup</h3>
               <p className="text-gray-600">Book online or call us to schedule a convenient pickup time</p>
             </div>
             <div className="text-center">
               <div className="w-20 h-20 bg-teal-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                <span className="text-3xl font-bold text-teal-600">2</span>
+                <Sparkles className="w-10 h-10 text-teal-600" />
               </div>
               <h3 className="text-2xl font-bold text-gray-900 mb-3">We Clean</h3>
               <p className="text-gray-600">Our experts clean your items with care and attention to detail</p>
             </div>
             <div className="text-center">
               <div className="w-20 h-20 bg-teal-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                <span className="text-3xl font-bold text-teal-600">3</span>
+                <TrendingUp className="w-10 h-10 text-teal-600" />
               </div>
               <h3 className="text-2xl font-bold text-gray-900 mb-3">Delivery</h3>
               <p className="text-gray-600">Fresh, clean items delivered right to your doorstep</p>
