@@ -319,18 +319,18 @@ async def public_signup(user: UserCreate):
     }
 
 @api_router.post("/auth/verify-otp")
-async def verify_otp(email: EmailStr, otp: str):
+async def verify_otp(data: OTPVerify):
     """
     Verify OTP and activate user account
     """
     # Find pending user
-    pending_user = await db.pending_users.find_one({"email": email})
+    pending_user = await db.pending_users.find_one({"email": data.email})
     
     if not pending_user:
         raise HTTPException(status_code=404, detail="No pending registration found for this email")
     
     # Check OTP
-    if pending_user['otp'] != otp:
+    if pending_user['otp'] != data.otp:
         raise HTTPException(status_code=400, detail="Invalid OTP code")
     
     # Check OTP expiry
@@ -353,22 +353,22 @@ async def verify_otp(email: EmailStr, otp: str):
     await db.users.insert_one(user_data)
     
     # Delete pending user
-    await db.pending_users.delete_one({"email": email})
+    await db.pending_users.delete_one({"email": data.email})
     
     # Send welcome email
-    send_welcome_email(email, pending_user['full_name'])
+    send_welcome_email(data.email, pending_user['full_name'])
     
     return {
         "message": "Email verified successfully! You can now log in.",
-        "email": email
+        "email": data.email
     }
 
 @api_router.post("/auth/resend-otp")
-async def resend_otp(email: EmailStr):
+async def resend_otp(data: ResendOTP):
     """
     Resend OTP to user
     """
-    pending_user = await db.pending_users.find_one({"email": email})
+    pending_user = await db.pending_users.find_one({"email": data.email})
     
     if not pending_user:
         raise HTTPException(status_code=404, detail="No pending registration found for this email")
@@ -378,7 +378,7 @@ async def resend_otp(email: EmailStr):
     
     # Update pending user
     await db.pending_users.update_one(
-        {"email": email},
+        {"email": data.email},
         {
             "$set": {
                 "otp": new_otp,
@@ -388,7 +388,7 @@ async def resend_otp(email: EmailStr):
     )
     
     # Send new OTP
-    send_otp_email(email, new_otp, pending_user['full_name'])
+    send_otp_email(data.email, new_otp, pending_user['full_name'])
     
     return {"message": "New OTP sent to your email"}
 
