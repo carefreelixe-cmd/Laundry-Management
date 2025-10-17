@@ -237,18 +237,18 @@ function SignupPage() {
           ) : (
             // OTP Verification
             <>
-              <div className="text-center mb-8">
-                <div className="w-16 h-16 bg-teal-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Mail className="w-8 h-8 text-teal-600" />
+              <div className="text-center mb-6 sm:mb-8">
+                <div className="w-12 h-12 sm:w-16 sm:h-16 bg-teal-100 rounded-full flex items-center justify-center mx-auto mb-3 sm:mb-4">
+                  <Mail className="w-6 h-6 sm:w-8 sm:h-8 text-teal-600" />
                 </div>
-                <h1 className="text-3xl font-bold text-gray-900 mb-2">Verify Your Email</h1>
-                <p className="text-gray-600">We've sent a 6-digit code to</p>
-                <p className="text-teal-600 font-semibold">{formData.email}</p>
+                <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">Verify Your Email</h1>
+                <p className="text-sm sm:text-base text-gray-600">We've sent a 6-digit code to</p>
+                <p className="text-sm sm:text-base text-teal-600 font-semibold break-all">{formData.email}</p>
               </div>
 
-              <form onSubmit={handleVerifyOTP} className="space-y-6">
+              <form onSubmit={handleVerifyOTP} className="space-y-4 sm:space-y-6">
                 <div>
-                  <Label htmlFor="otp" className="text-gray-700 font-medium text-center block">Enter OTP Code</Label>
+                  <Label htmlFor="otp" className="text-sm sm:text-base text-gray-700 font-medium text-center block">Enter OTP Code</Label>
                   <Input
                     id="otp"
                     type="text"
@@ -257,49 +257,49 @@ function SignupPage() {
                     onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
                     required
                     maxLength={6}
-                    className="mt-2 h-14 text-center text-2xl font-bold tracking-widest"
+                    className="mt-2 h-12 sm:h-14 text-center text-xl sm:text-2xl font-bold tracking-widest"
                     data-testid="otp-input"
                   />
                 </div>
 
                 {error && (
                   <div className="bg-red-50 border border-red-200 rounded-lg p-3" data-testid="otp-error">
-                    <p className="text-red-600 text-sm">{error}</p>
+                    <p className="text-red-600 text-xs sm:text-sm">{error}</p>
                   </div>
                 )}
 
                 {success && (
                   <div className="bg-green-50 border border-green-200 rounded-lg p-3">
-                    <p className="text-green-600 text-sm">{success}</p>
+                    <p className="text-green-600 text-xs sm:text-sm">{success}</p>
                   </div>
                 )}
 
                 <Button
                   type="submit"
                   disabled={loading || otp.length !== 6}
-                  className="w-full bg-teal-500 hover:bg-teal-600 text-white h-12 text-lg font-medium rounded-xl"
+                  className="w-full bg-teal-500 hover:bg-teal-600 text-white h-11 sm:h-12 text-base sm:text-lg font-medium rounded-xl"
                   data-testid="verify-otp-btn"
                 >
                   {loading ? 'Verifying...' : 'Verify Email'}
                 </Button>
               </form>
 
-              <div className="mt-6 text-center">
-                <p className="text-gray-600 mb-3">Didn't receive the code?</p>
+              <div className="mt-4 sm:mt-6 text-center">
+                <p className="text-sm sm:text-base text-gray-600 mb-3">Didn't receive the code?</p>
                 <button
                   onClick={handleResendOTP}
                   disabled={loading}
-                  className="text-teal-500 hover:text-teal-600 font-semibold"
+                  className="text-sm sm:text-base text-teal-500 hover:text-teal-600 font-semibold"
                   data-testid="resend-otp-btn"
                 >
                   Resend OTP
                 </button>
               </div>
 
-              <div className="mt-4 text-center">
+              <div className="mt-3 sm:mt-4 text-center">
                 <button
                   onClick={() => setStep(1)}
-                  className="text-gray-600 hover:text-gray-800 flex items-center gap-2 mx-auto"
+                  className="text-sm sm:text-base text-gray-600 hover:text-gray-800 flex items-center gap-2 mx-auto"
                 >
                   <ArrowLeft className="w-4 h-4" />
                   Back to signup
