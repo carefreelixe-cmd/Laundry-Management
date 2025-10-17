@@ -15,6 +15,8 @@ from passlib.context import CryptContext
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
+from utils.email_service import send_otp_email, send_welcome_email
+from utils.otp_service import generate_otp, is_otp_expired
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
