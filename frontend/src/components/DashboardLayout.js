@@ -138,16 +138,16 @@ function DashboardLayout({ children }) {
               </div>
 
               {/* User Profile */}
-              <div className="flex items-center space-x-3 pl-4 border-l border-gray-200">
-                <div className="text-right">
-                  <p className="text-sm font-semibold text-gray-900">{user?.full_name}</p>
-                  <p className="text-xs text-gray-500 capitalize">{user?.role}</p>
+              <div className="flex items-center space-x-2 sm:space-x-3 pl-2 sm:pl-4 border-l border-gray-200">
+                <div className="text-right hidden sm:block">
+                  <p className="text-xs sm:text-sm font-semibold text-gray-900 truncate max-w-[100px] md:max-w-none">{user?.full_name}</p>
+                  <p className="text-[10px] sm:text-xs text-gray-500 capitalize">{user?.role}</p>
                 </div>
                 <Button
                   onClick={handleLogout}
                   variant="outline"
                   size="sm"
-                  className="text-gray-700 hover:text-red-600 hover:border-red-600"
+                  className="text-gray-700 hover:text-red-600 hover:border-red-600 h-8 sm:h-9 px-2 sm:px-3"
                   data-testid="logout-btn"
                 >
                   <LogOut className="w-4 h-4" />
@@ -159,15 +159,15 @@ function DashboardLayout({ children }) {
       </nav>
 
       {/* Main Content */}
-      <div className="pt-16 flex">
+      <div className="pt-14 sm:pt-16 flex">
         {/* Sidebar - could add navigation items here if needed */}
         {sidebarOpen && (
-          <aside className="w-64 bg-white border-r border-gray-200 min-h-screen fixed left-0 top-16 z-20 hidden md:block" data-testid="dashboard-sidebar">
-            <div className="p-6">
+          <aside className="w-48 sm:w-56 md:w-64 bg-white border-r border-gray-200 min-h-screen fixed left-0 top-14 sm:top-16 z-20 hidden md:block" data-testid="dashboard-sidebar">
+            <div className="p-4 sm:p-6">
               <div className="space-y-2">
                 <div className="p-3 bg-teal-50 rounded-lg">
-                  <p className="text-sm font-medium text-teal-900">Dashboard</p>
-                  <p className="text-xs text-teal-600 mt-1">Welcome to your workspace</p>
+                  <p className="text-xs sm:text-sm font-medium text-teal-900">Dashboard</p>
+                  <p className="text-[10px] sm:text-xs text-teal-600 mt-1">Welcome to your workspace</p>
                 </div>
               </div>
             </div>
@@ -175,7 +175,7 @@ function DashboardLayout({ children }) {
         )}
 
         {/* Main Content Area */}
-        <main className={`flex-1 p-6 ${sidebarOpen ? 'md:ml-64' : ''} transition-all`}>
+        <main className={`flex-1 p-4 sm:p-6 ${sidebarOpen ? 'md:ml-48 lg:ml-56 xl:ml-64' : ''} transition-all`}>
           {children}
         </main>
       </div>
