@@ -32,7 +32,7 @@ function LoginPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-teal-50 via-white to-teal-50 flex items-center justify-center px-4">
-      <div className="absolute top-8 left-8">
+      <div className="absolute top-4 sm:top-8 left-4 sm:left-8">
         <button 
           onClick={() => navigate('/')} 
           className="flex items-center space-x-3 hover:opacity-80 transition-opacity"
@@ -41,13 +41,13 @@ function LoginPage() {
           <img 
             src="https://customer-assets.emergentagent.com/job_washdash-1/artifacts/ed664txa_Screenshot%202025-10-14%20121020.png"
             alt="Infinite Laundry Solutions Logo"
-            className="h-16 w-auto"
+            className="h-12 sm:h-14 md:h-16 w-auto"
           />
         </button>
       </div>
 
-      <div className="max-w-md w-full">
-        <div className="bg-white rounded-3xl shadow-2xl p-8 md:p-12">
+      <div className="max-w-md w-full px-4">
+        <div className="bg-white rounded-3xl shadow-2xl p-6 sm:p-8 md:p-12">
           <div className="text-center mb-8">
             <h1 className="text-3xl font-bold text-gray-900 mb-2">Welcome Back</h1>
             <p className="text-gray-600">Sign in to access your dashboard</p>
