@@ -13,6 +13,7 @@ function LandingPage() {
   const navigate = useNavigate();
   const [contactForm, setContactForm] = useState({ name: '', email: '', phone: '', message: '' });
   const [submitStatus, setSubmitStatus] = useState('');
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const services = [
     {
