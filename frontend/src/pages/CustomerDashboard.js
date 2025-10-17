@@ -68,9 +68,11 @@ function CustomerDashboard() {
         order_id: '',
         priority: 'medium'
       });
+      toast.success('Case submitted successfully!');
       fetchData();
     } catch (error) {
-      alert('Failed to create case');
+      console.error('Failed to create case:', error);
+      toast.error(error.response?.data?.detail || 'Failed to create case. Please try again.');
     }
   };
 
