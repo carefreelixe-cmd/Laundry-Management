@@ -82,8 +82,8 @@ function SignupPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-teal-50 via-white to-teal-50 flex items-center justify-center px-4 py-8">
-      <div className="absolute top-4 sm:top-8 left-4 sm:left-8">
+    <div className="min-h-screen bg-gradient-to-br from-teal-50 via-white to-teal-50 flex items-center justify-center px-4 py-8 sm:py-12">
+      <div className="absolute top-4 sm:top-6 md:top-8 left-4 sm:left-6 md:left-8">
         <button 
           onClick={() => navigate('/')} 
           className="flex items-center space-x-3 hover:opacity-80 transition-opacity"
@@ -92,25 +92,25 @@ function SignupPage() {
           <img 
             src="https://customer-assets.emergentagent.com/job_washdash-1/artifacts/ed664txa_Screenshot%202025-10-14%20121020.png"
             alt="Infinite Laundry Solutions Logo"
-            className="h-12 sm:h-14 md:h-16 w-auto"
+            className="h-10 sm:h-12 md:h-14 lg:h-16 w-auto"
           />
         </button>
       </div>
 
       <div className="max-w-md w-full px-4">
-        <div className="bg-white rounded-3xl shadow-2xl p-6 sm:p-8 md:p-12">
+        <div className="bg-white rounded-2xl sm:rounded-3xl shadow-2xl p-6 sm:p-8 md:p-10 lg:p-12">
           {step === 1 ? (
             // Signup Form
             <>
-              <div className="text-center mb-8">
-                <h1 className="text-3xl font-bold text-gray-900 mb-2">Create Account</h1>
-                <p className="text-gray-600">Sign up to get started with our services</p>
+              <div className="text-center mb-6 sm:mb-8">
+                <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">Create Account</h1>
+                <p className="text-sm sm:text-base text-gray-600">Sign up to get started with our services</p>
               </div>
 
-              <form onSubmit={handleSignup} className="space-y-4">
+              <form onSubmit={handleSignup} className="space-y-3 sm:space-y-4">
                 <div>
-                  <Label htmlFor="full_name" className="text-gray-700 font-medium flex items-center gap-2">
-                    <User className="w-4 h-4" />
+                  <Label htmlFor="full_name" className="text-sm sm:text-base text-gray-700 font-medium flex items-center gap-2">
+                    <User className="w-3 h-3 sm:w-4 sm:h-4" />
                     Full Name
                   </Label>
                   <Input
@@ -120,14 +120,14 @@ function SignupPage() {
                     value={formData.full_name}
                     onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
                     required
-                    className="mt-2 h-12"
+                    className="mt-2 h-11 sm:h-12 text-sm sm:text-base"
                     data-testid="signup-fullname-input"
                   />
                 </div>
 
                 <div>
-                  <Label htmlFor="email" className="text-gray-700 font-medium flex items-center gap-2">
-                    <Mail className="w-4 h-4" />
+                  <Label htmlFor="email" className="text-sm sm:text-base text-gray-700 font-medium flex items-center gap-2">
+                    <Mail className="w-3 h-3 sm:w-4 sm:h-4" />
                     Email Address
                   </Label>
                   <Input
@@ -137,14 +137,14 @@ function SignupPage() {
                     value={formData.email}
                     onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                     required
-                    className="mt-2 h-12"
+                    className="mt-2 h-11 sm:h-12 text-sm sm:text-base"
                     data-testid="signup-email-input"
                   />
                 </div>
 
                 <div>
-                  <Label htmlFor="phone" className="text-gray-700 font-medium flex items-center gap-2">
-                    <Phone className="w-4 h-4" />
+                  <Label htmlFor="phone" className="text-sm sm:text-base text-gray-700 font-medium flex items-center gap-2">
+                    <Phone className="w-3 h-3 sm:w-4 sm:h-4" />
                     Phone Number
                   </Label>
                   <Input
@@ -153,14 +153,14 @@ function SignupPage() {
                     placeholder="+61 400 000 000"
                     value={formData.phone}
                     onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                    className="mt-2 h-12"
+                    className="mt-2 h-11 sm:h-12 text-sm sm:text-base"
                     data-testid="signup-phone-input"
                   />
                 </div>
 
                 <div>
-                  <Label htmlFor="address" className="text-gray-700 font-medium flex items-center gap-2">
-                    <MapPin className="w-4 h-4" />
+                  <Label htmlFor="address" className="text-sm sm:text-base text-gray-700 font-medium flex items-center gap-2">
+                    <MapPin className="w-3 h-3 sm:w-4 sm:h-4" />
                     Address
                   </Label>
                   <Input
@@ -169,14 +169,14 @@ function SignupPage() {
                     placeholder="Enter your address"
                     value={formData.address}
                     onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                    className="mt-2 h-12"
+                    className="mt-2 h-11 sm:h-12 text-sm sm:text-base"
                     data-testid="signup-address-input"
                   />
                 </div>
 
                 <div>
-                  <Label htmlFor="password" className="text-gray-700 font-medium flex items-center gap-2">
-                    <Lock className="w-4 h-4" />
+                  <Label htmlFor="password" className="text-sm sm:text-base text-gray-700 font-medium flex items-center gap-2">
+                    <Lock className="w-3 h-3 sm:w-4 sm:h-4" />
                     Password
                   </Label>
                   <div className="relative mt-2">
@@ -187,7 +187,7 @@ function SignupPage() {
                       value={formData.password}
                       onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                       required
-                      className="h-12 pr-12"
+                      className="h-11 sm:h-12 pr-12 text-sm sm:text-base"
                       data-testid="signup-password-input"
                     />
                     <button
@@ -202,28 +202,28 @@ function SignupPage() {
 
                 {error && (
                   <div className="bg-red-50 border border-red-200 rounded-lg p-3" data-testid="signup-error">
-                    <p className="text-red-600 text-sm">{error}</p>
+                    <p className="text-red-600 text-xs sm:text-sm">{error}</p>
                   </div>
                 )}
 
                 {success && (
                   <div className="bg-green-50 border border-green-200 rounded-lg p-3">
-                    <p className="text-green-600 text-sm">{success}</p>
+                    <p className="text-green-600 text-xs sm:text-sm">{success}</p>
                   </div>
                 )}
 
                 <Button
                   type="submit"
                   disabled={loading}
-                  className="w-full bg-teal-500 hover:bg-teal-600 text-white h-12 text-lg font-medium rounded-xl"
+                  className="w-full bg-teal-500 hover:bg-teal-600 text-white h-11 sm:h-12 text-base sm:text-lg font-medium rounded-xl"
                   data-testid="signup-submit-btn"
                 >
                   {loading ? 'Creating Account...' : 'Sign Up'}
                 </Button>
               </form>
 
-              <div className="mt-6 text-center">
-                <p className="text-gray-600">
+              <div className="mt-4 sm:mt-6 text-center">
+                <p className="text-sm sm:text-base text-gray-600">
                   Already have an account?{' '}
                   <button
                     onClick={() => navigate('/login')}
