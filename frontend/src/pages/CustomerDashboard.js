@@ -319,15 +319,17 @@ function CustomerDashboard() {
                     </div>
                     <div>
                       <Label>Related Order (Optional)</Label>
-                      <Select value={caseForm.order_id || ""} onValueChange={(value) => setCaseForm({ ...caseForm, order_id: value })}>
+                      <Select value={caseForm.order_id || undefined} onValueChange={(value) => setCaseForm({ ...caseForm, order_id: value })}>
                         <SelectTrigger data-testid="case-order-select">
                           <SelectValue placeholder="Select order (optional)" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="">None</SelectItem>
                           {orders.map(order => (
                             <SelectItem key={order.id} value={order.id}>{order.order_number}</SelectItem>
                           ))}
+                          {orders.length === 0 && (
+                            <div className="p-2 text-sm text-gray-500">No orders available</div>
+                          )}
                         </SelectContent>
                       </Select>
                     </div>
