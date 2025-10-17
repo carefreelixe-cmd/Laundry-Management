@@ -259,6 +259,127 @@ async def register_user(user: UserCreate, current_user: dict = Depends(require_r
     await db.users.insert_one(doc)
     return user_obj
 
+@api_router.post("/auth/signup")
+async def public_signup(user: UserCreate):
+    """
+    Public signup endpoint - creates unverified user and sends OTP
+    """
+    # Check if user already exists
+    existing_user = await db.users.find_one({"email": user.email})
+    if existing_user:
+        raise HTTPException(status_code=400, detail="Email already registered")
+    
+    # Check if pending verification exists
+    pending = await db.pending_users.find_one({"email": user.email})
+    if pending:
+        # Delete old pending user
+        await db.pending_users.delete_one({"email": user.email})
+    
+    # Generate OTP
+    otp = generate_otp()
+    
+    # Create pending user
+    user_dict = user.model_dump()
+    hashed_password = hash_password(user_dict.pop("password"))
+    
+    pending_user = {
+        "id": str(uuid.uuid4()),
+        "email": user.email,
+        "password": hashed_password,
+        "full_name": user.full_name,
+        "role": "customer",  # Default role for public signup
+        "phone": user.phone,
+        "address": user.address,
+        "otp": otp,
+        "otp_created_at": datetime.now(timezone.utc).isoformat(),
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "is_active": False
+    }
+    
+    await db.pending_users.insert_one(pending_user)
+    
+    # Send OTP email
+    send_otp_email(user.email, otp, user.full_name)
+    
+    return {
+        "message": "OTP sent to your email. Please verify to complete registration.",
+        "email": user.email
+    }
+
+@api_router.post("/auth/verify-otp")
+async def verify_otp(email: EmailStr, otp: str):
+    """
+    Verify OTP and activate user account
+    """
+    # Find pending user
+    pending_user = await db.pending_users.find_one({"email": email})
+    
+    if not pending_user:
+        raise HTTPException(status_code=404, detail="No pending registration found for this email")
+    
+    # Check OTP
+    if pending_user['otp'] != otp:
+        raise HTTPException(status_code=400, detail="Invalid OTP code")
+    
+    # Check OTP expiry
+    if is_otp_expired(pending_user['otp_created_at']):
+        raise HTTPException(status_code=400, detail="OTP has expired. Please request a new one.")
+    
+    # Create actual user
+    user_data = {
+        "id": pending_user['id'],
+        "email": pending_user['email'],
+        "password": pending_user['password'],
+        "full_name": pending_user['full_name'],
+        "role": pending_user['role'],
+        "phone": pending_user.get('phone'),
+        "address": pending_user.get('address'),
+        "is_active": True,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    await db.users.insert_one(user_data)
+    
+    # Delete pending user
+    await db.pending_users.delete_one({"email": email})
+    
+    # Send welcome email
+    send_welcome_email(email, pending_user['full_name'])
+    
+    return {
+        "message": "Email verified successfully! You can now log in.",
+        "email": email
+    }
+
+@api_router.post("/auth/resend-otp")
+async def resend_otp(email: EmailStr):
+    """
+    Resend OTP to user
+    """
+    pending_user = await db.pending_users.find_one({"email": email})
+    
+    if not pending_user:
+        raise HTTPException(status_code=404, detail="No pending registration found for this email")
+    
+    # Generate new OTP
+    new_otp = generate_otp()
+    
+    # Update pending user
+    await db.pending_users.update_one(
+        {"email": email},
+        {
+            "$set": {
+                "otp": new_otp,
+                "otp_created_at": datetime.now(timezone.utc).isoformat()
+            }
+        }
+    )
+    
+    # Send new OTP
+    send_otp_email(email, new_otp, pending_user['full_name'])
+    
+    return {"message": "New OTP sent to your email"}
+
 @api_router.post("/auth/login", response_model=TokenResponse)
 async def login(credentials: UserLogin):
     user_doc = await db.users.find_one({"email": credentials.email})
@@ -266,7 +387,7 @@ async def login(credentials: UserLogin):
         raise HTTPException(status_code=401, detail="Invalid email or password")
     
     if not user_doc.get('is_active', True):
-        raise HTTPException(status_code=401, detail="Account is inactive")
+        raise HTTPException(status_code=401, detail="Account is inactive. Please verify your email.")
     
     user_doc['created_at'] = datetime.fromisoformat(user_doc['created_at']) if isinstance(user_doc['created_at'], str) else user_doc['created_at']
     user_obj = User(**{k: v for k, v in user_doc.items() if k != 'password'})
