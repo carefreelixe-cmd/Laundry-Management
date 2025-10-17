@@ -6,6 +6,7 @@ import '@/App.css';
 // Pages
 import LandingPage from './pages/LandingPage';
 import LoginPage from './pages/LoginPage';
+import SignupPage from './pages/SignupPage';
 import OwnerDashboard from './pages/OwnerDashboard';
 import AdminDashboard from './pages/AdminDashboard';
 import CustomerDashboard from './pages/CustomerDashboard';
