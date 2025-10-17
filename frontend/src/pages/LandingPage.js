@@ -416,12 +416,11 @@ function LandingPage() {
         <div className="max-w-7xl mx-auto">
           <div className="grid md:grid-cols-4 gap-8 mb-8">
             <div>
-              <div className="flex items-center space-x-3 mb-4">
-                <div className="w-10 h-10 bg-gradient-to-br from-teal-400 to-teal-600 rounded-lg flex items-center justify-center">
-                  <Droplets className="w-6 h-6 text-white" />
-                </div>
-                <span className="text-xl font-bold">Clienty</span>
-              </div>
+              <img 
+                src="https://customer-assets.emergentagent.com/job_washdash-1/artifacts/ed664txa_Screenshot%202025-10-14%20121020.png"
+                alt="Infinite Laundry Solutions Logo"
+                className="h-12 w-auto mb-4"
+              />
               <p className="text-gray-400">Australia's trusted laundry service provider</p>
             </div>
             <div>
