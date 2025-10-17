@@ -104,8 +104,13 @@ class UserBase(BaseModel):
     phone: Optional[str] = None
     address: Optional[str] = None
 
-class UserCreate(UserBase):
+class UserCreate(BaseModel):
+    email: EmailStr
     password: str
+    full_name: str
+    role: Optional[str] = "customer"
+    phone: Optional[str] = None
+    address: Optional[str] = None
 
 class User(UserBase):
     model_config = ConfigDict(extra="ignore")
