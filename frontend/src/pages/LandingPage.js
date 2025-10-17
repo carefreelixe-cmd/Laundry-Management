@@ -179,21 +179,21 @@ function LandingPage() {
       </nav>
 
       {/* Hero Section */}
-      <section className="pt-32 pb-20 px-4 bg-gradient-to-b from-teal-50 to-white">
+      <section className="pt-20 sm:pt-24 md:pt-32 pb-12 sm:pb-16 md:pb-20 px-4 bg-gradient-to-b from-teal-50 to-white">
         <div className="max-w-7xl mx-auto">
-          <div className="grid lg:grid-cols-2 gap-12 items-center">
-            <div className="animate-fade-in">
-              <h1 className="text-5xl lg:text-6xl font-bold text-gray-900 mb-6 leading-tight">
+          <div className="grid lg:grid-cols-2 gap-8 md:gap-12 items-center">
+            <div className="animate-fade-in text-center lg:text-left">
+              <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-5xl xl:text-6xl font-bold text-gray-900 mb-4 sm:mb-6 leading-tight">
                 Professional Laundry
                 <span className="block text-teal-500">Delivered to Your Door</span>
               </h1>
-              <p className="text-xl text-gray-600 mb-8 leading-relaxed">
+              <p className="text-base sm:text-lg md:text-xl text-gray-600 mb-6 sm:mb-8 leading-relaxed">
                 Experience Australia's finest laundry and dry cleaning service. We pickup, clean, and deliver with care.
               </p>
-              <div className="flex flex-col sm:flex-row gap-4">
+              <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center lg:justify-start">
                 <Button 
                   size="lg" 
-                  className="bg-teal-500 hover:bg-teal-600 text-white text-lg px-8 py-6 rounded-full shadow-lg hover:shadow-xl transition-all"
+                  className="bg-teal-500 hover:bg-teal-600 text-white text-base sm:text-lg px-6 sm:px-8 py-5 sm:py-6 rounded-full shadow-lg hover:shadow-xl transition-all w-full sm:w-auto"
                   onClick={() => navigate('/login')}
                   data-testid="hero-book-pickup-btn"
                 >
@@ -202,24 +202,24 @@ function LandingPage() {
                 <Button 
                   size="lg" 
                   variant="outline" 
-                  className="border-2 border-teal-500 text-teal-500 hover:bg-teal-50 text-lg px-8 py-6 rounded-full"
+                  className="border-2 border-teal-500 text-teal-500 hover:bg-teal-50 text-base sm:text-lg px-6 sm:px-8 py-5 sm:py-6 rounded-full w-full sm:w-auto"
                   onClick={() => document.getElementById('services').scrollIntoView({ behavior: 'smooth' })}
                 >
                   View Services
                 </Button>
               </div>
-              <div className="flex items-center gap-6 mt-8">
+              <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-3 sm:gap-6 mt-6 sm:mt-8">
                 <div className="flex items-center">
                   {[...Array(5)].map((_, i) => (
-                    <Star key={i} className="w-5 h-5 fill-yellow-400 text-yellow-400" />
+                    <Star key={i} className="w-4 h-4 sm:w-5 sm:h-5 fill-yellow-400 text-yellow-400" />
                   ))}
                 </div>
-                <p className="text-gray-600">
+                <p className="text-sm sm:text-base text-gray-600 text-center sm:text-left">
                   <span className="font-semibold text-gray-900">4.9/5</span> from 500+ reviews
                 </p>
               </div>
             </div>
-            <div className="relative">
+            <div className="relative mt-8 lg:mt-0">
               <div className="aspect-square rounded-3xl overflow-hidden shadow-2xl">
                 <img 
                   src="https://images.unsplash.com/photo-1627564359646-5972788cec65?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTY2NzZ8MHwxfHNlYXJjaHwxfHxjbGVhbiUyMGZvbGRlZCUyMGNsb3RoZXN8ZW58MHx8fHwxNzYwMzc1NjMwfDA&ixlib=rb-4.1.0&q=85"
@@ -227,14 +227,14 @@ function LandingPage() {
                   className="w-full h-full object-cover"
                 />
               </div>
-              <div className="absolute -bottom-6 -left-6 bg-white rounded-2xl shadow-xl p-6 max-w-xs">
-                <div className="flex items-center gap-4">
-                  <div className="bg-teal-100 rounded-full p-3">
-                    <Check className="w-6 h-6 text-teal-600" />
+              <div className="absolute -bottom-4 sm:-bottom-6 -left-2 sm:-left-6 bg-white rounded-2xl shadow-xl p-3 sm:p-6 max-w-[200px] sm:max-w-xs">
+                <div className="flex items-center gap-2 sm:gap-4">
+                  <div className="bg-teal-100 rounded-full p-2 sm:p-3">
+                    <Check className="w-4 h-4 sm:w-6 sm:h-6 text-teal-600" />
                   </div>
                   <div>
-                    <p className="font-semibold text-gray-900">Same Day Service</p>
-                    <p className="text-sm text-gray-600">Available in metro areas</p>
+                    <p className="font-semibold text-gray-900 text-xs sm:text-base">Same Day Service</p>
+                    <p className="text-[10px] sm:text-sm text-gray-600">Available in metro areas</p>
                   </div>
                 </div>
               </div>
