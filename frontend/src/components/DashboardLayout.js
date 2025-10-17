@@ -67,13 +67,11 @@ function DashboardLayout({ children }) {
                 {sidebarOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
               </button>
               <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 bg-gradient-to-br from-teal-400 to-teal-600 rounded-lg flex items-center justify-center shadow-md">
-                  <Droplets className="w-6 h-6 text-white" />
-                </div>
-                <div>
-                  <span className="text-xl font-bold text-gray-900">Clienty</span>
-                  <p className="text-xs text-teal-600 font-medium hidden sm:block">Laundry Solutions</p>
-                </div>
+                <img 
+                  src="https://customer-assets.emergentagent.com/job_washdash-1/artifacts/ed664txa_Screenshot%202025-10-14%20121020.png"
+                  alt="Infinite Laundry Solutions Logo"
+                  className="h-12 w-auto"
+                />
               </div>
             </div>
 
