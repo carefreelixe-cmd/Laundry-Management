@@ -31,8 +31,8 @@ function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-teal-50 via-white to-teal-50 flex items-center justify-center px-4">
-      <div className="absolute top-4 sm:top-8 left-4 sm:left-8">
+    <div className="min-h-screen bg-gradient-to-br from-teal-50 via-white to-teal-50 flex items-center justify-center px-4 py-8">
+      <div className="absolute top-4 sm:top-6 md:top-8 left-4 sm:left-6 md:left-8">
         <button 
           onClick={() => navigate('/')} 
           className="flex items-center space-x-3 hover:opacity-80 transition-opacity"
@@ -41,21 +41,21 @@ function LoginPage() {
           <img 
             src="https://customer-assets.emergentagent.com/job_washdash-1/artifacts/ed664txa_Screenshot%202025-10-14%20121020.png"
             alt="Infinite Laundry Solutions Logo"
-            className="h-12 sm:h-14 md:h-16 w-auto"
+            className="h-10 sm:h-12 md:h-14 lg:h-16 w-auto"
           />
         </button>
       </div>
 
       <div className="max-w-md w-full px-4">
-        <div className="bg-white rounded-3xl shadow-2xl p-6 sm:p-8 md:p-12">
-          <div className="text-center mb-8">
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">Welcome Back</h1>
-            <p className="text-gray-600">Sign in to access your dashboard</p>
+        <div className="bg-white rounded-2xl sm:rounded-3xl shadow-2xl p-6 sm:p-8 md:p-10 lg:p-12">
+          <div className="text-center mb-6 sm:mb-8">
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">Welcome Back</h1>
+            <p className="text-sm sm:text-base text-gray-600">Sign in to access your dashboard</p>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-6">
+          <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
             <div>
-              <Label htmlFor="email" className="text-gray-700 font-medium">Email Address</Label>
+              <Label htmlFor="email" className="text-sm sm:text-base text-gray-700 font-medium">Email Address</Label>
               <Input
                 id="email"
                 type="email"
@@ -63,13 +63,13 @@ function LoginPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                className="mt-2 h-12"
+                className="mt-2 h-11 sm:h-12 text-sm sm:text-base"
                 data-testid="login-email-input"
               />
             </div>
 
             <div>
-              <Label htmlFor="password" className="text-gray-700 font-medium">Password</Label>
+              <Label htmlFor="password" className="text-sm sm:text-base text-gray-700 font-medium">Password</Label>
               <div className="relative mt-2">
                 <Input
                   id="password"
@@ -78,7 +78,7 @@ function LoginPage() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
-                  className="h-12 pr-12"
+                  className="h-11 sm:h-12 pr-12 text-sm sm:text-base"
                   data-testid="login-password-input"
                 />
                 <button
@@ -93,22 +93,22 @@ function LoginPage() {
 
             {error && (
               <div className="bg-red-50 border border-red-200 rounded-lg p-3" data-testid="login-error-message">
-                <p className="text-red-600 text-sm">{error}</p>
+                <p className="text-red-600 text-xs sm:text-sm">{error}</p>
               </div>
             )}
 
             <Button
               type="submit"
               disabled={loading}
-              className="w-full bg-teal-500 hover:bg-teal-600 text-white h-12 text-lg font-medium rounded-xl"
+              className="w-full bg-teal-500 hover:bg-teal-600 text-white h-11 sm:h-12 text-base sm:text-lg font-medium rounded-xl"
               data-testid="login-submit-btn"
             >
               {loading ? 'Signing in...' : 'Sign In'}
             </Button>
           </form>
 
-          <div className="mt-8 p-4 bg-teal-50 rounded-xl">
-            <p className="text-sm text-gray-700 text-center">
+          <div className="mt-6 sm:mt-8 p-3 sm:p-4 bg-teal-50 rounded-xl">
+            <p className="text-xs sm:text-sm text-gray-700 text-center">
               <span className="font-semibold">Demo Credentials:</span><br />
               Owner: owner@clienty.com / owner123<br />
               Admin: admin@clienty.com / admin123<br />
