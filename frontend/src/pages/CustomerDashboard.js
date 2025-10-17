@@ -304,7 +304,7 @@ function CustomerDashboard() {
                       <Label>Case Type</Label>
                       <Select value={caseForm.type} onValueChange={(value) => setCaseForm({ ...caseForm, type: value })}>
                         <SelectTrigger data-testid="case-type-select">
-                          <SelectValue />
+                          <SelectValue placeholder="Select case type" />
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="inquiry">General Inquiry</SelectItem>
@@ -316,9 +316,9 @@ function CustomerDashboard() {
                     </div>
                     <div>
                       <Label>Related Order (Optional)</Label>
-                      <Select value={caseForm.order_id} onValueChange={(value) => setCaseForm({ ...caseForm, order_id: value })}>
+                      <Select value={caseForm.order_id || ""} onValueChange={(value) => setCaseForm({ ...caseForm, order_id: value })}>
                         <SelectTrigger data-testid="case-order-select">
-                          <SelectValue placeholder="Select order" />
+                          <SelectValue placeholder="Select order (optional)" />
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="">None</SelectItem>
@@ -340,7 +340,7 @@ function CustomerDashboard() {
                       <Label>Priority</Label>
                       <Select value={caseForm.priority} onValueChange={(value) => setCaseForm({ ...caseForm, priority: value })}>
                         <SelectTrigger data-testid="case-priority-select">
-                          <SelectValue />
+                          <SelectValue placeholder="Select priority" />
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="low">Low</SelectItem>
