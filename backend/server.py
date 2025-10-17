@@ -236,6 +236,13 @@ class ContactForm(BaseModel):
     phone: str
     message: str
 
+class OTPVerify(BaseModel):
+    email: EmailStr
+    otp: str
+
+class ResendOTP(BaseModel):
+    email: EmailStr
+
 # Helper function to create notifications
 async def create_notification(user_id: str, title: str, message: str, notif_type: str):
     notif = Notification(user_id=user_id, title=title, message=message, type=notif_type)
