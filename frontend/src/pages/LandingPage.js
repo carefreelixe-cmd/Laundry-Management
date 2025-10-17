@@ -244,20 +244,20 @@ function LandingPage() {
       </section>
 
       {/* Features Section */}
-      <section className="py-20 px-4 bg-white">
+      <section className="py-12 sm:py-16 md:py-20 px-4 bg-white">
         <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold text-gray-900 mb-4">Why Choose Clienty?</h2>
-            <p className="text-xl text-gray-600">Quality service you can trust</p>
+          <div className="text-center mb-10 sm:mb-12 md:mb-16">
+            <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900 mb-3 sm:mb-4">Why Choose Clienty?</h2>
+            <p className="text-base sm:text-lg md:text-xl text-gray-600">Quality service you can trust</p>
           </div>
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8">
             {features.map((feature, index) => (
-              <div key={index} className="text-center p-6 rounded-2xl hover:bg-teal-50 transition-all card-hover">
-                <div className="inline-flex items-center justify-center w-16 h-16 bg-teal-100 rounded-full mb-4">
-                  <feature.icon className="w-8 h-8 text-teal-600" />
+              <div key={index} className="text-center p-4 sm:p-6 rounded-2xl hover:bg-teal-50 transition-all card-hover">
+                <div className="inline-flex items-center justify-center w-12 h-12 sm:w-16 sm:h-16 bg-teal-100 rounded-full mb-3 sm:mb-4">
+                  <feature.icon className="w-6 h-6 sm:w-8 sm:h-8 text-teal-600" />
                 </div>
-                <h3 className="text-xl font-semibold text-gray-900 mb-2">{feature.title}</h3>
-                <p className="text-gray-600">{feature.description}</p>
+                <h3 className="text-lg sm:text-xl font-semibold text-gray-900 mb-2">{ feature.title}</h3>
+                <p className="text-sm sm:text-base text-gray-600">{feature.description}</p>
               </div>
             ))}
           </div>
