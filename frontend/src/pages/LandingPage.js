@@ -88,45 +88,93 @@ function LandingPage() {
       {/* Navigation */}
       <nav className="fixed top-0 w-full bg-white/95 backdrop-blur-md shadow-sm z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-20">
-            <div className="flex items-center space-x-3">
+          <div className="flex justify-between items-center h-16 sm:h-20">
+            {/* Logo */}
+            <div className="flex items-center">
               <img 
                 src="https://customer-assets.emergentagent.com/job_washdash-1/artifacts/ed664txa_Screenshot%202025-10-14%20121020.png"
                 alt="Infinite Laundry Solutions Logo"
-                className="h-12 sm:h-14 md:h-16 w-auto"
+                className="h-10 sm:h-12 md:h-14 lg:h-16 w-auto"
               />
             </div>
-            <div className="hidden md:flex items-center space-x-4 lg:space-x-8">
-              <a href="#services" className="text-gray-700 hover:text-teal-500 transition-colors font-medium">Services</a>
-              <a href="#about" className="text-gray-700 hover:text-teal-500 transition-colors font-medium">About</a>
-              <a href="#contact" className="text-gray-700 hover:text-teal-500 transition-colors font-medium">Contact</a>
+
+            {/* Desktop Navigation */}
+            <div className="hidden lg:flex items-center space-x-6">
+              <a href="#services" className="text-sm xl:text-base text-gray-700 hover:text-teal-500 transition-colors font-medium">Services</a>
+              <a href="#about" className="text-sm xl:text-base text-gray-700 hover:text-teal-500 transition-colors font-medium">About</a>
+              <a href="#contact" className="text-sm xl:text-base text-gray-700 hover:text-teal-500 transition-colors font-medium">Contact</a>
               <Button 
                 onClick={() => navigate('/signup')} 
                 variant="outline"
-                className="border-2 border-teal-500 text-teal-500 hover:bg-teal-50 rounded-full px-4 lg:px-6"
+                className="border-2 border-teal-500 text-teal-500 hover:bg-teal-50 rounded-full px-4 xl:px-6 text-sm xl:text-base"
                 data-testid="nav-signup-btn"
               >
                 Sign Up
               </Button>
               <Button 
                 onClick={() => navigate('/login')} 
-                className="bg-teal-500 hover:bg-teal-600 text-white rounded-full px-4 lg:px-6"
+                className="bg-teal-500 hover:bg-teal-600 text-white rounded-full px-4 xl:px-6 text-sm xl:text-base"
                 data-testid="nav-login-btn"
               >
                 Login
               </Button>
             </div>
-            {/* Mobile menu button */}
-            <div className="md:hidden flex items-center gap-2">
-              <Button 
-                onClick={() => navigate('/login')} 
+
+            {/* Mobile Menu Button */}
+            <div className="lg:hidden flex items-center gap-2">
+              <Button
+                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                variant="ghost"
                 size="sm"
-                className="bg-teal-500 hover:bg-teal-600 text-white rounded-full px-4"
+                className="p-2"
+                data-testid="mobile-menu-btn"
               >
-                Login
+                {mobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
               </Button>
             </div>
           </div>
+
+          {/* Mobile Menu */}
+          {mobileMenuOpen && (
+            <div className="lg:hidden py-4 border-t animate-fade-in" data-testid="mobile-menu">
+              <div className="flex flex-col space-y-3">
+                <a 
+                  href="#services" 
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="text-gray-700 hover:text-teal-500 transition-colors font-medium py-2 px-4 rounded-lg hover:bg-teal-50"
+                >
+                  Services
+                </a>
+                <a 
+                  href="#about" 
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="text-gray-700 hover:text-teal-500 transition-colors font-medium py-2 px-4 rounded-lg hover:bg-teal-50"
+                >
+                  About
+                </a>
+                <a 
+                  href="#contact" 
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="text-gray-700 hover:text-teal-500 transition-colors font-medium py-2 px-4 rounded-lg hover:bg-teal-50"
+                >
+                  Contact
+                </a>
+                <Button 
+                  onClick={() => { navigate('/signup'); setMobileMenuOpen(false); }} 
+                  variant="outline"
+                  className="border-2 border-teal-500 text-teal-500 hover:bg-teal-50 rounded-full w-full"
+                >
+                  Sign Up
+                </Button>
+                <Button 
+                  onClick={() => { navigate('/login'); setMobileMenuOpen(false); }} 
+                  className="bg-teal-500 hover:bg-teal-600 text-white rounded-full w-full"
+                >
+                  Login
+                </Button>
+              </div>
+            </div>
+          )}
         </div>
       </nav>
 
