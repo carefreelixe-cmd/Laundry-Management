@@ -70,7 +70,7 @@ function DashboardLayout({ children }) {
                 <img 
                   src="https://customer-assets.emergentagent.com/job_washdash-1/artifacts/ed664txa_Screenshot%202025-10-14%20121020.png"
                   alt="Infinite Laundry Solutions Logo"
-                  className="h-12 w-auto"
+                  className="h-10 sm:h-12 w-auto"
                 />
               </div>
             </div>
