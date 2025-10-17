@@ -311,12 +311,16 @@ async def public_signup(user: UserCreate):
     
     await db.pending_users.insert_one(pending_user)
     
-    # Send OTP email
-    send_otp_email(user.email, otp, user.full_name)
+    # Send OTP via both email and SMS
+    email_sent = send_otp_email(user.email, otp, user.full_name)
+    sms_sent = False
+    if user.phone:
+        sms_sent = send_sms_otp(user.phone, otp, user.full_name)
     
     return {
-        "message": "OTP sent to your email. Please verify to complete registration.",
-        "email": user.email
+        "message": "OTP sent to your email" + (" and phone" if sms_sent and user.phone else "") + ". Please verify to complete registration.",
+        "email": user.email,
+        "phone": user.phone if user.phone else None
     }
 
 @api_router.post("/auth/verify-otp")
