@@ -86,6 +86,7 @@ function App() {
           <Routes>
             <Route path="/" element={<LandingPage />} />
             <Route path="/login" element={user ? <Navigate to={`/dashboard/${user.role}`} /> : <LoginPage />} />
+            <Route path="/signup" element={user ? <Navigate to={`/dashboard/${user.role}`} /> : <SignupPage />} />
             <Route
               path="/dashboard/owner"
               element={
