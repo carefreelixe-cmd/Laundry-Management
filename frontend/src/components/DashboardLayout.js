@@ -57,25 +57,25 @@ function DashboardLayout({ children }) {
       {/* Top Navigation */}
       <nav className="bg-white border-b border-gray-200 fixed w-full z-30">
         <div className="px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center">
+          <div className="flex justify-between items-center h-14 sm:h-16">
+            <div className="flex items-center min-w-0">
               <button
                 onClick={() => setSidebarOpen(!sidebarOpen)}
-                className="text-gray-500 hover:text-gray-700 mr-4"
+                className="text-gray-500 hover:text-gray-700 mr-2 sm:mr-4 flex-shrink-0"
                 data-testid="toggle-sidebar-btn"
               >
-                {sidebarOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+                {sidebarOpen ? <X className="w-5 h-5 sm:w-6 sm:h-6" /> : <Menu className="w-5 h-5 sm:w-6 sm:h-6" />}
               </button>
-              <div className="flex items-center space-x-3">
+              <div className="flex items-center space-x-2 sm:space-x-3 min-w-0">
                 <img 
                   src="https://customer-assets.emergentagent.com/job_washdash-1/artifacts/ed664txa_Screenshot%202025-10-14%20121020.png"
                   alt="Infinite Laundry Solutions Logo"
-                  className="h-10 sm:h-12 w-auto"
+                  className="h-8 sm:h-10 md:h-12 w-auto flex-shrink-0"
                 />
               </div>
             </div>
 
-            <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-2 sm:space-x-4">
               {/* Notifications */}
               <div className="relative">
                 <button
@@ -83,9 +83,9 @@ function DashboardLayout({ children }) {
                   className="relative p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-full"
                   data-testid="notifications-btn"
                 >
-                  <Bell className="w-6 h-6" />
+                  <Bell className="w-5 h-5 sm:w-6 sm:h-6" />
                   {unreadCount > 0 && (
-                    <span className="notification-badge" data-testid="notification-count">{unreadCount}</span>
+                    <span className="notification-badge text-[10px] sm:text-xs" data-testid="notification-count">{unreadCount}</span>
                   )}
                 </button>
 
