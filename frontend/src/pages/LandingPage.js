@@ -100,6 +100,14 @@ function LandingPage() {
               <a href="#about" className="text-gray-700 hover:text-teal-500 transition-colors font-medium">About</a>
               <a href="#contact" className="text-gray-700 hover:text-teal-500 transition-colors font-medium">Contact</a>
               <Button 
+                onClick={() => navigate('/signup')} 
+                variant="outline"
+                className="border-2 border-teal-500 text-teal-500 hover:bg-teal-50 rounded-full px-6"
+                data-testid="nav-signup-btn"
+              >
+                Sign Up
+              </Button>
+              <Button 
                 onClick={() => navigate('/login')} 
                 className="bg-teal-500 hover:bg-teal-600 text-white rounded-full px-6"
                 data-testid="nav-login-btn"
