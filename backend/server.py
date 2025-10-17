@@ -360,8 +360,10 @@ async def verify_otp(data: OTPVerify):
     # Delete pending user
     await db.pending_users.delete_one({"email": data.email})
     
-    # Send welcome email
+    # Send welcome messages
     send_welcome_email(data.email, pending_user['full_name'])
+    if pending_user.get('phone'):
+        send_welcome_sms(pending_user['phone'], pending_user['full_name'])
     
     return {
         "message": "Email verified successfully! You can now log in.",
