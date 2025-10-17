@@ -92,25 +92,35 @@ function LandingPage() {
               <img 
                 src="https://customer-assets.emergentagent.com/job_washdash-1/artifacts/ed664txa_Screenshot%202025-10-14%20121020.png"
                 alt="Infinite Laundry Solutions Logo"
-                className="h-16 w-auto"
+                className="h-12 sm:h-14 md:h-16 w-auto"
               />
             </div>
-            <div className="hidden md:flex items-center space-x-8">
+            <div className="hidden md:flex items-center space-x-4 lg:space-x-8">
               <a href="#services" className="text-gray-700 hover:text-teal-500 transition-colors font-medium">Services</a>
               <a href="#about" className="text-gray-700 hover:text-teal-500 transition-colors font-medium">About</a>
               <a href="#contact" className="text-gray-700 hover:text-teal-500 transition-colors font-medium">Contact</a>
               <Button 
                 onClick={() => navigate('/signup')} 
                 variant="outline"
-                className="border-2 border-teal-500 text-teal-500 hover:bg-teal-50 rounded-full px-6"
+                className="border-2 border-teal-500 text-teal-500 hover:bg-teal-50 rounded-full px-4 lg:px-6"
                 data-testid="nav-signup-btn"
               >
                 Sign Up
               </Button>
               <Button 
                 onClick={() => navigate('/login')} 
-                className="bg-teal-500 hover:bg-teal-600 text-white rounded-full px-6"
+                className="bg-teal-500 hover:bg-teal-600 text-white rounded-full px-4 lg:px-6"
                 data-testid="nav-login-btn"
+              >
+                Login
+              </Button>
+            </div>
+            {/* Mobile menu button */}
+            <div className="md:hidden flex items-center gap-2">
+              <Button 
+                onClick={() => navigate('/login')} 
+                size="sm"
+                className="bg-teal-500 hover:bg-teal-600 text-white rounded-full px-4"
               >
                 Login
               </Button>
