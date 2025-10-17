@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Phone, Mail, MapPin, Check, Star, Clock, Shield, Users, Shirt, Sparkles, Wind, Building2, Droplets, Package, TrendingUp } from 'lucide-react';
+import { Phone, Mail, MapPin, Check, Star, Clock, Shield, Users, Shirt, Sparkles, Wind, Building2, Droplets, Package, TrendingUp, Menu, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
