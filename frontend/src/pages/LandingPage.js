@@ -102,7 +102,7 @@ function LandingPage() {
             <div className="hidden lg:flex items-center space-x-6">
               <a href="#services" className="text-sm xl:text-base text-gray-700 hover:text-teal-500 transition-colors font-medium">Services</a>
               <a href="#about" className="text-sm xl:text-base text-gray-700 hover:text-teal-500 transition-colors font-medium">About</a>
-              <a href="#contact" className="text-sm xl:text-base text-gray-700 hover:text-teal-500 transition-colors font-medium">Contacts</a>
+              <a href="#contact" className="text-sm xl:text-base text-gray-700 hover:text-teal-500 transition-colors font-medium">Contact</a>
               <Button 
                 onClick={() => navigate('/signup')} 
                 variant="outline"
