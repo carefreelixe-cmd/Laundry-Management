@@ -90,9 +90,9 @@ function SignupPage() {
           data-testid="back-home-btn"
         >
           <img 
-            src="https://customer-assets.emergentagent.com/job_washdash-1/artifacts/ed664txa_Screenshot%202025-10-14%20121020.png"
+            src="/assets/logo.png"
             alt="Infinite Laundry Solutions Logo"
-            className="h-10 sm:h-12 md:h-14 lg:h-16 w-auto"
+            className="h-14 lg:h-16 w-auto"
           />
         </button>
       </div>

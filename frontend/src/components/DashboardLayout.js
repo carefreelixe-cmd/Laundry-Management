@@ -68,9 +68,9 @@ function DashboardLayout({ children }) {
               </button>
               <div className="flex items-center space-x-2 sm:space-x-3 min-w-0">
                 <img 
-                  src="https://customer-assets.emergentagent.com/job_washdash-1/artifacts/ed664txa_Screenshot%202025-10-14%20121020.png"
+                  src="/assets/logo.png"
                   alt="Infinite Laundry Solutions Logo"
-                  className="h-8 sm:h-10 md:h-12 w-auto flex-shrink-0"
+                  className="h-14 w-auto flex-shrink-0"
                 />
               </div>
             </div>
