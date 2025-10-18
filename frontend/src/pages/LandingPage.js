@@ -195,7 +195,7 @@ function LandingPage() {
               <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center lg:justify-start px-2 sm:px-0">
                 <Button 
                   size="lg" 
-                  className="bg-teal-500 hover:bg-teal-600 text-white text-base sm:text-lg px-6 sm:px-8 py-5 sm:py-6 rounded-full shadow-lg hover:shadow-xl transition-all w-full sm:w-auto"
+                  className="bg-teal-500 hover:bg-teal-600 text-white text-base sm:text-lg px-6 sm:px-8 py-7  rounded-full shadow-lg hover:shadow-xl transition-all w-full sm:w-auto"
                   onClick={() => navigate('/login')}
                   data-testid="hero-book-pickup-btn"
                 >
@@ -204,7 +204,7 @@ function LandingPage() {
                 <Button 
                   size="lg" 
                   variant="outline" 
-                  className="border-2 border-teal-500 text-teal-500 hover:bg-teal-50 text-base sm:text-lg px-6 sm:px-8 py-5 sm:py-6 rounded-full w-full sm:w-auto"
+                  className="border-2 border-teal-500 text-teal-500 hover:bg-teal-50 text-base sm:text-lg px-6 sm:px-8 py-7 rounded-full w-full sm:w-auto"
                   onClick={() => document.getElementById('services').scrollIntoView({ behavior: 'smooth' })}
                 >
                   View Services
