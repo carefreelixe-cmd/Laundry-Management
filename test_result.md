@@ -264,77 +264,89 @@ backend:
         comment: "Notification system working correctly. Notifications properly stored in database and accessible via API. Order creation/updates trigger notifications for all relevant parties (customer, owner, admin). Socket.io integration functional. Email notifications configured (requires SMTP setup for production)."
 
 frontend:
-  - task: "Owner SKU management dashboard"
-    implemented: false
-    working: "NA"
-    file: ""
-    stuck_count: 0
-    priority: "high"
-    needs_retesting: false
-    status_history:
-      - working: "NA"
-        agent: "main"
-        comment: "Not yet implemented. Needs UI for creating/managing SKUs"
-  
   - task: "Owner customer-specific pricing dashboard"
-    implemented: false
+    implemented: true
     working: "NA"
-    file: ""
+    file: "/app/frontend/src/pages/OwnerDashboard.js"
     stuck_count: 0
     priority: "high"
-    needs_retesting: false
+    needs_retesting: true
     status_history:
       - working: "NA"
         agent: "main"
-        comment: "Not yet implemented. Needs UI for setting customer-specific pricing"
+        comment: "Implemented Customer Pricing tab in OwnerDashboard. Features: Select customer dropdown, view SKUs with base/custom prices, add/delete custom pricing for specific customers. Integrated with /api/customer-pricing and /api/skus-with-pricing APIs."
   
   - task: "Owner frequency template management"
-    implemented: false
+    implemented: true
     working: "NA"
-    file: ""
+    file: "/app/frontend/src/pages/OwnerDashboard.js"
     stuck_count: 0
     priority: "high"
-    needs_retesting: false
+    needs_retesting: true
     status_history:
       - working: "NA"
         agent: "main"
-        comment: "Not yet implemented. Needs UI for creating/managing frequency templates"
+        comment: "Implemented Frequency Templates tab in OwnerDashboard. Features: Create/edit/delete templates, select frequency type (daily/weekly/monthly), set frequency value. Integrated with /api/frequency-templates APIs."
   
-  - task: "Customer/Admin recurring order creation form"
-    implemented: false
+  - task: "Admin recurring order creation form"
+    implemented: true
     working: "NA"
-    file: ""
+    file: "/app/frontend/src/pages/AdminDashboard.js"
     stuck_count: 0
     priority: "high"
-    needs_retesting: false
+    needs_retesting: true
     status_history:
       - working: "NA"
         agent: "main"
-        comment: "Not yet implemented. Needs UI for creating recurring orders with frequency selection"
+        comment: "Enhanced AdminDashboard order creation form with recurring support. Added: Toggle switch for recurring orders, frequency template selection, recurrence pattern integration. Order list now shows recurring and lock status badges."
+  
+  - task: "Customer recurring order creation form"
+    implemented: true
+    working: "NA"
+    file: "/app/frontend/src/pages/CustomerDashboard.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Implemented full order creation for customers. Features: Create orders with multiple items, SKU selection with customer-specific pricing, pickup/delivery dates & addresses, recurring toggle with frequency template selection. Uses /api/orders/customer endpoint."
   
   - task: "Socket.io client integration"
-    implemented: false
+    implemented: true
     working: "NA"
-    file: ""
+    file: "/app/frontend/src/contexts/SocketContext.js"
     stuck_count: 0
     priority: "high"
     needs_retesting: false
     status_history:
       - working: "NA"
         agent: "main"
-        comment: "Not yet implemented. Needs socket.io-client integration in React for real-time notifications"
+        comment: "Socket.io client already implemented in SocketContext. Handles real-time notifications, room joining, and toast notifications for order events."
   
   - task: "Order lock status indicator in UI"
-    implemented: false
+    implemented: true
     working: "NA"
-    file: ""
+    file: "/app/frontend/src/pages/CustomerDashboard.js, /app/frontend/src/pages/AdminDashboard.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Implemented lock status badges in both Customer and Admin dashboards. Shows Locked/Editable status with icons. Recurring orders display recurring badge and next occurrence date."
+  
+  - task: "Mark all notifications as read"
+    implemented: true
+    working: "NA"
+    file: "/app/frontend/src/components/DashboardLayout.js"
     stuck_count: 0
     priority: "medium"
     needs_retesting: false
     status_history:
       - working: "NA"
         agent: "main"
-        comment: "Not yet implemented. Needs visual indicators showing lock status and preventing edits on locked orders"
+        comment: "Mark all as read functionality already implemented in DashboardLayout notification dropdown."
 
 metadata:
   created_by: "main_agent"
