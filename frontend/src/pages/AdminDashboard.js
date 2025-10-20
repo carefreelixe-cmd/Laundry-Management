@@ -313,6 +313,44 @@ function AdminDashboard() {
                       <Textarea value={orderForm.special_instructions} onChange={(e) => setOrderForm({ ...orderForm, special_instructions: e.target.value })} data-testid="order-instructions" />
                     </div>
 
+                    <div className="border-t pt-4">
+                      <div className="flex items-center space-x-2 mb-4">
+                        <Switch
+                          checked={orderForm.is_recurring}
+                          onCheckedChange={(checked) => setOrderForm({ ...orderForm, is_recurring: checked })}
+                          data-testid="recurring-switch"
+                        />
+                        <Label className="flex items-center gap-2 cursor-pointer">
+                          <Repeat className="w-4 h-4 text-teal-600" />
+                          Make this a recurring order
+                        </Label>
+                      </div>
+                      
+                      {orderForm.is_recurring && (
+                        <div>
+                          <Label>Select Frequency Template</Label>
+                          <Select 
+                            value={orderForm.frequency_template_id} 
+                            onValueChange={(value) => setOrderForm({ ...orderForm, frequency_template_id: value })}
+                          >
+                            <SelectTrigger data-testid="frequency-template-select">
+                              <SelectValue placeholder="Choose recurring frequency" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {frequencyTemplates.map((template) => (
+                                <SelectItem key={template.id} value={template.id}>
+                                  {template.name} - Every {template.frequency_value} {template.frequency_type}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <p className="text-xs text-gray-500 mt-2">
+                            This order will automatically repeat based on the selected frequency
+                          </p>
+                        </div>
+                      )}
+                    </div>
+
                     <Button type="submit" className="w-full bg-teal-500 hover:bg-teal-600" data-testid="order-submit-btn">Create Order</Button>
                   </form>
                 </DialogContent>
