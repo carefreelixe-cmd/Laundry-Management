@@ -247,15 +247,18 @@ backend:
   
   - task: "Email and Socket.io notification system"
     implemented: true
-    working: "NA"
+    working: true
     file: "backend/server.py"
     stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: "NA"
         agent: "main"
         comment: "Created send_notification() helper that sends both socket and email notifications. Integrated notifications for: order creation, order updates, order locking, recurring order generation. Notifications sent to all relevant parties (customer, owner, admin)"
+      - working: true
+        agent: "testing"
+        comment: "Notification system working correctly. Notifications properly stored in database and accessible via API. Order creation/updates trigger notifications for all relevant parties (customer, owner, admin). Socket.io integration functional. Email notifications configured (requires SMTP setup for production)."
 
 frontend:
   - task: "Owner SKU management dashboard"
