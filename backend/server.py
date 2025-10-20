@@ -146,12 +146,33 @@ class TokenResponse(BaseModel):
 
 class SKUBase(BaseModel):
     name: str
-    category: str
-    price: float
-    unit: str
     description: Optional[str] = None
+    base_price: float
+    category: str
+    quantity: int = 1
 
 class SKU(SKUBase):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+class CustomerPricingBase(BaseModel):
+    customer_id: str
+    sku_id: str
+    custom_price: float
+
+class CustomerPricing(CustomerPricingBase):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+class FrequencyTemplateBase(BaseModel):
+    name: str
+    frequency_type: str  # daily, weekly, monthly, custom
+    frequency_value: int  # e.g., every 2 days, every 3 weeks
+    description: Optional[str] = None
+
+class FrequencyTemplate(FrequencyTemplateBase):
     model_config = ConfigDict(extra="ignore")
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
