@@ -157,15 +157,18 @@ backend:
   
   - task: "Customer-specific pricing model and APIs"
     implemented: true
-    working: "NA"
+    working: true
     file: "backend/server.py"
     stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: "NA"
         agent: "main"
         comment: "Created CustomerPricing model. Added APIs: POST /api/customer-pricing, GET /api/customer-pricing/{customer_id}, GET /api/skus-with-pricing/{customer_id}, DELETE /api/customer-pricing/{pricing_id}"
+      - working: true
+        agent: "testing"
+        comment: "Customer-specific pricing fully functional. All APIs working: create/update pricing, get customer pricing, get SKUs with pricing applied, delete pricing. Pricing calculations correct, custom prices properly override base prices. Update functionality works (no duplicates created)."
   
   - task: "Frequency template model and APIs"
     implemented: true
