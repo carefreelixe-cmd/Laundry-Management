@@ -1098,6 +1098,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Export the socket app as the main app for uvicorn
+# This ensures Socket.io integration works properly
+main_app = socket_app
+
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
