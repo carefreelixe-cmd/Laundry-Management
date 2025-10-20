@@ -29,6 +29,8 @@ async def seed_database():
     await db.deliveries.delete_many({})
     await db.notifications.delete_many({})
     await db.contacts.delete_many({})
+    await db.frequency_templates.delete_many({})
+    await db.customer_pricing.delete_many({})
     print("✅ Cleared existing data")
     
     # Create demo users
@@ -143,6 +145,53 @@ async def seed_database():
     
     await db.skus.insert_many(skus)
     print(f"✅ Created {len(skus)} SKU items")
+    
+    # Create Frequency Templates
+    frequency_templates = [
+        {
+            "id": str(uuid.uuid4()),
+            "name": "Daily Pickup",
+            "frequency_type": "daily",
+            "frequency_value": 1,
+            "description": "Pickup every day",
+            "created_at": datetime.now(timezone.utc).isoformat()
+        },
+        {
+            "id": str(uuid.uuid4()),
+            "name": "Weekly Service",
+            "frequency_type": "weekly",
+            "frequency_value": 1,
+            "description": "Once a week service",
+            "created_at": datetime.now(timezone.utc).isoformat()
+        },
+        {
+            "id": str(uuid.uuid4()),
+            "name": "Bi-Weekly Service",
+            "frequency_type": "weekly",
+            "frequency_value": 2,
+            "description": "Every two weeks",
+            "created_at": datetime.now(timezone.utc).isoformat()
+        },
+        {
+            "id": str(uuid.uuid4()),
+            "name": "Monthly Service",
+            "frequency_type": "monthly",
+            "frequency_value": 1,
+            "description": "Once a month",
+            "created_at": datetime.now(timezone.utc).isoformat()
+        },
+        {
+            "id": str(uuid.uuid4()),
+            "name": "Bi-Monthly Service",
+            "frequency_type": "monthly",
+            "frequency_value": 2,
+            "description": "Every two months",
+            "created_at": datetime.now(timezone.utc).isoformat()
+        }
+    ]
+    
+    await db.frequency_templates.insert_many(frequency_templates)
+    print(f"✅ Created {len(frequency_templates)} frequency templates")
     
     print("\n🎉 Database seeding completed successfully!")
     print("\n📝 Next steps:")

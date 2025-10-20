@@ -60,7 +60,9 @@ function CustomerDashboard() {
           axios.get(`${API}/frequency-templates`)
         ]);
         setOrders(ordersRes.data);
-        setSkus(skusRes.data.map(item => ({ ...item.sku, price: item.pricing ? item.pricing.custom_price : item.sku.base_price })));
+        // Filter to show only SKUs with custom pricing (starred items)
+        const skusWithCustomPricing = skusRes.data.filter(sku => sku.has_custom_pricing);
+        setSkus(skusWithCustomPricing);
         setFrequencyTemplates(templatesRes.data);
       } else if (activeTab === 'cases') {
         const casesRes = await axios.get(`${API}/cases`);
@@ -84,7 +86,7 @@ function CustomerDashboard() {
             sku_id: item.sku_id,
             sku_name: sku.name,
             quantity: parseInt(item.quantity),
-            price: sku.price
+            price: sku.customer_price // All SKUs shown have custom pricing
           };
         })
       };
@@ -184,6 +186,25 @@ function CustomerDashboard() {
     const now = new Date();
     const hoursUntilDelivery = (delivery - now) / (1000 * 60 * 60);
     return hoursUntilDelivery > 8;
+  };
+
+  const formatFrequency = (template) => {
+    const { frequency_type, frequency_value } = template;
+    
+    // Handle common cases with friendly names
+    if (frequency_value === 1) {
+      if (frequency_type === 'daily') return 'Daily';
+      if (frequency_type === 'weekly') return 'Weekly';
+      if (frequency_type === 'monthly') return 'Monthly';
+    }
+    
+    if (frequency_value === 2 && frequency_type === 'weekly') return 'Bi-weekly';
+    if (frequency_value === 2 && frequency_type === 'monthly') return 'Bi-monthly';
+    
+    // Default format for other cases
+    const typeLabel = frequency_type === 'daily' ? 'day(s)' : 
+                     frequency_type === 'weekly' ? 'week(s)' : 'month(s)';
+    return `Every ${frequency_value} ${typeLabel}`;
   };
 
   if (loading) {
@@ -297,8 +318,15 @@ function CustomerDashboard() {
                             </SelectTrigger>
                             <SelectContent>
                               {skus.map(sku => (
-                                <SelectItem key={sku.id} value={sku.id}>{sku.name} (${sku.price})</SelectItem>
+                                <SelectItem key={sku.id} value={sku.id}>
+                                  {sku.name} (${sku.customer_price.toFixed(2)})
+                                </SelectItem>
                               ))}
+                              {skus.length === 0 && (
+                                <div className="p-2 text-sm text-gray-500 text-center">
+                                  No items available. Contact admin to set up pricing.
+                                </div>
+                              )}
                             </SelectContent>
                           </Select>
                           <Input
@@ -370,9 +398,14 @@ function CustomerDashboard() {
                             <SelectContent>
                               {frequencyTemplates.map((template) => (
                                 <SelectItem key={template.id} value={template.id}>
-                                  {template.name} - Every {template.frequency_value} {template.frequency_type}
+                                  {template.name} - {formatFrequency(template)}
                                 </SelectItem>
                               ))}
+                              {frequencyTemplates.length === 0 && (
+                                <div className="p-2 text-sm text-gray-500 text-center">
+                                  No frequency templates available
+                                </div>
+                              )}
                             </SelectContent>
                           </Select>
                           <p className="text-xs text-gray-500 mt-2">

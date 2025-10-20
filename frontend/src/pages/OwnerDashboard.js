@@ -92,8 +92,12 @@ function OwnerDashboard() {
 
   const fetchCustomerPricing = async (customerId) => {
     try {
-      const res = await axios.get(`${API}/skus-with-pricing/${customerId}`);
-      setSkusWithPricing(res.data);
+      const [skusRes, pricingRes] = await Promise.all([
+        axios.get(`${API}/skus-with-pricing/${customerId}`),
+        axios.get(`${API}/customer-pricing/${customerId}`)
+      ]);
+      setSkusWithPricing(skusRes.data);
+      setCustomerPricing(pricingRes.data);
     } catch (error) {
       console.error('Failed to fetch customer pricing', error);
     }
@@ -618,16 +622,20 @@ function OwnerDashboard() {
                 </div>
 
                 <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {skusWithPricing.map((item) => (
-                    <Card key={item.sku.id} className="card-hover">
+                  {skusWithPricing.map((sku) => (
+                    <Card key={sku.id} className="card-hover">
                       <CardHeader>
                         <CardTitle className="flex justify-between items-start">
-                          <span>{item.sku.name}</span>
-                          {item.pricing && (
+                          <span>{sku.name}</span>
+                          {sku.has_custom_pricing && (
                             <button
-                              onClick={() => handleDeletePricing(item.pricing.id)}
+                              onClick={() => {
+                                // Find the pricing ID from customer pricing list
+                                const pricing = customerPricing.find(p => p.sku_id === sku.id);
+                                if (pricing) handleDeletePricing(pricing.id);
+                              }}
                               className="text-red-600 hover:text-red-800"
-                              data-testid={`delete-pricing-${item.pricing.id}`}
+                              data-testid={`delete-pricing-${sku.id}`}
                             >
                               <Trash2 className="w-4 h-4" />
                             </button>
@@ -636,20 +644,21 @@ function OwnerDashboard() {
                       </CardHeader>
                       <CardContent>
                         <div className="space-y-2">
-                          <p className="text-sm text-gray-600">Category: {item.sku.category}</p>
+                          <p className="text-sm text-gray-600">Category: {sku.category}</p>
                           <div className="flex items-center gap-2">
-                            <p className="text-lg text-gray-400 line-through">${item.sku.base_price.toFixed(2)}</p>
-                            {item.pricing && (
-                              <div className="flex items-center gap-1">
-                                <Tag className="w-4 h-4 text-teal-600" />
-                                <p className="text-2xl font-bold text-teal-600">${item.pricing.custom_price.toFixed(2)}</p>
-                              </div>
-                            )}
-                            {!item.pricing && (
-                              <p className="text-2xl font-bold text-gray-900">${item.sku.base_price.toFixed(2)}</p>
+                            {sku.has_custom_pricing ? (
+                              <>
+                                <p className="text-lg text-gray-400 line-through">${sku.price.toFixed(2)}</p>
+                                <div className="flex items-center gap-1">
+                                  <Tag className="w-4 h-4 text-teal-600" />
+                                  <p className="text-2xl font-bold text-teal-600">${sku.customer_price.toFixed(2)}</p>
+                                </div>
+                              </>
+                            ) : (
+                              <p className="text-2xl font-bold text-gray-900">${sku.price.toFixed(2)}</p>
                             )}
                           </div>
-                          <p className="text-sm text-gray-500">{item.sku.unit}</p>
+                          <p className="text-sm text-gray-500">{sku.unit}</p>
                         </div>
                       </CardContent>
                     </Card>
