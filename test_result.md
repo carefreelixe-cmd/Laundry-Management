@@ -202,7 +202,7 @@ backend:
   
   - task: "Recurring order creation endpoint"
     implemented: true
-    working: false
+    working: true
     file: "backend/server.py"
     stuck_count: 0
     priority: "high"
@@ -214,6 +214,9 @@ backend:
       - working: false
         agent: "testing"
         comment: "Admin/Owner recurring order creation works perfectly. Customer recurring order creation has API design issue - requires customer_id, customer_name, customer_email in request body but should auto-populate from JWT token. POST /api/orders works, POST /api/orders/customer needs fix."
+      - working: true
+        agent: "main"
+        comment: "Fixed POST /api/orders/customer endpoint. Created new CustomerOrderCreate model that doesn't require customer info. The endpoint now auto-populates customer_id, customer_name, and customer_email from JWT token."
   
   - task: "Recurring orders list and cancel endpoints"
     implemented: true
