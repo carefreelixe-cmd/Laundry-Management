@@ -798,6 +798,230 @@ logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
+
+# Socket.io Event Handlers
+@sio.event
+async def connect(sid, environ):
+    logging.info(f"Client connected: {sid}")
+    await sio.emit('connected', {'message': 'Connected to Clienty server'}, to=sid)
+
+@sio.event
+async def disconnect(sid):
+    logging.info(f"Client disconnected: {sid}")
+
+@sio.event
+async def join_room(sid, data):
+    """Join a room based on user_id for targeted notifications"""
+    user_id = data.get('user_id')
+    if user_id:
+        sio.enter_room(sid, user_id)
+        logging.info(f"Client {sid} joined room {user_id}")
+        await sio.emit('room_joined', {'room': user_id}, to=sid)
+
+# Scheduled Tasks
+async def lock_orders_job():
+    """Lock orders that are older than 8 hours and not yet locked"""
+    try:
+        current_time = datetime.now(timezone.utc)
+        cutoff_time = current_time - timedelta(hours=8)
+        
+        # Find orders that need to be locked
+        orders_to_lock = await db.orders.find({
+            "is_locked": {"$ne": True},
+            "created_at": {"$lt": cutoff_time.isoformat()}
+        }).to_list(length=None)
+        
+        for order in orders_to_lock:
+            # Lock the order
+            await db.orders.update_one(
+                {"id": order["id"]},
+                {
+                    "$set": {
+                        "is_locked": True,
+                        "locked_at": current_time.isoformat()
+                    }
+                }
+            )
+            
+            # Send notifications
+            await notify_order_locked(order)
+            
+        if orders_to_lock:
+            logging.info(f"Locked {len(orders_to_lock)} orders")
+    except Exception as e:
+        logging.error(f"Error in lock_orders_job: {str(e)}")
+
+async def generate_recurring_orders_job():
+    """Generate recurring orders based on schedule"""
+    try:
+        current_date = datetime.now(timezone.utc).date()
+        
+        # Find recurring orders that need to be generated
+        recurring_orders = await db.orders.find({
+            "is_recurring": True,
+            "next_occurrence_date": current_date.isoformat()
+        }).to_list(length=None)
+        
+        for template_order in recurring_orders:
+            # Create new order based on template
+            await create_order_from_template(template_order)
+            
+        if recurring_orders:
+            logging.info(f"Generated {len(recurring_orders)} recurring orders")
+    except Exception as e:
+        logging.error(f"Error in generate_recurring_orders_job: {str(e)}")
+
+# Notification Helper Functions
+async def notify_order_locked(order):
+    """Send notifications when an order is locked"""
+    try:
+        # Get all owners and admins
+        owners = await db.users.find({"role": "owner"}).to_list(length=None)
+        admins = await db.users.find({"role": "admin"}).to_list(length=None)
+        
+        # Get customer
+        customer = await db.users.find_one({"id": order["customer_id"]})
+        
+        notification_message = f"Order #{order['order_number']} has been automatically locked after 8 hours"
+        
+        # Notify customer
+        if customer:
+            await send_notification(
+                user_id=customer['id'],
+                email=customer['email'],
+                title="Order Locked",
+                message=notification_message,
+                notif_type="order_locked"
+            )
+        
+        # Notify owners and admins
+        for user in owners + admins:
+            await send_notification(
+                user_id=user['id'],
+                email=user['email'],
+                title="Order Locked",
+                message=notification_message,
+                notif_type="order_locked"
+            )
+    except Exception as e:
+        logging.error(f"Error in notify_order_locked: {str(e)}")
+
+async def send_notification(user_id: str, email: str, title: str, message: str, notif_type: str):
+    """Send both socket and email notifications"""
+    try:
+        # Store notification in database
+        notif = Notification(
+            user_id=user_id,
+            title=title,
+            message=message,
+            type=notif_type
+        )
+        doc = notif.model_dump()
+        doc['created_at'] = doc['created_at'].isoformat()
+        await db.notifications.insert_one(doc)
+        
+        # Send socket notification
+        await sio.emit('notification', {
+            'id': notif.id,
+            'title': title,
+            'message': message,
+            'type': notif_type,
+            'created_at': doc['created_at']
+        }, room=user_id)
+        
+        # Send email notification
+        send_email(email, title, f"<p>{message}</p>")
+    except Exception as e:
+        logging.error(f"Error in send_notification: {str(e)}")
+
+async def create_order_from_template(template_order):
+    """Create a new order from a recurring order template"""
+    try:
+        # Create new order
+        new_order = Order(
+            customer_id=template_order['customer_id'],
+            customer_name=template_order['customer_name'],
+            customer_email=template_order['customer_email'],
+            items=template_order['items'],
+            pickup_date=template_order['pickup_date'],
+            delivery_date=template_order['delivery_date'],
+            pickup_address=template_order['pickup_address'],
+            delivery_address=template_order['delivery_address'],
+            special_instructions=template_order.get('special_instructions'),
+            order_number=f"ORD-{datetime.now(timezone.utc).strftime('%Y%m%d')}-{str(uuid.uuid4())[:8].upper()}",
+            total_amount=template_order['total_amount'],
+            created_by='system_recurring',
+            is_recurring=False  # The generated order is not recurring itself
+        )
+        
+        doc = new_order.model_dump()
+        doc['created_at'] = doc['created_at'].isoformat()
+        doc['updated_at'] = doc['updated_at'].isoformat()
+        doc['is_locked'] = False
+        await db.orders.insert_one(doc)
+        
+        # Update next occurrence date in template
+        recurrence = template_order.get('recurrence_pattern', {})
+        frequency_type = recurrence.get('frequency_type')
+        frequency_value = recurrence.get('frequency_value', 1)
+        
+        next_date = datetime.fromisoformat(template_order['next_occurrence_date'])
+        if frequency_type == 'daily':
+            next_date = next_date + timedelta(days=frequency_value)
+        elif frequency_type == 'weekly':
+            next_date = next_date + timedelta(weeks=frequency_value)
+        elif frequency_type == 'monthly':
+            next_date = next_date + timedelta(days=30 * frequency_value)
+        
+        await db.orders.update_one(
+            {"id": template_order['id']},
+            {"$set": {"next_occurrence_date": next_date.date().isoformat()}}
+        )
+        
+        # Send notification to customer
+        customer = await db.users.find_one({"id": template_order['customer_id']})
+        if customer:
+            await send_notification(
+                user_id=customer['id'],
+                email=customer['email'],
+                title="Recurring Order Generated",
+                message=f"Your recurring order #{new_order.order_number} has been automatically created",
+                notif_type="order_created"
+            )
+    except Exception as e:
+        logging.error(f"Error in create_order_from_template: {str(e)}")
+
+# Application Lifecycle Events
+@app.on_event("startup")
+async def startup_event():
+    logging.info("Starting up Clienty server...")
+    
+    # Start the scheduler
+    scheduler.start()
+    
+    # Schedule the order locking job (runs every hour)
+    scheduler.add_job(
+        lock_orders_job,
+        IntervalTrigger(hours=1),
+        id='lock_orders',
+        replace_existing=True
+    )
+    
+    # Schedule recurring orders job (runs daily at midnight)
+    scheduler.add_job(
+        generate_recurring_orders_job,
+        CronTrigger(hour=0, minute=0),
+        id='generate_recurring_orders',
+        replace_existing=True
+    )
+    
+    logging.info("Scheduler started with jobs: lock_orders, generate_recurring_orders")
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    logging.info("Shutting down Clienty server...")
+    scheduler.shutdown()
+    logging.info("Scheduler stopped")
 logger = logging.getLogger(__name__)
 
 @app.on_event("shutdown")
