@@ -702,7 +702,7 @@ async def create_order(order: OrderBase, current_user: dict = Depends(require_ro
     return order_obj
 
 @api_router.post("/orders/customer", response_model=Order)
-async def create_customer_order(order: OrderBase, current_user: dict = Depends(require_role(["customer"]))):
+async def create_customer_order(order: CustomerOrderCreate, current_user: dict = Depends(require_role(["customer"]))):
     """Allow customers to create their own orders"""
     # Generate order number
     count = await db.orders.count_documents({}) + 1
