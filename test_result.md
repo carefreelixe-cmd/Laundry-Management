@@ -169,6 +169,9 @@ backend:
       - working: true
         agent: "testing"
         comment: "Customer-specific pricing fully functional. All APIs working: create/update pricing, get customer pricing, get SKUs with pricing applied, delete pricing. Pricing calculations correct, custom prices properly override base prices. Update functionality works (no duplicates created)."
+      - working: true
+        agent: "testing"
+        comment: "✅ COMPREHENSIVE TESTING COMPLETED: All customer pricing APIs working perfectly. POST /api/customer-pricing (create/update) ✅, GET /api/skus-with-pricing/{customer_id} ✅, DELETE /api/customer-pricing/{pricing_id} ✅. Custom pricing correctly applied and overrides base prices. Update functionality prevents duplicates."
   
   - task: "Frequency template model and APIs"
     implemented: true
