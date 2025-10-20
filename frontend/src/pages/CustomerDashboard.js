@@ -273,7 +273,120 @@ function CustomerDashboard() {
         {/* Orders Tab */}
         {activeTab === 'orders' && (
           <div>
-            <h2 className="text-2xl font-bold text-gray-900 mb-6">My Orders</h2>
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-2xl font-bold text-gray-900">My Orders</h2>
+              <Dialog open={showOrderDialog} onOpenChange={setShowOrderDialog}>
+                <DialogTrigger asChild>
+                  <Button className="bg-teal-500 hover:bg-teal-600" data-testid="customer-create-order-btn">
+                    <Plus className="w-4 h-4 mr-2" />
+                    Create Order
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+                  <DialogHeader>
+                    <DialogTitle>Create New Order</DialogTitle>
+                  </DialogHeader>
+                  <form onSubmit={handleCreateOrder} className="space-y-4">
+                    <div>
+                      <Label>Order Items</Label>
+                      {orderItems.map((item, index) => (
+                        <div key={index} className="flex gap-2 mb-2">
+                          <Select value={item.sku_id} onValueChange={(value) => updateOrderItem(index, 'sku_id', value)} required>
+                            <SelectTrigger className="flex-1">
+                              <SelectValue placeholder="Select item" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {skus.map(sku => (
+                                <SelectItem key={sku.id} value={sku.id}>{sku.name} (${sku.price})</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <Input
+                            type="number"
+                            min="1"
+                            value={item.quantity}
+                            onChange={(e) => updateOrderItem(index, 'quantity', e.target.value)}
+                            className="w-20"
+                            placeholder="Qty"
+                            required
+                          />
+                          {orderItems.length > 1 && (
+                            <Button type="button" variant="destructive" onClick={() => removeOrderItem(index)}>Remove</Button>
+                          )}
+                        </div>
+                      ))}
+                      <Button type="button" variant="outline" onClick={addOrderItem} className="mt-2">Add Item</Button>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label>Pickup Date</Label>
+                        <Input type="datetime-local" value={orderForm.pickup_date} onChange={(e) => setOrderForm({ ...orderForm, pickup_date: e.target.value })} required data-testid="customer-pickup-date" />
+                      </div>
+                      <div>
+                        <Label>Delivery Date</Label>
+                        <Input type="datetime-local" value={orderForm.delivery_date} onChange={(e) => setOrderForm({ ...orderForm, delivery_date: e.target.value })} required data-testid="customer-delivery-date" />
+                      </div>
+                    </div>
+
+                    <div>
+                      <Label>Pickup Address</Label>
+                      <Input value={orderForm.pickup_address} onChange={(e) => setOrderForm({ ...orderForm, pickup_address: e.target.value })} required data-testid="customer-pickup-address" />
+                    </div>
+
+                    <div>
+                      <Label>Delivery Address</Label>
+                      <Input value={orderForm.delivery_address} onChange={(e) => setOrderForm({ ...orderForm, delivery_address: e.target.value })} required data-testid="customer-delivery-address" />
+                    </div>
+
+                    <div>
+                      <Label>Special Instructions</Label>
+                      <Textarea value={orderForm.special_instructions} onChange={(e) => setOrderForm({ ...orderForm, special_instructions: e.target.value })} data-testid="customer-instructions" />
+                    </div>
+
+                    <div className="border-t pt-4">
+                      <div className="flex items-center space-x-2 mb-4">
+                        <Switch
+                          checked={orderForm.is_recurring}
+                          onCheckedChange={(checked) => setOrderForm({ ...orderForm, is_recurring: checked })}
+                          data-testid="customer-recurring-switch"
+                        />
+                        <Label className="flex items-center gap-2 cursor-pointer">
+                          <Repeat className="w-4 h-4 text-teal-600" />
+                          Make this a recurring order
+                        </Label>
+                      </div>
+                      
+                      {orderForm.is_recurring && (
+                        <div>
+                          <Label>Select Frequency Template</Label>
+                          <Select 
+                            value={orderForm.frequency_template_id} 
+                            onValueChange={(value) => setOrderForm({ ...orderForm, frequency_template_id: value })}
+                          >
+                            <SelectTrigger data-testid="customer-frequency-template-select">
+                              <SelectValue placeholder="Choose recurring frequency" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {frequencyTemplates.map((template) => (
+                                <SelectItem key={template.id} value={template.id}>
+                                  {template.name} - Every {template.frequency_value} {template.frequency_type}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <p className="text-xs text-gray-500 mt-2">
+                            This order will automatically repeat based on the selected frequency
+                          </p>
+                        </div>
+                      )}
+                    </div>
+
+                    <Button type="submit" className="w-full bg-teal-500 hover:bg-teal-600" data-testid="customer-order-submit-btn">Create Order</Button>
+                  </form>
+                </DialogContent>
+              </Dialog>
+            </div>
             <div className="grid gap-4" data-testid="customer-orders-list">
               {orders.map((order) => (
                 <Card key={order.id} className="card-hover">
