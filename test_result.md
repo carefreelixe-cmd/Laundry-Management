@@ -187,15 +187,18 @@ backend:
   
   - task: "Enhanced Order model with recurring and locking fields"
     implemented: true
-    working: "NA"
+    working: true
     file: "backend/server.py"
     stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: "NA"
         agent: "main"
         comment: "Updated Order model to include: is_recurring (bool), recurrence_pattern (dict), next_occurrence_date (str), is_locked (bool), locked_at (datetime)"
+      - working: true
+        agent: "testing"
+        comment: "Enhanced Order model working correctly. All new fields present and functional: is_recurring, recurrence_pattern, next_occurrence_date, is_locked, locked_at. Order creation properly calculates next occurrence dates for different frequency types."
   
   - task: "Recurring order creation endpoint"
     implemented: true
