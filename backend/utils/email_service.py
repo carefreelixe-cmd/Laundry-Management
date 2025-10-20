@@ -154,3 +154,64 @@ def send_welcome_email(to_email: str, full_name: str) -> bool:
     except Exception as e:
         logger.error(f"Failed to send welcome email: {str(e)}")
         return False
+
+def send_email(to_email: str, subject: str, html_content: str) -> bool:
+    """
+    Send a general email notification
+    """
+    try:
+        gmail_user = os.environ.get('GMAIL_USER')
+        gmail_password = os.environ.get('GMAIL_PASSWORD')
+        
+        if not gmail_user or not gmail_password:
+            logger.warning("Gmail credentials not configured. Email not sent.")
+            logger.info(f"Email to {to_email}: {subject}")
+            return True  # Return True for development
+        
+        html_body = f"""
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <style>
+                body {{ font-family: Arial, sans-serif; line-height: 1.6; color: #333; }}
+                .container {{ max-width: 600px; margin: 0 auto; padding: 20px; }}
+                .header {{ background: linear-gradient(135deg, #40E0D0 0%, #2ec4b6 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }}
+                .content {{ background: #ffffff; padding: 30px; border: 1px solid #e0e0e0; border-top: none; white-space: pre-line; }}
+                .footer {{ text-align: center; padding: 20px; color: #666; font-size: 12px; }}
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <div class="header">
+                    <h1>Infinite Laundry Solutions</h1>
+                </div>
+                <div class="content">
+                    {html_content}
+                </div>
+                <div class="footer">
+                    <p>&copy; 2025 Infinite Laundry Solutions. All rights reserved.</p>
+                    <p>Australia's trusted laundry service provider</p>
+                </div>
+            </div>
+        </body>
+        </html>
+        """
+        
+        msg = MIMEMultipart('alternative')
+        msg['From'] = gmail_user
+        msg['To'] = to_email
+        msg['Subject'] = subject
+        msg.attach(MIMEText(html_body, 'html'))
+        
+        server = smtplib.SMTP('smtp.gmail.com', 587)
+        server.starttls()
+        server.login(gmail_user, gmail_password)
+        server.send_message(msg)
+        server.quit()
+        
+        logger.info(f"Email sent successfully to {to_email}: {subject}")
+        return True
+        
+    except Exception as e:
+        logger.error(f"Failed to send email to {to_email}: {str(e)}")
+        return False

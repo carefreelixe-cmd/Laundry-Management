@@ -182,9 +182,20 @@ function CustomerDashboard() {
   };
 
   const canModifyOrder = (createdAt) => {
+    if (!createdAt) return false;
+    
     const created = new Date(createdAt);
     const now = new Date();
+    
+    // Check if date is valid
+    if (isNaN(created.getTime())) {
+      console.error('Invalid created_at date:', createdAt);
+      return false;
+    }
+    
     const hoursSinceCreation = (now - created) / (1000 * 60 * 60);
+    console.log('Hours since creation:', hoursSinceCreation, 'Can edit:', hoursSinceCreation < 8);
+    
     return hoursSinceCreation < 8;
   };
 
