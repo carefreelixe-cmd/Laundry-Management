@@ -21,9 +21,11 @@ function CustomerDashboard() {
   const [skus, setSkus] = useState([]);
   const [frequencyTemplates, setFrequencyTemplates] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
   
   // Order form
   const [showOrderDialog, setShowOrderDialog] = useState(false);
+  const [editingOrderId, setEditingOrderId] = useState(null);
   const [orderForm, setOrderForm] = useState({
     items: [],
     pickup_date: '',
@@ -77,6 +79,9 @@ function CustomerDashboard() {
 
   const handleCreateOrder = async (e) => {
     e.preventDefault();
+    if (submitting) return; // Prevent duplicate submissions
+    
+    setSubmitting(true);
     try {
       const formData = {
         ...orderForm,
@@ -118,6 +123,75 @@ function CustomerDashboard() {
     } catch (error) {
       console.error('Failed to create order:', error);
       toast.error(error.response?.data?.detail || 'Failed to create order. Please try again.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleEditOrder = (order) => {
+    setEditingOrderId(order.id);
+    setOrderForm({
+      pickup_date: order.pickup_date,
+      delivery_date: order.delivery_date,
+      pickup_address: order.pickup_address,
+      delivery_address: order.delivery_address,
+      special_instructions: order.special_instructions || '',
+      is_recurring: order.is_recurring || false,
+      frequency_template_id: order.frequency_template_id || ''
+    });
+    setOrderItems(order.items.map(item => ({
+      sku_id: item.sku_id,
+      sku_name: item.sku_name,
+      quantity: item.quantity,
+      price: item.price
+    })));
+    setShowOrderDialog(true);
+  };
+
+  const handleUpdateOrder = async (e) => {
+    e.preventDefault();
+    if (submitting) return; // Prevent duplicate submissions
+    
+    setSubmitting(true);
+    try {
+      const formData = {
+        pickup_date: orderForm.pickup_date,
+        delivery_date: orderForm.delivery_date,
+        pickup_address: orderForm.pickup_address,
+        delivery_address: orderForm.delivery_address,
+        special_instructions: orderForm.special_instructions,
+        items: orderItems.map(item => {
+          const sku = skus.find(s => s.id === item.sku_id);
+          return {
+            sku_id: item.sku_id,
+            sku_name: sku.name,
+            quantity: parseInt(item.quantity),
+            price: sku.customer_price
+          };
+        })
+      };
+      
+      await axios.put(`${API}/orders/${editingOrderId}`, formData);
+      setShowOrderDialog(false);
+      setEditingOrderId(null);
+      setOrderForm({
+        items: [],
+        pickup_date: '',
+        delivery_date: '',
+        pickup_address: '',
+        delivery_address: '',
+        special_instructions: '',
+        is_recurring: false,
+        frequency_template_id: ''
+      });
+      setOrderItems([{ sku_id: '', sku_name: '', quantity: 1, price: 0 }]);
+      toast.success('Order updated successfully!');
+      fetchData();
+    } catch (error) {
+      console.error('Failed to update order:', error);
+      toast.error(error.response?.data?.detail || 'Failed to update order. This order may be locked.');
+    } finally {
+      setSubmitting(false); // Reset submitting state
     }
   };
 
@@ -307,18 +381,34 @@ function CustomerDashboard() {
           <div>
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-2xl font-bold text-gray-900">My Orders</h2>
-              <Dialog open={showOrderDialog} onOpenChange={setShowOrderDialog}>
+              <Dialog open={showOrderDialog} onOpenChange={(open) => {
+                setShowOrderDialog(open);
+                if (!open) {
+                  setEditingOrderId(null);
+                  setOrderForm({
+                    items: [],
+                    pickup_date: '',
+                    delivery_date: '',
+                    pickup_address: '',
+                    delivery_address: '',
+                    special_instructions: '',
+                    is_recurring: false,
+                    frequency_template_id: ''
+                  });
+                  setOrderItems([{ sku_id: '', sku_name: '', quantity: 1, price: 0 }]);
+                }
+              }}>
                 <DialogTrigger asChild>
-                  <Button className="bg-teal-500 hover:bg-teal-600" data-testid="customer-create-order-btn">
+                  <Button className="bg-teal-500 hover:bg-teal-600" data-testid="customer-create-order-btn" onClick={() => setEditingOrderId(null)}>
                     <Plus className="w-4 h-4 mr-2" />
                     Create Order
                   </Button>
                 </DialogTrigger>
                 <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
                   <DialogHeader>
-                    <DialogTitle>Create New Order</DialogTitle>
+                    <DialogTitle>{editingOrderId ? 'Edit Order' : 'Create New Order'}</DialogTitle>
                   </DialogHeader>
-                  <form onSubmit={handleCreateOrder} className="space-y-4">
+                  <form onSubmit={editingOrderId ? handleUpdateOrder : handleCreateOrder} className="space-y-4">
                     <div>
                       <Label>Order Items</Label>
                       {orderItems.map((item, index) => (
@@ -384,17 +474,19 @@ function CustomerDashboard() {
                     </div>
 
                     <div className="border-t pt-4">
-                      <div className="flex items-center space-x-2 mb-4">
-                        <Switch
-                          checked={orderForm.is_recurring}
-                          onCheckedChange={(checked) => setOrderForm({ ...orderForm, is_recurring: checked })}
-                          data-testid="customer-recurring-switch"
-                        />
-                        <Label className="flex items-center gap-2 cursor-pointer">
-                          <Repeat className="w-4 h-4 text-teal-600" />
-                          Make this a recurring order
-                        </Label>
-                      </div>
+                      {!editingOrderId && (
+                        <div className="flex items-center gap-3">
+                          <Switch
+                            checked={orderForm.is_recurring}
+                            onCheckedChange={(checked) => setOrderForm({ ...orderForm, is_recurring: checked })}
+                            data-testid="customer-recurring-switch"
+                          />
+                          <Label className="flex items-center gap-2 cursor-pointer">
+                            <Repeat className="w-4 h-4 text-teal-600" />
+                            Make this a recurring order
+                          </Label>
+                        </div>
+                      )}
                       
                       {orderForm.is_recurring && (
                         <div>
@@ -426,7 +518,9 @@ function CustomerDashboard() {
                       )}
                     </div>
 
-                    <Button type="submit" className="w-full bg-teal-500 hover:bg-teal-600" data-testid="customer-order-submit-btn">Create Order</Button>
+                    <Button type="submit" className="w-full bg-teal-500 hover:bg-teal-600" data-testid="customer-order-submit-btn">
+                      {editingOrderId ? 'Update Order' : 'Create Order'}
+                    </Button>
                   </form>
                 </DialogContent>
               </Dialog>
@@ -474,9 +568,7 @@ function CustomerDashboard() {
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => {
-                              toast.info('Edit order functionality coming soon!');
-                            }}
+                            onClick={() => handleEditOrder(order)}
                             data-testid={`edit-order-${order.id}`}
                           >
                             <Edit className="w-4 h-4 mr-1" />
