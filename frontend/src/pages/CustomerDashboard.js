@@ -393,15 +393,37 @@ function CustomerDashboard() {
                   <CardContent className="p-6">
                     <div className="flex justify-between items-start mb-4">
                       <div>
-                        <div className="flex items-center gap-3 mb-2">
+                        <div className="flex items-center gap-3 mb-2 flex-wrap">
                           <h3 className="text-xl font-bold text-gray-900">{order.order_number}</h3>
                           <span className={`px-3 py-1 text-xs font-semibold rounded-full ${getStatusBadgeClass(order.status)}`}>
                             {order.status}
                           </span>
+                          {order.is_recurring && (
+                            <span className="px-3 py-1 text-xs font-semibold rounded-full bg-purple-100 text-purple-800 flex items-center gap-1">
+                              <Repeat className="w-3 h-3" />
+                              Recurring
+                            </span>
+                          )}
+                          {order.is_locked ? (
+                            <span className="px-3 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-800 flex items-center gap-1">
+                              <Lock className="w-3 h-3" />
+                              Locked
+                            </span>
+                          ) : (
+                            <span className="px-3 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800 flex items-center gap-1">
+                              <Unlock className="w-3 h-3" />
+                              Editable
+                            </span>
+                          )}
                         </div>
                         <p className="text-sm text-gray-500">
                           Created: {new Date(order.created_at).toLocaleDateString()}
                         </p>
+                        {order.is_recurring && order.next_occurrence_date && (
+                          <p className="text-sm text-purple-600 font-medium">
+                            Next occurrence: {new Date(order.next_occurrence_date).toLocaleDateString()}
+                          </p>
+                        )}
                       </div>
                       {order.status !== 'completed' && order.status !== 'cancelled' && canModifyOrder(order.delivery_date) && (
                         <Button
