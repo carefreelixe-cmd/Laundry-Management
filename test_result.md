@@ -101,3 +101,228 @@
 #====================================================================================================
 # Testing Data - Main Agent and testing sub agent both should log testing data below this section
 #====================================================================================================
+
+user_problem_statement: |
+  Implement the following features for Clienty.com laundry management system:
+  1. Customer-Specific SKU Pricing: Owners can set custom pricing for specific customers
+  2. Recurring Orders: Customers and Admins can create orders that recur based on dynamic frequency templates
+  3. Order Locking: Orders automatically lock 8 hours after creation, preventing further edits
+  4. Enhanced Notifications: Real-time (Socket.io) and email notifications for all order events (creation, locking, updates)
+
+backend:
+  - task: "Socket.io server integration"
+    implemented: true
+    working: "NA"
+    file: "backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Integrated python-socketio with FastAPI. Added Socket.io server with CORS support, connection/disconnection handlers, and room-based notifications for user targeting."
+  
+  - task: "APScheduler setup for scheduled tasks"
+    implemented: true
+    working: "NA"
+    file: "backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Configured APScheduler with AsyncIOScheduler. Added two jobs: 1) lock_orders_job (runs hourly) 2) generate_recurring_orders_job (runs daily at midnight)"
+  
+  - task: "Enhanced SKU model with quantity field"
+    implemented: true
+    working: "NA"
+    file: "backend/server.py"
+    stuck_count: 0
+    priority: "medium"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Updated SKU model to include: name, description, base_price, category, quantity"
+  
+  - task: "Customer-specific pricing model and APIs"
+    implemented: true
+    working: "NA"
+    file: "backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Created CustomerPricing model. Added APIs: POST /api/customer-pricing, GET /api/customer-pricing/{customer_id}, GET /api/skus-with-pricing/{customer_id}, DELETE /api/customer-pricing/{pricing_id}"
+  
+  - task: "Frequency template model and APIs"
+    implemented: true
+    working: "NA"
+    file: "backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Created FrequencyTemplate model with fields: name, frequency_type, frequency_value, description. Added APIs: POST /api/frequency-templates, GET /api/frequency-templates, PUT /api/frequency-templates/{template_id}, DELETE /api/frequency-templates/{template_id}"
+  
+  - task: "Enhanced Order model with recurring and locking fields"
+    implemented: true
+    working: "NA"
+    file: "backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Updated Order model to include: is_recurring (bool), recurrence_pattern (dict), next_occurrence_date (str), is_locked (bool), locked_at (datetime)"
+  
+  - task: "Recurring order creation endpoint"
+    implemented: true
+    working: "NA"
+    file: "backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Updated POST /api/orders and added POST /api/orders/customer to handle recurring orders. Calculates next_occurrence_date based on frequency pattern (daily, weekly, monthly)"
+  
+  - task: "Recurring orders list and cancel endpoints"
+    implemented: true
+    working: "NA"
+    file: "backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Added GET /api/orders/recurring/list and DELETE /api/orders/recurring/{order_id} endpoints"
+  
+  - task: "Order locking logic with 8-hour rule"
+    implemented: true
+    working: "NA"
+    file: "backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Implemented lock_orders_job scheduled task that runs hourly to lock orders older than 8 hours. Updated PUT /api/orders/{order_id} to check is_locked status before allowing edits"
+  
+  - task: "Email and Socket.io notification system"
+    implemented: true
+    working: "NA"
+    file: "backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Created send_notification() helper that sends both socket and email notifications. Integrated notifications for: order creation, order updates, order locking, recurring order generation. Notifications sent to all relevant parties (customer, owner, admin)"
+
+frontend:
+  - task: "Owner SKU management dashboard"
+    implemented: false
+    working: "NA"
+    file: ""
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Not yet implemented. Needs UI for creating/managing SKUs"
+  
+  - task: "Owner customer-specific pricing dashboard"
+    implemented: false
+    working: "NA"
+    file: ""
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Not yet implemented. Needs UI for setting customer-specific pricing"
+  
+  - task: "Owner frequency template management"
+    implemented: false
+    working: "NA"
+    file: ""
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Not yet implemented. Needs UI for creating/managing frequency templates"
+  
+  - task: "Customer/Admin recurring order creation form"
+    implemented: false
+    working: "NA"
+    file: ""
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Not yet implemented. Needs UI for creating recurring orders with frequency selection"
+  
+  - task: "Socket.io client integration"
+    implemented: false
+    working: "NA"
+    file: ""
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Not yet implemented. Needs socket.io-client integration in React for real-time notifications"
+  
+  - task: "Order lock status indicator in UI"
+    implemented: false
+    working: "NA"
+    file: ""
+    stuck_count: 0
+    priority: "medium"
+    needs_retesting: false
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Not yet implemented. Needs visual indicators showing lock status and preventing edits on locked orders"
+
+metadata:
+  created_by: "main_agent"
+  version: "1.0"
+  test_sequence: 0
+  run_ui: false
+
+test_plan:
+  current_focus:
+    - "Socket.io server integration"
+    - "APScheduler setup for scheduled tasks"
+    - "Customer-specific pricing model and APIs"
+    - "Frequency template model and APIs"
+    - "Enhanced Order model with recurring and locking fields"
+    - "Recurring order creation endpoint"
+    - "Order locking logic with 8-hour rule"
+    - "Email and Socket.io notification system"
+  stuck_tasks: []
+  test_all: false
+  test_priority: "high_first"
+
+agent_communication:
+  - agent: "main"
+    message: "Completed Phase 1-2 of backend implementation. Integrated Socket.io and APScheduler. Created models and API endpoints for SKU management, customer-specific pricing, frequency templates, and recurring orders. Implemented order locking logic and comprehensive notification system. Ready for backend testing before proceeding with frontend implementation."
