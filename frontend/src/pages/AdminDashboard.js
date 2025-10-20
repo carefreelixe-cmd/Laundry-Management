@@ -95,6 +95,16 @@ function AdminDashboard() {
           };
         })
       };
+      
+      // Include recurring data only if is_recurring is true
+      if (formData.is_recurring && formData.frequency_template_id) {
+        const template = frequencyTemplates.find(t => t.id === formData.frequency_template_id);
+        formData.recurrence_pattern = {
+          frequency_type: template.frequency_type,
+          frequency_value: template.frequency_value
+        };
+      }
+      
       await axios.post(`${API}/orders`, formData);
       setShowOrderDialog(false);
       setOrderForm({
@@ -106,12 +116,14 @@ function AdminDashboard() {
         delivery_date: '',
         pickup_address: '',
         delivery_address: '',
-        special_instructions: ''
+        special_instructions: '',
+        is_recurring: false,
+        frequency_template_id: ''
       });
       setOrderItems([{ sku_id: '', sku_name: '', quantity: 1, price: 0 }]);
       fetchData();
     } catch (error) {
-      alert('Failed to create order');
+      alert(error.response?.data?.detail || 'Failed to create order');
     }
   };
 
