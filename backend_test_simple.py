@@ -61,11 +61,11 @@ def test_authentication():
     print("TESTING AUTHENTICATION WITH EXISTING USERS")
     print("=" * 60)
     
-    # Try to login with existing users (using common passwords)
+    # Try to login with existing users (using correct passwords)
     existing_users = [
-        {"email": "owner@clienty.com", "password": "password123", "role": "owner"},
-        {"email": "admin@clienty.com", "password": "password123", "role": "admin"},
-        {"email": "customer@clienty.com", "password": "password123", "role": "customer"}
+        {"email": "owner@clienty.com", "password": "owner123", "role": "owner"},
+        {"email": "admin@clienty.com", "password": "admin123", "role": "admin"},
+        {"email": "customer@clienty.com", "password": "customer123", "role": "customer"}
     ]
     
     for user_data in existing_users:
