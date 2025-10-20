@@ -8,7 +8,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Package, AlertCircle, Plus, MapPin, Calendar } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
+import { Package, AlertCircle, Plus, MapPin, Calendar, Lock, Unlock, Repeat } from 'lucide-react';
 import { toast } from 'sonner';
 import axios from 'axios';
 
@@ -17,7 +18,23 @@ function CustomerDashboard() {
   const [activeTab, setActiveTab] = useState('orders');
   const [orders, setOrders] = useState([]);
   const [cases, setCases] = useState([]);
+  const [skus, setSkus] = useState([]);
+  const [frequencyTemplates, setFrequencyTemplates] = useState([]);
   const [loading, setLoading] = useState(true);
+  
+  // Order form
+  const [showOrderDialog, setShowOrderDialog] = useState(false);
+  const [orderForm, setOrderForm] = useState({
+    items: [],
+    pickup_date: '',
+    delivery_date: '',
+    pickup_address: '',
+    delivery_address: '',
+    special_instructions: '',
+    is_recurring: false,
+    frequency_template_id: ''
+  });
+  const [orderItems, setOrderItems] = useState([{ sku_id: '', sku_name: '', quantity: 1, price: 0 }]);
   
   // Case form
   const [showCaseDialog, setShowCaseDialog] = useState(false);
