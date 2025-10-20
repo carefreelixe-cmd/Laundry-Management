@@ -73,6 +73,52 @@ function CustomerDashboard() {
     }
   };
 
+  const handleCreateOrder = async (e) => {
+    e.preventDefault();
+    try {
+      const formData = {
+        ...orderForm,
+        items: orderItems.map(item => {
+          const sku = skus.find(s => s.id === item.sku_id);
+          return {
+            sku_id: item.sku_id,
+            sku_name: sku.name,
+            quantity: parseInt(item.quantity),
+            price: sku.price
+          };
+        })
+      };
+      
+      // Include recurring data only if is_recurring is true
+      if (formData.is_recurring && formData.frequency_template_id) {
+        const template = frequencyTemplates.find(t => t.id === formData.frequency_template_id);
+        formData.recurrence_pattern = {
+          frequency_type: template.frequency_type,
+          frequency_value: template.frequency_value
+        };
+      }
+      
+      await axios.post(`${API}/orders/customer`, formData);
+      setShowOrderDialog(false);
+      setOrderForm({
+        items: [],
+        pickup_date: '',
+        delivery_date: '',
+        pickup_address: '',
+        delivery_address: '',
+        special_instructions: '',
+        is_recurring: false,
+        frequency_template_id: ''
+      });
+      setOrderItems([{ sku_id: '', sku_name: '', quantity: 1, price: 0 }]);
+      toast.success('Order created successfully!');
+      fetchData();
+    } catch (error) {
+      console.error('Failed to create order:', error);
+      toast.error(error.response?.data?.detail || 'Failed to create order. Please try again.');
+    }
+  };
+
   const handleCreateCase = async (e) => {
     e.preventDefault();
     try {
@@ -97,6 +143,20 @@ function CustomerDashboard() {
       console.error('Failed to create case:', error);
       toast.error(error.response?.data?.detail || 'Failed to create case. Please try again.');
     }
+  };
+
+  const addOrderItem = () => {
+    setOrderItems([...orderItems, { sku_id: '', sku_name: '', quantity: 1, price: 0 }]);
+  };
+
+  const removeOrderItem = (index) => {
+    setOrderItems(orderItems.filter((_, i) => i !== index));
+  };
+
+  const updateOrderItem = (index, field, value) => {
+    const newItems = [...orderItems];
+    newItems[index][field] = value;
+    setOrderItems(newItems);
   };
 
   const handleCancelOrder = async (orderId) => {
