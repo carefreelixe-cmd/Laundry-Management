@@ -519,6 +519,103 @@ async def delete_sku(sku_id: str, current_user: dict = Depends(require_role(["ow
         raise HTTPException(status_code=404, detail="SKU not found")
     return {"message": "SKU deleted successfully"}
 
+# Customer Pricing Routes
+@api_router.post("/customer-pricing", response_model=CustomerPricing)
+async def create_customer_pricing(pricing: CustomerPricingBase, current_user: dict = Depends(require_role(["owner"]))):
+    """Set customer-specific pricing for a SKU"""
+    # Check if pricing already exists
+    existing = await db.customer_pricing.find_one({
+        "customer_id": pricing.customer_id,
+        "sku_id": pricing.sku_id
+    })
+    
+    if existing:
+        # Update existing pricing
+        await db.customer_pricing.update_one(
+            {"id": existing["id"]},
+            {"$set": {"custom_price": pricing.custom_price}}
+        )
+        updated = await db.customer_pricing.find_one({"id": existing["id"]}, {"_id": 0})
+        updated['created_at'] = datetime.fromisoformat(updated['created_at']) if isinstance(updated['created_at'], str) else updated['created_at']
+        return CustomerPricing(**updated)
+    
+    # Create new pricing
+    pricing_obj = CustomerPricing(**pricing.model_dump())
+    doc = pricing_obj.model_dump()
+    doc['created_at'] = doc['created_at'].isoformat()
+    await db.customer_pricing.insert_one(doc)
+    return pricing_obj
+
+@api_router.get("/customer-pricing/{customer_id}", response_model=List[CustomerPricing])
+async def get_customer_pricing(customer_id: str, current_user: dict = Depends(get_current_user)):
+    """Get all customer-specific pricing for a customer"""
+    pricing = await db.customer_pricing.find({"customer_id": customer_id}, {"_id": 0}).to_list(1000)
+    for p in pricing:
+        p['created_at'] = datetime.fromisoformat(p['created_at']) if isinstance(p['created_at'], str) else p['created_at']
+    return pricing
+
+@api_router.get("/skus-with-pricing/{customer_id}")
+async def get_skus_with_customer_pricing(customer_id: str, current_user: dict = Depends(get_current_user)):
+    """Get all SKUs with customer-specific pricing applied"""
+    # Get all SKUs
+    skus = await db.skus.find({}, {"_id": 0}).to_list(1000)
+    
+    # Get customer-specific pricing
+    customer_pricing = await db.customer_pricing.find({"customer_id": customer_id}, {"_id": 0}).to_list(1000)
+    pricing_map = {p['sku_id']: p['custom_price'] for p in customer_pricing}
+    
+    # Apply customer pricing
+    for sku in skus:
+        sku['created_at'] = datetime.fromisoformat(sku['created_at']) if isinstance(sku['created_at'], str) else sku['created_at']
+        sku['customer_price'] = pricing_map.get(sku['id'], sku['base_price'])
+        sku['has_custom_pricing'] = sku['id'] in pricing_map
+    
+    return skus
+
+@api_router.delete("/customer-pricing/{pricing_id}")
+async def delete_customer_pricing(pricing_id: str, current_user: dict = Depends(require_role(["owner"]))):
+    """Delete customer-specific pricing"""
+    result = await db.customer_pricing.delete_one({"id": pricing_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Customer pricing not found")
+    return {"message": "Customer pricing deleted successfully"}
+
+# Frequency Template Routes
+@api_router.post("/frequency-templates", response_model=FrequencyTemplate)
+async def create_frequency_template(template: FrequencyTemplateBase, current_user: dict = Depends(require_role(["owner", "admin"]))):
+    """Create a custom frequency template for recurring orders"""
+    template_obj = FrequencyTemplate(**template.model_dump())
+    doc = template_obj.model_dump()
+    doc['created_at'] = doc['created_at'].isoformat()
+    await db.frequency_templates.insert_one(doc)
+    return template_obj
+
+@api_router.get("/frequency-templates", response_model=List[FrequencyTemplate])
+async def get_frequency_templates(current_user: dict = Depends(get_current_user)):
+    """Get all frequency templates"""
+    templates = await db.frequency_templates.find({}, {"_id": 0}).to_list(1000)
+    for t in templates:
+        t['created_at'] = datetime.fromisoformat(t['created_at']) if isinstance(t['created_at'], str) else t['created_at']
+    return templates
+
+@api_router.put("/frequency-templates/{template_id}", response_model=FrequencyTemplate)
+async def update_frequency_template(template_id: str, template: FrequencyTemplateBase, current_user: dict = Depends(require_role(["owner", "admin"]))):
+    """Update a frequency template"""
+    result = await db.frequency_templates.update_one({"id": template_id}, {"$set": template.model_dump()})
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Frequency template not found")
+    updated = await db.frequency_templates.find_one({"id": template_id}, {"_id": 0})
+    updated['created_at'] = datetime.fromisoformat(updated['created_at']) if isinstance(updated['created_at'], str) else updated['created_at']
+    return FrequencyTemplate(**updated)
+
+@api_router.delete("/frequency-templates/{template_id}")
+async def delete_frequency_template(template_id: str, current_user: dict = Depends(require_role(["owner", "admin"]))):
+    """Delete a frequency template"""
+    result = await db.frequency_templates.delete_one({"id": template_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Frequency template not found")
+    return {"message": "Frequency template deleted successfully"}
+
 # Order Management Routes
 @api_router.post("/orders", response_model=Order)
 async def create_order(order: OrderBase, current_user: dict = Depends(require_role(["owner", "admin"]))):
