@@ -217,15 +217,18 @@ backend:
   
   - task: "Recurring orders list and cancel endpoints"
     implemented: true
-    working: "NA"
+    working: true
     file: "backend/server.py"
     stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: "NA"
         agent: "main"
         comment: "Added GET /api/orders/recurring/list and DELETE /api/orders/recurring/{order_id} endpoints"
+      - working: true
+        agent: "testing"
+        comment: "Recurring order management endpoints working correctly. GET /api/orders/recurring/list properly filters and returns recurring orders. DELETE endpoint for cancelling recurring orders functions properly."
   
   - task: "Order locking logic with 8-hour rule"
     implemented: true
