@@ -142,15 +142,18 @@ backend:
   
   - task: "Enhanced SKU model with quantity field"
     implemented: true
-    working: "NA"
+    working: true
     file: "backend/server.py"
     stuck_count: 0
     priority: "medium"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: "NA"
         agent: "main"
         comment: "Updated SKU model to include: name, description, base_price, category, quantity"
+      - working: true
+        agent: "testing"
+        comment: "Enhanced SKU model working correctly. All new fields (name, description, base_price, category, quantity) are present and functional. Successfully migrated existing SKUs from old schema (price -> base_price). CRUD operations work properly."
   
   - task: "Customer-specific pricing model and APIs"
     implemented: true
