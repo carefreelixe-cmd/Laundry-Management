@@ -853,7 +853,7 @@ async def create_customer_order(order: CustomerOrderCreate, current_user: dict =
     await db.orders.insert_one(doc)
     
     # Prepare detailed order info
-    items_list = "\n".join([f"    - {item.item_name}: {item.quantity} x ${item.price:.2f} = ${item.quantity * item.price:.2f}" for item in order.items])
+    items_list = "\n".join([f"    - {item.sku_name}: {item.quantity} x ${item.price:.2f} = ${item.quantity * item.price:.2f}" for item in order.items])
     order_details = f"""
     Order Number: {order_number}
     Order Type: {'Recurring' if order.is_recurring else 'Regular'}

@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Switch } from '@/components/ui/switch';
-import { Package, AlertCircle, Plus, MapPin, Calendar, Lock, Unlock, Repeat } from 'lucide-react';
+import { Package, AlertCircle, Plus, MapPin, Calendar, Lock, Unlock, Repeat, Edit } from 'lucide-react';
 import { toast } from 'sonner';
 import axios from 'axios';
 
@@ -470,14 +470,27 @@ function CustomerDashboard() {
                         )}
                       </div>
                       {order.status !== 'completed' && order.status !== 'cancelled' && canModifyOrder(order.created_at) && (
-                        <Button
-                          variant="destructive"
-                          size="sm"
-                          onClick={() => handleCancelOrder(order.id)}
-                          data-testid={`cancel-order-${order.id}`}
-                        >
-                          Cancel Order
-                        </Button>
+                        <div className="flex gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              toast.info('Edit order functionality coming soon!');
+                            }}
+                            data-testid={`edit-order-${order.id}`}
+                          >
+                            <Edit className="w-4 h-4 mr-1" />
+                            Edit Order
+                          </Button>
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            onClick={() => handleCancelOrder(order.id)}
+                            data-testid={`cancel-order-${order.id}`}
+                          >
+                            Cancel Order
+                          </Button>
+                        </div>
                       )}
                     </div>
 
