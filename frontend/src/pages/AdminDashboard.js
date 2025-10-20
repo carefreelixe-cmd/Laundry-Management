@@ -368,6 +368,23 @@ function AdminDashboard() {
                           <span className={`px-3 py-1 text-xs font-semibold rounded-full ${getStatusBadgeClass(order.status)}`}>
                             {order.status}
                           </span>
+                          {order.is_recurring && (
+                            <span className="px-3 py-1 text-xs font-semibold rounded-full bg-purple-100 text-purple-800 flex items-center gap-1">
+                              <Repeat className="w-3 h-3" />
+                              Recurring
+                            </span>
+                          )}
+                          {order.is_locked ? (
+                            <span className="px-3 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-800 flex items-center gap-1">
+                              <Lock className="w-3 h-3" />
+                              Locked
+                            </span>
+                          ) : (
+                            <span className="px-3 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800 flex items-center gap-1">
+                              <Unlock className="w-3 h-3" />
+                              Editable
+                            </span>
+                          )}
                         </div>
                         <p className="text-gray-600 mb-2">{order.customer_name} - {order.customer_email}</p>
                         <div className="grid md:grid-cols-2 gap-4 text-sm">
