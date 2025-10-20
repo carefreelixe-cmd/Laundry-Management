@@ -232,15 +232,18 @@ backend:
   
   - task: "Order locking logic with 8-hour rule"
     implemented: true
-    working: "NA"
+    working: true
     file: "backend/server.py"
     stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: "NA"
         agent: "main"
         comment: "Implemented lock_orders_job scheduled task that runs hourly to lock orders older than 8 hours. Updated PUT /api/orders/{order_id} to check is_locked status before allowing edits"
+      - working: true
+        agent: "testing"
+        comment: "Order locking logic implemented correctly. Scheduled job configured to run hourly. Order update endpoint properly checks lock status before allowing modifications. Lock validation working in PUT /api/orders/{order_id}."
   
   - task: "Email and Socket.io notification system"
     implemented: true
