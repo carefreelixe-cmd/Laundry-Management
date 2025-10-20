@@ -181,11 +181,11 @@ function CustomerDashboard() {
     }
   };
 
-  const canModifyOrder = (deliveryDate) => {
-    const delivery = new Date(deliveryDate);
+  const canModifyOrder = (createdAt) => {
+    const created = new Date(createdAt);
     const now = new Date();
-    const hoursUntilDelivery = (delivery - now) / (1000 * 60 * 60);
-    return hoursUntilDelivery > 8;
+    const hoursSinceCreation = (now - created) / (1000 * 60 * 60);
+    return hoursSinceCreation < 8;
   };
 
   const formatFrequency = (template) => {
@@ -458,7 +458,7 @@ function CustomerDashboard() {
                           </p>
                         )}
                       </div>
-                      {order.status !== 'completed' && order.status !== 'cancelled' && canModifyOrder(order.delivery_date) && (
+                      {order.status !== 'completed' && order.status !== 'cancelled' && canModifyOrder(order.created_at) && (
                         <Button
                           variant="destructive"
                           size="sm"
@@ -516,9 +516,9 @@ function CustomerDashboard() {
                       </div>
                     )}
 
-                    {order.status !== 'completed' && order.status !== 'cancelled' && !canModifyOrder(order.delivery_date) && (
+                    {order.status !== 'completed' && order.status !== 'cancelled' && !canModifyOrder(order.created_at) && (
                       <div className="mt-4 p-3 bg-yellow-50 rounded-lg">
-                        <p className="text-sm text-yellow-800">⚠️ This order cannot be modified (within 8 hours of delivery)</p>
+                        <p className="text-sm text-yellow-800">⚠️ This order cannot be modified (locked after 8 hours from creation)</p>
                       </div>
                     )}
                   </CardContent>

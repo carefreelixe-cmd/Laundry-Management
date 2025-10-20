@@ -933,7 +933,7 @@ async def update_order(order_id: str, update: OrderUpdate, current_user: dict = 
     
     # Check if order is locked
     if order_doc.get('is_locked', False):
-        raise HTTPException(status_code=400, detail="Cannot modify order - it has been locked after 8 hours")
+        raise HTTPException(status_code=400, detail="Cannot modify order - it has been locked after 8 hours from creation")
     
     # Customer can only modify their own orders
     if current_user['role'] == 'customer':
@@ -1336,15 +1336,15 @@ async def join_room(sid, data):
 
 # Scheduled Tasks
 async def lock_orders_job():
-    """Lock orders that are within 8 hours of delivery and not yet locked"""
+    """Lock orders that are 8 hours after creation and not yet locked"""
     try:
         current_time = datetime.now(timezone.utc)
-        lock_threshold = current_time + timedelta(hours=8)
+        lock_threshold = current_time - timedelta(hours=8)
         
-        # Find orders that need to be locked (delivery is within 8 hours)
+        # Find orders that need to be locked (created more than 8 hours ago)
         orders_to_lock = await db.orders.find({
             "is_locked": {"$ne": True},
-            "delivery_date": {"$lte": lock_threshold.isoformat()},
+            "created_at": {"$lte": lock_threshold.isoformat()},
             "status": {"$nin": ["completed", "cancelled"]}
         }).to_list(length=None)
         
@@ -1399,7 +1399,7 @@ async def notify_order_locked(order):
         # Get customer
         customer = await db.users.find_one({"id": order["customer_id"]})
         
-        notification_message = f"Order #{order['order_number']} has been automatically locked after 8 hours"
+        notification_message = f"Order #{order['order_number']} has been automatically locked 8 hours after creation. You can no longer modify or cancel this order."
         
         # Notify customer
         if customer:
