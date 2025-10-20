@@ -341,14 +341,7 @@ metadata:
 
 test_plan:
   current_focus:
-    - "Socket.io server integration"
-    - "APScheduler setup for scheduled tasks"
-    - "Customer-specific pricing model and APIs"
-    - "Frequency template model and APIs"
-    - "Enhanced Order model with recurring and locking fields"
     - "Recurring order creation endpoint"
-    - "Order locking logic with 8-hour rule"
-    - "Email and Socket.io notification system"
   stuck_tasks: []
   test_all: false
   test_priority: "high_first"
