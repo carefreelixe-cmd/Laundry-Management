@@ -127,15 +127,18 @@ backend:
   
   - task: "APScheduler setup for scheduled tasks"
     implemented: true
-    working: "NA"
+    working: true
     file: "backend/server.py"
     stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: "NA"
         agent: "main"
         comment: "Configured APScheduler with AsyncIOScheduler. Added two jobs: 1) lock_orders_job (runs hourly) 2) generate_recurring_orders_job (runs daily at midnight)"
+      - working: true
+        agent: "testing"
+        comment: "APScheduler is properly integrated and starts with the backend server. Scheduler jobs are registered correctly: lock_orders_job (hourly) and generate_recurring_orders_job (daily at midnight)."
   
   - task: "Enhanced SKU model with quantity field"
     implemented: true
