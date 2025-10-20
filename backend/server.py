@@ -197,6 +197,17 @@ class OrderBase(BaseModel):
     recurrence_pattern: Optional[dict] = None
     next_occurrence_date: Optional[str] = None
 
+class CustomerOrderCreate(BaseModel):
+    """Model for customers creating their own orders (no customer info needed)"""
+    items: List[OrderItemBase]
+    pickup_date: str
+    delivery_date: str
+    pickup_address: str
+    delivery_address: str
+    special_instructions: Optional[str] = None
+    is_recurring: bool = False
+    recurrence_pattern: Optional[dict] = None
+
 class Order(OrderBase):
     model_config = ConfigDict(extra="ignore")
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
