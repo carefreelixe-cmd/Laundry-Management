@@ -788,6 +788,47 @@ async def cancel_order(order_id: str, current_user: dict = Depends(get_current_u
     
     return {"message": "Order cancelled successfully"}
 
+# Recurring Orders Routes
+@api_router.get("/orders/recurring/list", response_model=List[Order])
+async def get_recurring_orders(current_user: dict = Depends(get_current_user)):
+    """Get all recurring order templates"""
+    query = {"is_recurring": True, "status": {"$ne": "cancelled"}}
+    if current_user['role'] == 'customer':
+        query['customer_id'] = current_user['id']
+    
+    orders = await db.orders.find(query, {"_id": 0}).to_list(1000)
+    for order in orders:
+        order['created_at'] = datetime.fromisoformat(order['created_at']) if isinstance(order['created_at'], str) else order['created_at']
+        order['updated_at'] = datetime.fromisoformat(order['updated_at']) if isinstance(order['updated_at'], str) else order['updated_at']
+        if order.get('locked_at'):
+            order['locked_at'] = datetime.fromisoformat(order['locked_at']) if isinstance(order['locked_at'], str) else order['locked_at']
+    return orders
+
+@api_router.delete("/orders/recurring/{order_id}")
+async def cancel_recurring_order(order_id: str, current_user: dict = Depends(get_current_user)):
+    """Cancel a recurring order (stops future occurrences)"""
+    order_doc = await db.orders.find_one({"id": order_id})
+    if not order_doc:
+        raise HTTPException(status_code=404, detail="Order not found")
+    
+    if not order_doc.get('is_recurring'):
+        raise HTTPException(status_code=400, detail="Order is not a recurring order")
+    
+    if current_user['role'] == 'customer' and order_doc['customer_id'] != current_user['id']:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    await db.orders.update_one({"id": order_id}, {"$set": {"status": "cancelled", "is_recurring": False}})
+    
+    await send_notification(
+        user_id=order_doc['customer_id'],
+        email=order_doc['customer_email'],
+        title="Recurring Order Cancelled",
+        message=f"Your recurring order #{order_doc['order_number']} has been cancelled. No future orders will be generated.",
+        notif_type="order_cancelled"
+    )
+    
+    return {"message": "Recurring order cancelled successfully"}
+
 # Delivery Routes
 @api_router.post("/deliveries", response_model=Delivery)
 async def create_delivery(delivery: DeliveryBase, current_user: dict = Depends(require_role(["owner", "admin"]))):
