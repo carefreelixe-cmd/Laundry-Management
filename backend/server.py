@@ -690,6 +690,85 @@ async def create_order(order: OrderBase, current_user: dict = Depends(require_ro
     
     return order_obj
 
+@api_router.post("/orders/customer", response_model=Order)
+async def create_customer_order(order: OrderBase, current_user: dict = Depends(require_role(["customer"]))):
+    """Allow customers to create their own orders"""
+    # Generate order number
+    count = await db.orders.count_documents({}) + 1
+    order_number = f"ORD-{count:06d}"
+    
+    # Get customer details
+    customer = await db.users.find_one({"id": current_user['id']})
+    if not customer:
+        raise HTTPException(status_code=404, detail="Customer not found")
+    
+    # Calculate total
+    total_amount = sum(item.price * item.quantity for item in order.items)
+    
+    order_dict = order.model_dump()
+    order_dict['customer_id'] = customer['id']
+    order_dict['customer_name'] = customer['full_name']
+    order_dict['customer_email'] = customer['email']
+    order_dict['order_number'] = order_number
+    order_dict['total_amount'] = total_amount
+    order_dict['created_by'] = current_user['id']
+    order_dict['is_locked'] = False
+    
+    # Handle recurring orders
+    if order.is_recurring and order.recurrence_pattern:
+        current_date = datetime.now(timezone.utc).date()
+        frequency_type = order.recurrence_pattern.get('frequency_type')
+        frequency_value = order.recurrence_pattern.get('frequency_value', 1)
+        
+        # Calculate next occurrence date
+        if frequency_type == 'daily':
+            next_date = current_date + timedelta(days=frequency_value)
+        elif frequency_type == 'weekly':
+            next_date = current_date + timedelta(weeks=frequency_value)
+        elif frequency_type == 'monthly':
+            next_date = current_date + timedelta(days=30 * frequency_value)
+        else:
+            next_date = current_date + timedelta(days=1)
+        
+        order_dict['next_occurrence_date'] = next_date.isoformat()
+    
+    order_obj = Order(**order_dict)
+    
+    doc = order_obj.model_dump()
+    doc['created_at'] = doc['created_at'].isoformat()
+    doc['updated_at'] = doc['updated_at'].isoformat()
+    if doc.get('locked_at'):
+        doc['locked_at'] = doc['locked_at'].isoformat()
+    
+    await db.orders.insert_one(doc)
+    
+    # Send notifications
+    order_type = "recurring order" if order.is_recurring else "order"
+    
+    # Notify customer
+    await send_notification(
+        user_id=customer['id'],
+        email=customer['email'],
+        title="Order Created",
+        message=f"Your {order_type} #{order_number} has been created successfully.",
+        notif_type="order_created"
+    )
+    
+    # Notify all owners and admins
+    owners = await db.users.find({"role": "owner"}).to_list(length=None)
+    admins = await db.users.find({"role": "admin"}).to_list(length=None)
+    
+    for user in owners + admins:
+        await send_notification(
+            user_id=user['id'],
+            email=user['email'],
+            title="New Customer Order",
+            message=f"Customer {customer['full_name']} created a new {order_type} #{order_number}",
+            notif_type="order_created"
+        )
+    
+    return order_obj
+
 @api_router.get("/orders", response_model=List[Order])
 async def get_orders(current_user: dict = Depends(get_current_user)):
     query = {}
