@@ -146,10 +146,10 @@ class TokenResponse(BaseModel):
 
 class SKUBase(BaseModel):
     name: str
-    description: Optional[str] = None
-    base_price: float
     category: str
-    quantity: int = 1
+    price: float
+    unit: str
+    description: Optional[str] = None
 
 class SKU(SKUBase):
     model_config = ConfigDict(extra="ignore")
@@ -578,7 +578,7 @@ async def get_skus_with_customer_pricing(customer_id: str, current_user: dict = 
     # Apply customer pricing
     for sku in skus:
         sku['created_at'] = datetime.fromisoformat(sku['created_at']) if isinstance(sku['created_at'], str) else sku['created_at']
-        sku['customer_price'] = pricing_map.get(sku['id'], sku['base_price'])
+        sku['customer_price'] = pricing_map.get(sku['id'], sku['price'])
         sku['has_custom_pricing'] = sku['id'] in pricing_map
     
     return skus
