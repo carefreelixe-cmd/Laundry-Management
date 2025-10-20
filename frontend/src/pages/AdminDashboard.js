@@ -53,14 +53,16 @@ function AdminDashboard() {
     try {
       setLoading(true);
       if (activeTab === 'orders') {
-        const [ordersRes, customersRes, skusRes] = await Promise.all([
+        const [ordersRes, customersRes, skusRes, templatesRes] = await Promise.all([
           axios.get(`${API}/orders`),
           axios.get(`${API}/users`),
-          axios.get(`${API}/skus`)
+          axios.get(`${API}/skus`),
+          axios.get(`${API}/frequency-templates`)
         ]);
         setOrders(ordersRes.data);
         setCustomers(customersRes.data.filter(u => u.role === 'customer'));
         setSkus(skusRes.data);
+        setFrequencyTemplates(templatesRes.data);
       } else if (activeTab === 'cases') {
         const casesRes = await axios.get(`${API}/cases`);
         setCases(casesRes.data);
