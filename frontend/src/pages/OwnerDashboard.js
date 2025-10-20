@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Users, Package, DollarSign, AlertCircle, Plus, Edit, Trash2 } from 'lucide-react';
+import { Users, Package, DollarSign, AlertCircle, Plus, Edit, Trash2, Tag, Clock } from 'lucide-react';
 import axios from 'axios';
 
 function OwnerDashboard() {
@@ -26,6 +26,25 @@ function OwnerDashboard() {
   const [skuForm, setSkuForm] = useState({ name: '', category: '', price: '', unit: '', description: '' });
   const [showSkuDialog, setShowSkuDialog] = useState(false);
   const [editingSku, setEditingSku] = useState(null);
+  
+  // Customer Pricing
+  const [customers, setCustomers] = useState([]);
+  const [selectedCustomer, setSelectedCustomer] = useState(null);
+  const [customerPricing, setCustomerPricing] = useState([]);
+  const [skusWithPricing, setSkusWithPricing] = useState([]);
+  const [showPricingDialog, setShowPricingDialog] = useState(false);
+  const [pricingForm, setPricingForm] = useState({ sku_id: '', custom_price: '' });
+  
+  // Frequency Templates
+  const [frequencyTemplates, setFrequencyTemplates] = useState([]);
+  const [showTemplateDialog, setShowTemplateDialog] = useState(false);
+  const [editingTemplate, setEditingTemplate] = useState(null);
+  const [templateForm, setTemplateForm] = useState({
+    name: '',
+    frequency_type: 'daily',
+    frequency_value: '1',
+    description: ''
+  });
 
   useEffect(() => {
     fetchData();
