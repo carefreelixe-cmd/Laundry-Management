@@ -12,7 +12,7 @@
 
 ### Test Case 1.1: Customer Can Create Case
 **Steps:**
-1. Navigate to https://washdash-1.preview.emergentagent.com/login
+1. Navigate to https://laundry-manager-11.preview.emergentagent.com/login
 2. Login as: `customer@clienty.com` / `customer123`
 3. Click "My Cases" tab
 4. Click "Raise a Case" button
@@ -384,7 +384,7 @@
 
 ### Test Case 9.1: Signup API
 ```bash
-curl -X POST https://washdash-1.preview.emergentagent.com/api/auth/signup \
+curl -X POST https://laundry-manager-11.preview.emergentagent.com/api/auth/signup \
   -H "Content-Type: application/json" \
   -d '{
     "email": "apitest@example.com",
@@ -410,7 +410,7 @@ curl -X POST https://washdash-1.preview.emergentagent.com/api/auth/signup \
 
 ### Test Case 9.2: Verify OTP API
 ```bash
-curl -X POST https://washdash-1.preview.emergentagent.com/api/auth/verify-otp \
+curl -X POST https://laundry-manager-11.preview.emergentagent.com/api/auth/verify-otp \
   -H "Content-Type: application/json" \
   -d '{
     "email": "apitest@example.com",
@@ -432,7 +432,7 @@ curl -X POST https://washdash-1.preview.emergentagent.com/api/auth/verify-otp \
 
 ### Test Case 9.3: Login API
 ```bash
-curl -X POST https://washdash-1.preview.emergentagent.com/api/auth/login \
+curl -X POST https://laundry-manager-11.preview.emergentagent.com/api/auth/login \
   -H "Content-Type: application/json" \
   -d '{
     "email": "customer@clienty.com",
@@ -457,7 +457,7 @@ curl -X POST https://washdash-1.preview.emergentagent.com/api/auth/login \
 ```bash
 TOKEN="your-jwt-token-here"
 
-curl -X POST https://washdash-1.preview.emergentagent.com/api/cases \
+curl -X POST https://laundry-manager-11.preview.emergentagent.com/api/cases \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer $TOKEN" \
   -d '{

@@ -18,6 +18,10 @@ from email.mime.multipart import MIMEMultipart
 from utils.email_service import send_otp_email, send_welcome_email
 from utils.sms_service import send_sms_otp, send_welcome_sms
 from utils.otp_service import generate_otp, is_otp_expired
+import socketio
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from apscheduler.triggers.interval import IntervalTrigger
+from apscheduler.triggers.cron import CronTrigger
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
@@ -36,6 +40,18 @@ ALGORITHM = "HS256"
 # Create the main app
 app = FastAPI()
 api_router = APIRouter(prefix="/api")
+
+# Socket.io Setup
+sio = socketio.AsyncServer(
+    async_mode='asgi',
+    cors_allowed_origins='*',
+    logger=True,
+    engineio_logger=False
+)
+socket_app = socketio.ASGIApp(sio, other_asgi_app=app)
+
+# APScheduler Setup
+scheduler = AsyncIOScheduler()
 
 # Utility Functions
 def hash_password(password: str) -> str:
@@ -130,12 +146,33 @@ class TokenResponse(BaseModel):
 
 class SKUBase(BaseModel):
     name: str
-    category: str
-    price: float
-    unit: str
     description: Optional[str] = None
+    base_price: float
+    category: str
+    quantity: int = 1
 
 class SKU(SKUBase):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+class CustomerPricingBase(BaseModel):
+    customer_id: str
+    sku_id: str
+    custom_price: float
+
+class CustomerPricing(CustomerPricingBase):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+class FrequencyTemplateBase(BaseModel):
+    name: str
+    frequency_type: str  # daily, weekly, monthly, custom
+    frequency_value: int  # e.g., every 2 days, every 3 weeks
+    description: Optional[str] = None
+
+class FrequencyTemplate(FrequencyTemplateBase):
     model_config = ConfigDict(extra="ignore")
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
@@ -156,6 +193,20 @@ class OrderBase(BaseModel):
     pickup_address: str
     delivery_address: str
     special_instructions: Optional[str] = None
+    is_recurring: bool = False
+    recurrence_pattern: Optional[dict] = None
+    next_occurrence_date: Optional[str] = None
+
+class CustomerOrderCreate(BaseModel):
+    """Model for customers creating their own orders (no customer info needed)"""
+    items: List[OrderItemBase]
+    pickup_date: str
+    delivery_date: str
+    pickup_address: str
+    delivery_address: str
+    special_instructions: Optional[str] = None
+    is_recurring: bool = False
+    recurrence_pattern: Optional[dict] = None
 
 class Order(OrderBase):
     model_config = ConfigDict(extra="ignore")
@@ -166,6 +217,8 @@ class Order(OrderBase):
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     created_by: str
+    is_locked: bool = False
+    locked_at: Optional[datetime] = None
 
 class OrderUpdate(BaseModel):
     status: Optional[str] = None
@@ -312,7 +365,7 @@ async def public_signup(user: UserCreate):
     await db.pending_users.insert_one(pending_user)
     
     # Send OTP via both email and SMS
-    email_sent = send_otp_email(user.email, otp, user.full_name)
+    send_otp_email(user.email, otp, user.full_name)
     sms_sent = False
     if user.phone:
         sms_sent = send_sms_otp(user.phone, otp, user.full_name)
@@ -477,6 +530,103 @@ async def delete_sku(sku_id: str, current_user: dict = Depends(require_role(["ow
         raise HTTPException(status_code=404, detail="SKU not found")
     return {"message": "SKU deleted successfully"}
 
+# Customer Pricing Routes
+@api_router.post("/customer-pricing", response_model=CustomerPricing)
+async def create_customer_pricing(pricing: CustomerPricingBase, current_user: dict = Depends(require_role(["owner"]))):
+    """Set customer-specific pricing for a SKU"""
+    # Check if pricing already exists
+    existing = await db.customer_pricing.find_one({
+        "customer_id": pricing.customer_id,
+        "sku_id": pricing.sku_id
+    })
+    
+    if existing:
+        # Update existing pricing
+        await db.customer_pricing.update_one(
+            {"id": existing["id"]},
+            {"$set": {"custom_price": pricing.custom_price}}
+        )
+        updated = await db.customer_pricing.find_one({"id": existing["id"]}, {"_id": 0})
+        updated['created_at'] = datetime.fromisoformat(updated['created_at']) if isinstance(updated['created_at'], str) else updated['created_at']
+        return CustomerPricing(**updated)
+    
+    # Create new pricing
+    pricing_obj = CustomerPricing(**pricing.model_dump())
+    doc = pricing_obj.model_dump()
+    doc['created_at'] = doc['created_at'].isoformat()
+    await db.customer_pricing.insert_one(doc)
+    return pricing_obj
+
+@api_router.get("/customer-pricing/{customer_id}", response_model=List[CustomerPricing])
+async def get_customer_pricing(customer_id: str, current_user: dict = Depends(get_current_user)):
+    """Get all customer-specific pricing for a customer"""
+    pricing = await db.customer_pricing.find({"customer_id": customer_id}, {"_id": 0}).to_list(1000)
+    for p in pricing:
+        p['created_at'] = datetime.fromisoformat(p['created_at']) if isinstance(p['created_at'], str) else p['created_at']
+    return pricing
+
+@api_router.get("/skus-with-pricing/{customer_id}")
+async def get_skus_with_customer_pricing(customer_id: str, current_user: dict = Depends(get_current_user)):
+    """Get all SKUs with customer-specific pricing applied"""
+    # Get all SKUs
+    skus = await db.skus.find({}, {"_id": 0}).to_list(1000)
+    
+    # Get customer-specific pricing
+    customer_pricing = await db.customer_pricing.find({"customer_id": customer_id}, {"_id": 0}).to_list(1000)
+    pricing_map = {p['sku_id']: p['custom_price'] for p in customer_pricing}
+    
+    # Apply customer pricing
+    for sku in skus:
+        sku['created_at'] = datetime.fromisoformat(sku['created_at']) if isinstance(sku['created_at'], str) else sku['created_at']
+        sku['customer_price'] = pricing_map.get(sku['id'], sku['base_price'])
+        sku['has_custom_pricing'] = sku['id'] in pricing_map
+    
+    return skus
+
+@api_router.delete("/customer-pricing/{pricing_id}")
+async def delete_customer_pricing(pricing_id: str, current_user: dict = Depends(require_role(["owner"]))):
+    """Delete customer-specific pricing"""
+    result = await db.customer_pricing.delete_one({"id": pricing_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Customer pricing not found")
+    return {"message": "Customer pricing deleted successfully"}
+
+# Frequency Template Routes
+@api_router.post("/frequency-templates", response_model=FrequencyTemplate)
+async def create_frequency_template(template: FrequencyTemplateBase, current_user: dict = Depends(require_role(["owner", "admin"]))):
+    """Create a custom frequency template for recurring orders"""
+    template_obj = FrequencyTemplate(**template.model_dump())
+    doc = template_obj.model_dump()
+    doc['created_at'] = doc['created_at'].isoformat()
+    await db.frequency_templates.insert_one(doc)
+    return template_obj
+
+@api_router.get("/frequency-templates", response_model=List[FrequencyTemplate])
+async def get_frequency_templates(current_user: dict = Depends(get_current_user)):
+    """Get all frequency templates"""
+    templates = await db.frequency_templates.find({}, {"_id": 0}).to_list(1000)
+    for t in templates:
+        t['created_at'] = datetime.fromisoformat(t['created_at']) if isinstance(t['created_at'], str) else t['created_at']
+    return templates
+
+@api_router.put("/frequency-templates/{template_id}", response_model=FrequencyTemplate)
+async def update_frequency_template(template_id: str, template: FrequencyTemplateBase, current_user: dict = Depends(require_role(["owner", "admin"]))):
+    """Update a frequency template"""
+    result = await db.frequency_templates.update_one({"id": template_id}, {"$set": template.model_dump()})
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Frequency template not found")
+    updated = await db.frequency_templates.find_one({"id": template_id}, {"_id": 0})
+    updated['created_at'] = datetime.fromisoformat(updated['created_at']) if isinstance(updated['created_at'], str) else updated['created_at']
+    return FrequencyTemplate(**updated)
+
+@api_router.delete("/frequency-templates/{template_id}")
+async def delete_frequency_template(template_id: str, current_user: dict = Depends(require_role(["owner", "admin"]))):
+    """Delete a frequency template"""
+    result = await db.frequency_templates.delete_one({"id": template_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Frequency template not found")
+    return {"message": "Frequency template deleted successfully"}
+
 # Order Management Routes
 @api_router.post("/orders", response_model=Order)
 async def create_order(order: OrderBase, current_user: dict = Depends(require_role(["owner", "admin"]))):
@@ -491,21 +641,142 @@ async def create_order(order: OrderBase, current_user: dict = Depends(require_ro
     order_dict['order_number'] = order_number
     order_dict['total_amount'] = total_amount
     order_dict['created_by'] = current_user['id']
+    order_dict['is_locked'] = False
+    
+    # Handle recurring orders
+    if order.is_recurring and order.recurrence_pattern:
+        current_date = datetime.now(timezone.utc).date()
+        frequency_type = order.recurrence_pattern.get('frequency_type')
+        frequency_value = order.recurrence_pattern.get('frequency_value', 1)
+        
+        # Calculate next occurrence date
+        if frequency_type == 'daily':
+            next_date = current_date + timedelta(days=frequency_value)
+        elif frequency_type == 'weekly':
+            next_date = current_date + timedelta(weeks=frequency_value)
+        elif frequency_type == 'monthly':
+            next_date = current_date + timedelta(days=30 * frequency_value)
+        else:
+            next_date = current_date + timedelta(days=1)
+        
+        order_dict['next_occurrence_date'] = next_date.isoformat()
+    
     order_obj = Order(**order_dict)
     
     doc = order_obj.model_dump()
     doc['created_at'] = doc['created_at'].isoformat()
     doc['updated_at'] = doc['updated_at'].isoformat()
+    if doc.get('locked_at'):
+        doc['locked_at'] = doc['locked_at'].isoformat()
     
     await db.orders.insert_one(doc)
     
-    # Create notification for customer
-    await create_notification(
-        order.customer_id,
-        "New Order Created",
-        f"Your order {order_number} has been created successfully.",
-        "order"
+    # Send notifications to customer, owner, and admin
+    order_type = "recurring order" if order.is_recurring else "order"
+    notification_message = f"New {order_type} #{order_number} has been created"
+    
+    # Notify customer
+    customer = await db.users.find_one({"id": order.customer_id})
+    if customer:
+        await send_notification(
+            user_id=customer['id'],
+            email=customer['email'],
+            title="New Order Created",
+            message=f"Your {order_type} #{order_number} has been created successfully.",
+            notif_type="order_created"
+        )
+    
+    # Notify all owners and admins
+    owners = await db.users.find({"role": "owner"}).to_list(length=None)
+    admins = await db.users.find({"role": "admin"}).to_list(length=None)
+    
+    for user in owners + admins:
+        await send_notification(
+            user_id=user['id'],
+            email=user['email'],
+            title="New Order Created",
+            message=notification_message,
+            notif_type="order_created"
+        )
+    
+    return order_obj
+
+@api_router.post("/orders/customer", response_model=Order)
+async def create_customer_order(order: CustomerOrderCreate, current_user: dict = Depends(require_role(["customer"]))):
+    """Allow customers to create their own orders"""
+    # Generate order number
+    count = await db.orders.count_documents({}) + 1
+    order_number = f"ORD-{count:06d}"
+    
+    # Get customer details
+    customer = await db.users.find_one({"id": current_user['id']})
+    if not customer:
+        raise HTTPException(status_code=404, detail="Customer not found")
+    
+    # Calculate total
+    total_amount = sum(item.price * item.quantity for item in order.items)
+    
+    order_dict = order.model_dump()
+    order_dict['customer_id'] = customer['id']
+    order_dict['customer_name'] = customer['full_name']
+    order_dict['customer_email'] = customer['email']
+    order_dict['order_number'] = order_number
+    order_dict['total_amount'] = total_amount
+    order_dict['created_by'] = current_user['id']
+    order_dict['is_locked'] = False
+    
+    # Handle recurring orders
+    if order.is_recurring and order.recurrence_pattern:
+        current_date = datetime.now(timezone.utc).date()
+        frequency_type = order.recurrence_pattern.get('frequency_type')
+        frequency_value = order.recurrence_pattern.get('frequency_value', 1)
+        
+        # Calculate next occurrence date
+        if frequency_type == 'daily':
+            next_date = current_date + timedelta(days=frequency_value)
+        elif frequency_type == 'weekly':
+            next_date = current_date + timedelta(weeks=frequency_value)
+        elif frequency_type == 'monthly':
+            next_date = current_date + timedelta(days=30 * frequency_value)
+        else:
+            next_date = current_date + timedelta(days=1)
+        
+        order_dict['next_occurrence_date'] = next_date.isoformat()
+    
+    order_obj = Order(**order_dict)
+    
+    doc = order_obj.model_dump()
+    doc['created_at'] = doc['created_at'].isoformat()
+    doc['updated_at'] = doc['updated_at'].isoformat()
+    if doc.get('locked_at'):
+        doc['locked_at'] = doc['locked_at'].isoformat()
+    
+    await db.orders.insert_one(doc)
+    
+    # Send notifications
+    order_type = "recurring order" if order.is_recurring else "order"
+    
+    # Notify customer
+    await send_notification(
+        user_id=customer['id'],
+        email=customer['email'],
+        title="Order Created",
+        message=f"Your {order_type} #{order_number} has been created successfully.",
+        notif_type="order_created"
     )
+    
+    # Notify all owners and admins
+    owners = await db.users.find({"role": "owner"}).to_list(length=None)
+    admins = await db.users.find({"role": "admin"}).to_list(length=None)
+    
+    for user in owners + admins:
+        await send_notification(
+            user_id=user['id'],
+            email=user['email'],
+            title="New Customer Order",
+            message=f"Customer {customer['full_name']} created a new {order_type} #{order_number}",
+            notif_type="order_created"
+        )
     
     return order_obj
 
@@ -540,14 +811,14 @@ async def update_order(order_id: str, update: OrderUpdate, current_user: dict = 
     if not order_doc:
         raise HTTPException(status_code=404, detail="Order not found")
     
-    # Customer can only modify orders 8 hours before delivery
+    # Check if order is locked
+    if order_doc.get('is_locked', False):
+        raise HTTPException(status_code=400, detail="Cannot modify order - it has been locked after 8 hours")
+    
+    # Customer can only modify their own orders
     if current_user['role'] == 'customer':
         if order_doc['customer_id'] != current_user['id']:
             raise HTTPException(status_code=403, detail="Not authorized")
-        
-        delivery_date = datetime.fromisoformat(order_doc['delivery_date'])
-        if datetime.now(timezone.utc) > delivery_date - timedelta(hours=8):
-            raise HTTPException(status_code=400, detail="Cannot modify order within 8 hours of delivery")
     
     update_data = {k: v for k, v in update.model_dump().items() if v is not None}
     update_data['updated_at'] = datetime.now(timezone.utc).isoformat()
@@ -557,14 +828,33 @@ async def update_order(order_id: str, update: OrderUpdate, current_user: dict = 
     updated_order = await db.orders.find_one({"id": order_id}, {"_id": 0})
     updated_order['created_at'] = datetime.fromisoformat(updated_order['created_at'])
     updated_order['updated_at'] = datetime.fromisoformat(updated_order['updated_at'])
+    if updated_order.get('locked_at'):
+        updated_order['locked_at'] = datetime.fromisoformat(updated_order['locked_at']) if isinstance(updated_order['locked_at'], str) else updated_order['locked_at']
     
-    # Notify customer of update
-    await create_notification(
-        order_doc['customer_id'],
-        "Order Updated",
-        f"Your order {order_doc['order_number']} has been updated.",
-        "order"
-    )
+    # Send notifications to customer, owner, and admin
+    customer = await db.users.find_one({"id": order_doc['customer_id']})
+    if customer:
+        await send_notification(
+            user_id=customer['id'],
+            email=customer['email'],
+            title="Order Updated",
+            message=f"Your order #{order_doc['order_number']} has been updated.",
+            notif_type="order_updated"
+        )
+    
+    # Notify owners and admins
+    owners = await db.users.find({"role": "owner"}).to_list(length=None)
+    admins = await db.users.find({"role": "admin"}).to_list(length=None)
+    
+    for user in owners + admins:
+        if user['id'] != current_user['id']:  # Don't notify the user who made the update
+            await send_notification(
+                user_id=user['id'],
+                email=user['email'],
+                title="Order Updated",
+                message=f"Order #{order_doc['order_number']} has been updated.",
+                notif_type="order_updated"
+            )
     
     return Order(**updated_order)
 
@@ -587,6 +877,47 @@ async def cancel_order(order_id: str, current_user: dict = Depends(get_current_u
     )
     
     return {"message": "Order cancelled successfully"}
+
+# Recurring Orders Routes
+@api_router.get("/orders/recurring/list", response_model=List[Order])
+async def get_recurring_orders(current_user: dict = Depends(get_current_user)):
+    """Get all recurring order templates"""
+    query = {"is_recurring": True, "status": {"$ne": "cancelled"}}
+    if current_user['role'] == 'customer':
+        query['customer_id'] = current_user['id']
+    
+    orders = await db.orders.find(query, {"_id": 0}).to_list(1000)
+    for order in orders:
+        order['created_at'] = datetime.fromisoformat(order['created_at']) if isinstance(order['created_at'], str) else order['created_at']
+        order['updated_at'] = datetime.fromisoformat(order['updated_at']) if isinstance(order['updated_at'], str) else order['updated_at']
+        if order.get('locked_at'):
+            order['locked_at'] = datetime.fromisoformat(order['locked_at']) if isinstance(order['locked_at'], str) else order['locked_at']
+    return orders
+
+@api_router.delete("/orders/recurring/{order_id}")
+async def cancel_recurring_order(order_id: str, current_user: dict = Depends(get_current_user)):
+    """Cancel a recurring order (stops future occurrences)"""
+    order_doc = await db.orders.find_one({"id": order_id})
+    if not order_doc:
+        raise HTTPException(status_code=404, detail="Order not found")
+    
+    if not order_doc.get('is_recurring'):
+        raise HTTPException(status_code=400, detail="Order is not a recurring order")
+    
+    if current_user['role'] == 'customer' and order_doc['customer_id'] != current_user['id']:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    await db.orders.update_one({"id": order_id}, {"$set": {"status": "cancelled", "is_recurring": False}})
+    
+    await send_notification(
+        user_id=order_doc['customer_id'],
+        email=order_doc['customer_email'],
+        title="Recurring Order Cancelled",
+        message=f"Your recurring order #{order_doc['order_number']} has been cancelled. No future orders will be generated.",
+        notif_type="order_cancelled"
+    )
+    
+    return {"message": "Recurring order cancelled successfully"}
 
 # Delivery Routes
 @api_router.post("/deliveries", response_model=Delivery)
@@ -778,10 +1109,238 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Export the socket app as the main app for uvicorn
+# This ensures Socket.io integration works properly
+main_app = socket_app
+
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
+
+# Socket.io Event Handlers
+@sio.event
+async def connect(sid, environ):
+    logging.info(f"Client connected: {sid}")
+    await sio.emit('connected', {'message': 'Connected to Clienty server'}, to=sid)
+
+@sio.event
+async def disconnect(sid):
+    logging.info(f"Client disconnected: {sid}")
+
+@sio.event
+async def join_room(sid, data):
+    """Join a room based on user_id for targeted notifications"""
+    user_id = data.get('user_id')
+    if user_id:
+        sio.enter_room(sid, user_id)
+        logging.info(f"Client {sid} joined room {user_id}")
+        await sio.emit('room_joined', {'room': user_id}, to=sid)
+
+# Scheduled Tasks
+async def lock_orders_job():
+    """Lock orders that are older than 8 hours and not yet locked"""
+    try:
+        current_time = datetime.now(timezone.utc)
+        cutoff_time = current_time - timedelta(hours=8)
+        
+        # Find orders that need to be locked
+        orders_to_lock = await db.orders.find({
+            "is_locked": {"$ne": True},
+            "created_at": {"$lt": cutoff_time.isoformat()}
+        }).to_list(length=None)
+        
+        for order in orders_to_lock:
+            # Lock the order
+            await db.orders.update_one(
+                {"id": order["id"]},
+                {
+                    "$set": {
+                        "is_locked": True,
+                        "locked_at": current_time.isoformat()
+                    }
+                }
+            )
+            
+            # Send notifications
+            await notify_order_locked(order)
+            
+        if orders_to_lock:
+            logging.info(f"Locked {len(orders_to_lock)} orders")
+    except Exception as e:
+        logging.error(f"Error in lock_orders_job: {str(e)}")
+
+async def generate_recurring_orders_job():
+    """Generate recurring orders based on schedule"""
+    try:
+        current_date = datetime.now(timezone.utc).date()
+        
+        # Find recurring orders that need to be generated
+        recurring_orders = await db.orders.find({
+            "is_recurring": True,
+            "next_occurrence_date": current_date.isoformat()
+        }).to_list(length=None)
+        
+        for template_order in recurring_orders:
+            # Create new order based on template
+            await create_order_from_template(template_order)
+            
+        if recurring_orders:
+            logging.info(f"Generated {len(recurring_orders)} recurring orders")
+    except Exception as e:
+        logging.error(f"Error in generate_recurring_orders_job: {str(e)}")
+
+# Notification Helper Functions
+async def notify_order_locked(order):
+    """Send notifications when an order is locked"""
+    try:
+        # Get all owners and admins
+        owners = await db.users.find({"role": "owner"}).to_list(length=None)
+        admins = await db.users.find({"role": "admin"}).to_list(length=None)
+        
+        # Get customer
+        customer = await db.users.find_one({"id": order["customer_id"]})
+        
+        notification_message = f"Order #{order['order_number']} has been automatically locked after 8 hours"
+        
+        # Notify customer
+        if customer:
+            await send_notification(
+                user_id=customer['id'],
+                email=customer['email'],
+                title="Order Locked",
+                message=notification_message,
+                notif_type="order_locked"
+            )
+        
+        # Notify owners and admins
+        for user in owners + admins:
+            await send_notification(
+                user_id=user['id'],
+                email=user['email'],
+                title="Order Locked",
+                message=notification_message,
+                notif_type="order_locked"
+            )
+    except Exception as e:
+        logging.error(f"Error in notify_order_locked: {str(e)}")
+
+async def send_notification(user_id: str, email: str, title: str, message: str, notif_type: str):
+    """Send both socket and email notifications"""
+    try:
+        # Store notification in database
+        notif = Notification(
+            user_id=user_id,
+            title=title,
+            message=message,
+            type=notif_type
+        )
+        doc = notif.model_dump()
+        doc['created_at'] = doc['created_at'].isoformat()
+        await db.notifications.insert_one(doc)
+        
+        # Send socket notification
+        await sio.emit('notification', {
+            'id': notif.id,
+            'title': title,
+            'message': message,
+            'type': notif_type,
+            'created_at': doc['created_at']
+        }, room=user_id)
+        
+        # Send email notification
+        send_email(email, title, f"<p>{message}</p>")
+    except Exception as e:
+        logging.error(f"Error in send_notification: {str(e)}")
+
+async def create_order_from_template(template_order):
+    """Create a new order from a recurring order template"""
+    try:
+        # Create new order
+        new_order = Order(
+            customer_id=template_order['customer_id'],
+            customer_name=template_order['customer_name'],
+            customer_email=template_order['customer_email'],
+            items=template_order['items'],
+            pickup_date=template_order['pickup_date'],
+            delivery_date=template_order['delivery_date'],
+            pickup_address=template_order['pickup_address'],
+            delivery_address=template_order['delivery_address'],
+            special_instructions=template_order.get('special_instructions'),
+            order_number=f"ORD-{datetime.now(timezone.utc).strftime('%Y%m%d')}-{str(uuid.uuid4())[:8].upper()}",
+            total_amount=template_order['total_amount'],
+            created_by='system_recurring',
+            is_recurring=False  # The generated order is not recurring itself
+        )
+        
+        doc = new_order.model_dump()
+        doc['created_at'] = doc['created_at'].isoformat()
+        doc['updated_at'] = doc['updated_at'].isoformat()
+        doc['is_locked'] = False
+        await db.orders.insert_one(doc)
+        
+        # Update next occurrence date in template
+        recurrence = template_order.get('recurrence_pattern', {})
+        frequency_type = recurrence.get('frequency_type')
+        frequency_value = recurrence.get('frequency_value', 1)
+        
+        next_date = datetime.fromisoformat(template_order['next_occurrence_date'])
+        if frequency_type == 'daily':
+            next_date = next_date + timedelta(days=frequency_value)
+        elif frequency_type == 'weekly':
+            next_date = next_date + timedelta(weeks=frequency_value)
+        elif frequency_type == 'monthly':
+            next_date = next_date + timedelta(days=30 * frequency_value)
+        
+        await db.orders.update_one(
+            {"id": template_order['id']},
+            {"$set": {"next_occurrence_date": next_date.date().isoformat()}}
+        )
+        
+        # Send notification to customer
+        customer = await db.users.find_one({"id": template_order['customer_id']})
+        if customer:
+            await send_notification(
+                user_id=customer['id'],
+                email=customer['email'],
+                title="Recurring Order Generated",
+                message=f"Your recurring order #{new_order.order_number} has been automatically created",
+                notif_type="order_created"
+            )
+    except Exception as e:
+        logging.error(f"Error in create_order_from_template: {str(e)}")
+
+# Application Lifecycle Events
+@app.on_event("startup")
+async def startup_event():
+    logging.info("Starting up Clienty server...")
+    
+    # Start the scheduler
+    scheduler.start()
+    
+    # Schedule the order locking job (runs every hour)
+    scheduler.add_job(
+        lock_orders_job,
+        IntervalTrigger(hours=1),
+        id='lock_orders',
+        replace_existing=True
+    )
+    
+    # Schedule recurring orders job (runs daily at midnight)
+    scheduler.add_job(
+        generate_recurring_orders_job,
+        CronTrigger(hour=0, minute=0),
+        id='generate_recurring_orders',
+        replace_existing=True
+    )
+    
+    logging.info("Scheduler started with jobs: lock_orders, generate_recurring_orders")
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    logging.info("Shutting down Clienty server...")
+    scheduler.shutdown()
+    logging.info("Scheduler stopped")
 logger = logging.getLogger(__name__)
 
 @app.on_event("shutdown")

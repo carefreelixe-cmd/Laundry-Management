@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import axios from 'axios';
 import { Toaster } from 'sonner';
 import '@/App.css';
+import { SocketProvider } from './contexts/SocketContext';
 
 // Pages
 import LandingPage from './pages/LandingPage';
@@ -24,7 +25,12 @@ function App() {
 
   useEffect(() => {
     const token = localStorage.getItem('token');
-    if (token) {
+    const savedUser = localStorage.getItem('user');
+    if (token && savedUser) {
+      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+      setUser(JSON.parse(savedUser));
+      setLoading(false);
+    } else if (token) {
       axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
       fetchCurrentUser();
     } else {
@@ -36,9 +42,11 @@ function App() {
     try {
       const response = await axios.get(`${API}/auth/me`);
       setUser(response.data);
+      localStorage.setItem('user', JSON.stringify(response.data));
     } catch (error) {
       console.error('Failed to fetch user', error);
       localStorage.removeItem('token');
+      localStorage.removeItem('user');
       delete axios.defaults.headers.common['Authorization'];
     } finally {
       setLoading(false);
@@ -49,6 +57,7 @@ function App() {
     const response = await axios.post(`${API}/auth/login`, { email, password });
     const { access_token, user: userData } = response.data;
     localStorage.setItem('token', access_token);
+    localStorage.setItem('user', JSON.stringify(userData));
     axios.defaults.headers.common['Authorization'] = `Bearer ${access_token}`;
     setUser(userData);
     return userData;
@@ -56,6 +65,7 @@ function App() {
 
   const logout = () => {
     localStorage.removeItem('token');
+    localStorage.removeItem('user');
     delete axios.defaults.headers.common['Authorization'];
     setUser(null);
   };
@@ -82,40 +92,42 @@ function App() {
 
   return (
     <AuthContext.Provider value={{ user, login, logout, API }}>
-      <div className="App">
-        <Toaster position="top-right" richColors />
-        <BrowserRouter>
-          <Routes>
-            <Route path="/" element={<LandingPage />} />
-            <Route path="/login" element={user ? <Navigate to={`/dashboard/${user.role}`} /> : <LoginPage />} />
-            <Route path="/signup" element={user ? <Navigate to={`/dashboard/${user.role}`} /> : <SignupPage />} />
-            <Route
-              path="/dashboard/owner"
-              element={
-                <ProtectedRoute allowedRoles={['owner']}>
-                  <OwnerDashboard />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/dashboard/admin"
-              element={
-                <ProtectedRoute allowedRoles={['admin']}>
-                  <AdminDashboard />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/dashboard/customer"
-              element={
-                <ProtectedRoute allowedRoles={['customer']}>
-                  <CustomerDashboard />
-                </ProtectedRoute>
-              }
-            />
-          </Routes>
-        </BrowserRouter>
-      </div>
+      <SocketProvider>
+        <div className="App">
+          <Toaster position="top-right" richColors />
+          <BrowserRouter>
+            <Routes>
+              <Route path="/" element={<LandingPage />} />
+              <Route path="/login" element={user ? <Navigate to={`/dashboard/${user.role}`} /> : <LoginPage />} />
+              <Route path="/signup" element={user ? <Navigate to={`/dashboard/${user.role}`} /> : <SignupPage />} />
+              <Route
+                path="/dashboard/owner"
+                element={
+                  <ProtectedRoute allowedRoles={['owner']}>
+                    <OwnerDashboard />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/dashboard/admin"
+                element={
+                  <ProtectedRoute allowedRoles={['admin']}>
+                    <AdminDashboard />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/dashboard/customer"
+                element={
+                  <ProtectedRoute allowedRoles={['customer']}>
+                    <CustomerDashboard />
+                  </ProtectedRoute>
+                }
+              />
+            </Routes>
+          </BrowserRouter>
+        </div>
+      </SocketProvider>
     </AuthContext.Provider>
   );
 }
