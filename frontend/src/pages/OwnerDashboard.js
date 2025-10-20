@@ -50,6 +50,20 @@ function OwnerDashboard() {
     fetchData();
   }, []);
 
+  useEffect(() => {
+    if (activeTab === 'customer-pricing') {
+      fetchCustomers();
+    } else if (activeTab === 'frequency-templates') {
+      fetchFrequencyTemplates();
+    }
+  }, [activeTab]);
+
+  useEffect(() => {
+    if (selectedCustomer) {
+      fetchCustomerPricing(selectedCustomer);
+    }
+  }, [selectedCustomer]);
+
   const fetchData = async () => {
     try {
       const [statsRes, usersRes, skusRes] = await Promise.all([
@@ -64,6 +78,33 @@ function OwnerDashboard() {
       console.error('Failed to fetch data', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchCustomers = async () => {
+    try {
+      const res = await axios.get(`${API}/users`);
+      setCustomers(res.data.filter(u => u.role === 'customer'));
+    } catch (error) {
+      console.error('Failed to fetch customers', error);
+    }
+  };
+
+  const fetchCustomerPricing = async (customerId) => {
+    try {
+      const res = await axios.get(`${API}/skus-with-pricing/${customerId}`);
+      setSkusWithPricing(res.data);
+    } catch (error) {
+      console.error('Failed to fetch customer pricing', error);
+    }
+  };
+
+  const fetchFrequencyTemplates = async () => {
+    try {
+      const res = await axios.get(`${API}/frequency-templates`);
+      setFrequencyTemplates(res.data);
+    } catch (error) {
+      console.error('Failed to fetch frequency templates', error);
     }
   };
 
