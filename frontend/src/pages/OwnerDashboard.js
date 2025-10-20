@@ -170,6 +170,78 @@ function OwnerDashboard() {
     setShowSkuDialog(true);
   };
 
+  const handleCreateOrUpdatePricing = async (e) => {
+    e.preventDefault();
+    if (!selectedCustomer) {
+      alert('Please select a customer first');
+      return;
+    }
+    try {
+      await axios.post(`${API}/customer-pricing`, {
+        customer_id: selectedCustomer,
+        sku_id: pricingForm.sku_id,
+        custom_price: parseFloat(pricingForm.custom_price)
+      });
+      setShowPricingDialog(false);
+      setPricingForm({ sku_id: '', custom_price: '' });
+      fetchCustomerPricing(selectedCustomer);
+    } catch (error) {
+      alert(error.response?.data?.detail || 'Failed to save pricing');
+    }
+  };
+
+  const handleDeletePricing = async (pricingId) => {
+    if (!window.confirm('Are you sure you want to delete this custom pricing?')) return;
+    try {
+      await axios.delete(`${API}/customer-pricing/${pricingId}`);
+      fetchCustomerPricing(selectedCustomer);
+    } catch (error) {
+      alert('Failed to delete pricing');
+    }
+  };
+
+  const handleCreateOrUpdateTemplate = async (e) => {
+    e.preventDefault();
+    try {
+      const templateData = {
+        ...templateForm,
+        frequency_value: parseInt(templateForm.frequency_value)
+      };
+      if (editingTemplate) {
+        await axios.put(`${API}/frequency-templates/${editingTemplate.id}`, templateData);
+      } else {
+        await axios.post(`${API}/frequency-templates`, templateData);
+      }
+      setShowTemplateDialog(false);
+      setTemplateForm({ name: '', frequency_type: 'daily', frequency_value: '1', description: '' });
+      setEditingTemplate(null);
+      fetchFrequencyTemplates();
+    } catch (error) {
+      alert(error.response?.data?.detail || 'Failed to save template');
+    }
+  };
+
+  const handleDeleteTemplate = async (templateId) => {
+    if (!window.confirm('Are you sure you want to delete this template?')) return;
+    try {
+      await axios.delete(`${API}/frequency-templates/${templateId}`);
+      fetchFrequencyTemplates();
+    } catch (error) {
+      alert('Failed to delete template');
+    }
+  };
+
+  const handleEditTemplate = (template) => {
+    setEditingTemplate(template);
+    setTemplateForm({
+      name: template.name,
+      frequency_type: template.frequency_type,
+      frequency_value: template.frequency_value.toString(),
+      description: template.description || ''
+    });
+    setShowTemplateDialog(true);
+  };
+
   if (loading) {
     return (
       <DashboardLayout>
