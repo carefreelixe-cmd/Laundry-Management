@@ -172,15 +172,18 @@ backend:
   
   - task: "Frequency template model and APIs"
     implemented: true
-    working: "NA"
+    working: true
     file: "backend/server.py"
     stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: "NA"
         agent: "main"
         comment: "Created FrequencyTemplate model with fields: name, frequency_type, frequency_value, description. Added APIs: POST /api/frequency-templates, GET /api/frequency-templates, PUT /api/frequency-templates/{template_id}, DELETE /api/frequency-templates/{template_id}"
+      - working: true
+        agent: "testing"
+        comment: "Frequency template system fully functional. All CRUD operations working correctly. Successfully tested daily, weekly, and monthly frequency types with various frequency values. Template creation, retrieval, update, and deletion all working properly."
   
   - task: "Enhanced Order model with recurring and locking fields"
     implemented: true
