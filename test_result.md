@@ -223,6 +223,9 @@ backend:
       - working: true
         agent: "main"
         comment: "Fixed POST /api/orders/customer endpoint. Created new CustomerOrderCreate model that doesn't require customer info. The endpoint now auto-populates customer_id, customer_name, and customer_email from JWT token."
+      - working: true
+        agent: "testing"
+        comment: "✅ COMPREHENSIVE TESTING COMPLETED: Both recurring order creation endpoints working perfectly. POST /api/orders (admin creates recurring order) ✅, POST /api/orders/customer (customer creates recurring order) ✅. All recurring fields (is_recurring, recurrence_pattern, next_occurrence_date) properly set and calculated."
   
   - task: "Recurring orders list and cancel endpoints"
     implemented: true
