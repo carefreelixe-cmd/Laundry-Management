@@ -721,14 +721,14 @@ async def update_order(order_id: str, update: OrderUpdate, current_user: dict = 
     if not order_doc:
         raise HTTPException(status_code=404, detail="Order not found")
     
-    # Customer can only modify orders 8 hours before delivery
+    # Check if order is locked
+    if order_doc.get('is_locked', False):
+        raise HTTPException(status_code=400, detail="Cannot modify order - it has been locked after 8 hours")
+    
+    # Customer can only modify their own orders
     if current_user['role'] == 'customer':
         if order_doc['customer_id'] != current_user['id']:
             raise HTTPException(status_code=403, detail="Not authorized")
-        
-        delivery_date = datetime.fromisoformat(order_doc['delivery_date'])
-        if datetime.now(timezone.utc) > delivery_date - timedelta(hours=8):
-            raise HTTPException(status_code=400, detail="Cannot modify order within 8 hours of delivery")
     
     update_data = {k: v for k, v in update.model_dump().items() if v is not None}
     update_data['updated_at'] = datetime.now(timezone.utc).isoformat()
@@ -738,14 +738,33 @@ async def update_order(order_id: str, update: OrderUpdate, current_user: dict = 
     updated_order = await db.orders.find_one({"id": order_id}, {"_id": 0})
     updated_order['created_at'] = datetime.fromisoformat(updated_order['created_at'])
     updated_order['updated_at'] = datetime.fromisoformat(updated_order['updated_at'])
+    if updated_order.get('locked_at'):
+        updated_order['locked_at'] = datetime.fromisoformat(updated_order['locked_at']) if isinstance(updated_order['locked_at'], str) else updated_order['locked_at']
     
-    # Notify customer of update
-    await create_notification(
-        order_doc['customer_id'],
-        "Order Updated",
-        f"Your order {order_doc['order_number']} has been updated.",
-        "order"
-    )
+    # Send notifications to customer, owner, and admin
+    customer = await db.users.find_one({"id": order_doc['customer_id']})
+    if customer:
+        await send_notification(
+            user_id=customer['id'],
+            email=customer['email'],
+            title="Order Updated",
+            message=f"Your order #{order_doc['order_number']} has been updated.",
+            notif_type="order_updated"
+        )
+    
+    # Notify owners and admins
+    owners = await db.users.find({"role": "owner"}).to_list(length=None)
+    admins = await db.users.find({"role": "admin"}).to_list(length=None)
+    
+    for user in owners + admins:
+        if user['id'] != current_user['id']:  # Don't notify the user who made the update
+            await send_notification(
+                user_id=user['id'],
+                email=user['email'],
+                title="Order Updated",
+                message=f"Order #{order_doc['order_number']} has been updated.",
+                notif_type="order_updated"
+            )
     
     return Order(**updated_order)
 
