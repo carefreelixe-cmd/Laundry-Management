@@ -287,6 +287,9 @@ frontend:
       - working: "NA"
         agent: "main"
         comment: "Implemented Customer Pricing tab in OwnerDashboard. Features: Select customer dropdown, view SKUs with base/custom prices, add/delete custom pricing for specific customers. Integrated with /api/customer-pricing and /api/skus-with-pricing APIs."
+      - working: "NA"
+        agent: "testing"
+        comment: "Backend APIs confirmed working perfectly. Customer pricing APIs (POST /api/customer-pricing, GET /api/skus-with-pricing/{customer_id}, DELETE /api/customer-pricing/{pricing_id}) all tested and functional. Ready for frontend testing."
   
   - task: "Owner frequency template management"
     implemented: true
@@ -299,6 +302,9 @@ frontend:
       - working: "NA"
         agent: "main"
         comment: "Implemented Frequency Templates tab in OwnerDashboard. Features: Create/edit/delete templates, select frequency type (daily/weekly/monthly), set frequency value. Integrated with /api/frequency-templates APIs."
+      - working: "NA"
+        agent: "testing"
+        comment: "Backend APIs confirmed working perfectly. Frequency template APIs (POST, GET, PUT, DELETE /api/frequency-templates) all tested and functional. Ready for frontend testing."
   
   - task: "Admin recurring order creation form"
     implemented: true
@@ -311,6 +317,9 @@ frontend:
       - working: "NA"
         agent: "main"
         comment: "Enhanced AdminDashboard order creation form with recurring support. Added: Toggle switch for recurring orders, frequency template selection, recurrence pattern integration. Order list now shows recurring and lock status badges."
+      - working: "NA"
+        agent: "testing"
+        comment: "Backend APIs confirmed working perfectly. POST /api/orders (admin recurring order creation) tested and functional with proper recurring fields. Ready for frontend testing."
   
   - task: "Customer recurring order creation form"
     implemented: true
@@ -323,6 +332,9 @@ frontend:
       - working: "NA"
         agent: "main"
         comment: "Implemented full order creation for customers. Features: Create orders with multiple items, SKU selection with customer-specific pricing, pickup/delivery dates & addresses, recurring toggle with frequency template selection. Uses /api/orders/customer endpoint."
+      - working: "NA"
+        agent: "testing"
+        comment: "Backend APIs confirmed working perfectly. POST /api/orders/customer (customer recurring order creation) tested and functional. Customer-specific pricing integration confirmed working. Ready for frontend testing."
   
   - task: "Socket.io client integration"
     implemented: true
@@ -347,6 +359,9 @@ frontend:
       - working: "NA"
         agent: "main"
         comment: "Implemented lock status badges in both Customer and Admin dashboards. Shows Locked/Editable status with icons. Recurring orders display recurring badge and next occurrence date."
+      - working: "NA"
+        agent: "testing"
+        comment: "Backend APIs confirmed working perfectly. Order lock status fields (is_locked, locked_at) confirmed present in order model. PUT /api/orders/{order_id} properly validates lock status. Ready for frontend testing."
   
   - task: "Mark all notifications as read"
     implemented: true
