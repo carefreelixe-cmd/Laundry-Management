@@ -452,6 +452,105 @@ async def resend_otp(data: ResendOTP):
     
     return {"message": "New OTP sent to your email"}
 
+@api_router.post("/auth/forgot-password")
+async def forgot_password(data: ResendOTP):
+    """
+    Request password reset - sends OTP to user's email
+    """
+    # Check if user exists
+    user = await db.users.find_one({"email": data.email})
+    
+    if not user:
+        raise HTTPException(status_code=404, detail="No account found with this email address")
+    
+    # Generate OTP
+    otp = generate_otp()
+    
+    # Store reset request
+    reset_request = {
+        "email": data.email,
+        "otp": otp,
+        "otp_created_at": datetime.now(timezone.utc).isoformat(),
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    # Delete any existing reset requests for this email
+    await db.password_reset_requests.delete_many({"email": data.email})
+    
+    # Insert new reset request
+    await db.password_reset_requests.insert_one(reset_request)
+    
+    # Send OTP via email
+    send_otp_email(data.email, otp, user['full_name'])
+    
+    return {
+        "message": "Password reset code sent to your email",
+        "email": data.email
+    }
+
+@api_router.post("/auth/verify-reset-otp")
+async def verify_reset_otp(data: OTPVerify):
+    """
+    Verify OTP for password reset
+    """
+    # Find reset request
+    reset_request = await db.password_reset_requests.find_one({"email": data.email})
+    
+    if not reset_request:
+        raise HTTPException(status_code=404, detail="No password reset request found for this email")
+    
+    # Check OTP
+    if reset_request['otp'] != data.otp:
+        raise HTTPException(status_code=400, detail="Invalid reset code")
+    
+    # Check OTP expiry
+    if is_otp_expired(reset_request['otp_created_at']):
+        raise HTTPException(status_code=400, detail="Reset code has expired. Please request a new one.")
+    
+    return {
+        "message": "Reset code verified. You can now set a new password.",
+        "email": data.email
+    }
+
+class PasswordReset(BaseModel):
+    email: EmailStr
+    otp: str
+    new_password: str
+
+@api_router.post("/auth/reset-password")
+async def reset_password(data: PasswordReset):
+    """
+    Reset password with verified OTP
+    """
+    # Find and verify reset request
+    reset_request = await db.password_reset_requests.find_one({"email": data.email})
+    
+    if not reset_request:
+        raise HTTPException(status_code=404, detail="No password reset request found")
+    
+    # Verify OTP
+    if reset_request['otp'] != data.otp:
+        raise HTTPException(status_code=400, detail="Invalid reset code")
+    
+    # Check OTP expiry
+    if is_otp_expired(reset_request['otp_created_at']):
+        raise HTTPException(status_code=400, detail="Reset code has expired. Please request a new one.")
+    
+    # Update password
+    hashed_password = hash_password(data.new_password)
+    result = await db.users.update_one(
+        {"email": data.email},
+        {"$set": {"password": hashed_password}}
+    )
+    
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    # Delete the reset request
+    await db.password_reset_requests.delete_one({"email": data.email})
+    
+    return {"message": "Password reset successfully. You can now log in with your new password."}
+
 @api_router.post("/auth/login", response_model=TokenResponse)
 async def login(credentials: UserLogin):
     user_doc = await db.users.find_one({"email": credentials.email})
@@ -753,6 +852,27 @@ async def create_customer_order(order: CustomerOrderCreate, current_user: dict =
     
     await db.orders.insert_one(doc)
     
+    # Prepare detailed order info
+    items_list = "\n".join([f"    - {item.item_name}: {item.quantity} x ${item.price:.2f} = ${item.quantity * item.price:.2f}" for item in order.items])
+    order_details = f"""
+    Order Number: {order_number}
+    Order Type: {'Recurring' if order.is_recurring else 'Regular'}
+    Customer: {customer['full_name']}
+    Email: {customer['email']}
+    Total Amount: ${total_amount:.2f}
+    
+    Items:
+{items_list}
+    
+    Pickup:
+    - Date: {order.pickup_date}
+    - Address: {order.pickup_address}
+    
+    Delivery:
+    - Date: {order.delivery_date}
+    - Address: {order.delivery_address}
+    """
+    
     # Send notifications
     order_type = "recurring order" if order.is_recurring else "order"
     
@@ -760,8 +880,8 @@ async def create_customer_order(order: CustomerOrderCreate, current_user: dict =
     await send_notification(
         user_id=customer['id'],
         email=customer['email'],
-        title="Order Created",
-        message=f"Your {order_type} #{order_number} has been created successfully.",
+        title="Order Created Successfully",
+        message=f"Your {order_type} has been created successfully.{order_details}",
         notif_type="order_created"
     )
     
@@ -774,7 +894,7 @@ async def create_customer_order(order: CustomerOrderCreate, current_user: dict =
             user_id=user['id'],
             email=user['email'],
             title="New Customer Order",
-            message=f"Customer {customer['full_name']} created a new {order_type} #{order_number}",
+            message=f"Customer {customer['full_name']} created a new {order_type}.{order_details}",
             notif_type="order_created"
         )
     
@@ -831,6 +951,15 @@ async def update_order(order_id: str, update: OrderUpdate, current_user: dict = 
     if updated_order.get('locked_at'):
         updated_order['locked_at'] = datetime.fromisoformat(updated_order['locked_at']) if isinstance(updated_order['locked_at'], str) else updated_order['locked_at']
     
+    # Prepare order details
+    order_details = f"""
+    Order Number: {order_doc['order_number']}
+    Status: {updated_order.get('status', 'N/A')}
+    Total Amount: ${updated_order.get('total_amount', 0):.2f}
+    Pickup Date: {updated_order.get('pickup_date', 'N/A')}
+    Delivery Date: {updated_order.get('delivery_date', 'N/A')}
+    """
+    
     # Send notifications to customer, owner, and admin
     customer = await db.users.find_one({"id": order_doc['customer_id']})
     if customer:
@@ -838,7 +967,7 @@ async def update_order(order_id: str, update: OrderUpdate, current_user: dict = 
             user_id=customer['id'],
             email=customer['email'],
             title="Order Updated",
-            message=f"Your order #{order_doc['order_number']} has been updated.",
+            message=f"Your order has been updated.{order_details}",
             notif_type="order_updated"
         )
     
@@ -852,7 +981,7 @@ async def update_order(order_id: str, update: OrderUpdate, current_user: dict = 
                 user_id=user['id'],
                 email=user['email'],
                 title="Order Updated",
-                message=f"Order #{order_doc['order_number']} has been updated.",
+                message=f"Order #{order_doc['order_number']} has been updated by {customer.get('full_name', 'Customer') if customer else 'Customer'}.{order_details}",
                 notif_type="order_updated"
             )
     
@@ -869,12 +998,41 @@ async def cancel_order(order_id: str, current_user: dict = Depends(get_current_u
     
     await db.orders.update_one({"id": order_id}, {"$set": {"status": "cancelled"}})
     
-    await create_notification(
-        order_doc['customer_id'],
-        "Order Cancelled",
-        f"Your order {order_doc['order_number']} has been cancelled.",
-        "order"
-    )
+    # Get customer details
+    customer = await db.users.find_one({"id": order_doc['customer_id']})
+    
+    # Prepare detailed order info
+    order_details = f"""
+    Order Number: {order_doc['order_number']}
+    Order Type: {'Recurring' if order_doc.get('is_recurring') else 'Regular'}
+    Status: Cancelled
+    Total Amount: ${order_doc.get('total_amount', 0):.2f}
+    Pickup Date: {order_doc.get('pickup_date', 'N/A')}
+    Delivery Date: {order_doc.get('delivery_date', 'N/A')}
+    """
+    
+    # Send notification to customer
+    if customer:
+        await send_notification(
+            user_id=customer['id'],
+            email=customer['email'],
+            title="Order Cancelled",
+            message=f"Your order #{order_doc['order_number']} has been cancelled.{order_details}",
+            notif_type="order_cancelled"
+        )
+    
+    # Notify owners and admins
+    owners = await db.users.find({"role": "owner"}).to_list(length=None)
+    admins = await db.users.find({"role": "admin"}).to_list(length=None)
+    
+    for user in owners + admins:
+        await send_notification(
+            user_id=user['id'],
+            email=user['email'],
+            title="Order Cancelled",
+            message=f"Order #{order_doc['order_number']} has been cancelled by {customer.get('name', 'Customer') if customer else 'Customer'}.{order_details}",
+            notif_type="order_cancelled"
+        )
     
     return {"message": "Order cancelled successfully"}
 
@@ -972,14 +1130,40 @@ async def create_case(case: CaseRequestBase, current_user: dict = Depends(get_cu
     
     await db.cases.insert_one(doc)
     
-    # Notify admins
+    # Prepare detailed case info
+    case_details = f"""
+    Case Number: {case_number}
+    Customer: {case.customer_name}
+    Email: {case.customer_email}
+    Phone: {case.customer_phone}
+    Type: {case.case_type}
+    Subject: {case.subject}
+    Description: {case.description}
+    Priority: {case.priority}
+    """
+    
+    # Get customer user (to send notification)
+    customer = await db.users.find_one({"id": case.customer_id})
+    
+    # Send notification to customer
+    if customer:
+        await send_notification(
+            user_id=customer['id'],
+            email=customer['email'],
+            title="Case Created Successfully",
+            message=f"Your case #{case_number} has been created and our team will review it shortly.{case_details}",
+            notif_type="case_created"
+        )
+    
+    # Notify admins and owners
     admins = await db.users.find({"role": {"$in": ["owner", "admin"]}}, {"_id": 0}).to_list(100)
     for admin in admins:
-        await create_notification(
-            admin['id'],
-            "New Case Request",
-            f"New case {case_number} created by {case.customer_name}",
-            "case"
+        await send_notification(
+            user_id=admin['id'],
+            email=admin['email'],
+            title="New Case Request",
+            message=f"New case #{case_number} created by {case.customer_name}.{case_details}",
+            notif_type="case_created"
         )
     
     return case_obj
@@ -1022,13 +1206,26 @@ async def update_case(case_id: str, update: CaseUpdate, current_user: dict = Dep
     updated_case['created_at'] = datetime.fromisoformat(updated_case['created_at'])
     updated_case['updated_at'] = datetime.fromisoformat(updated_case['updated_at'])
     
-    # Notify customer
-    await create_notification(
-        updated_case['customer_id'],
-        "Case Updated",
-        f"Your case {updated_case['case_number']} has been updated.",
-        "case"
-    )
+    # Get customer details
+    customer = await db.users.find_one({"id": updated_case['customer_id']})
+    
+    # Prepare case details
+    case_details = f"""
+    Case Number: {updated_case['case_number']}
+    Status: {updated_case.get('status', 'N/A')}
+    Priority: {updated_case.get('priority', 'N/A')}
+    Type: {updated_case.get('case_type', 'N/A')}
+    """
+    
+    # Notify customer with email
+    if customer:
+        await send_notification(
+            user_id=customer['id'],
+            email=customer['email'],
+            title="Case Updated",
+            message=f"Your case #{updated_case['case_number']} has been updated.{case_details}",
+            notif_type="case_updated"
+        )
     
     return CaseRequest(**updated_case)
 
@@ -1139,15 +1336,16 @@ async def join_room(sid, data):
 
 # Scheduled Tasks
 async def lock_orders_job():
-    """Lock orders that are older than 8 hours and not yet locked"""
+    """Lock orders that are within 8 hours of delivery and not yet locked"""
     try:
         current_time = datetime.now(timezone.utc)
-        cutoff_time = current_time - timedelta(hours=8)
+        lock_threshold = current_time + timedelta(hours=8)
         
-        # Find orders that need to be locked
+        # Find orders that need to be locked (delivery is within 8 hours)
         orders_to_lock = await db.orders.find({
             "is_locked": {"$ne": True},
-            "created_at": {"$lt": cutoff_time.isoformat()}
+            "delivery_date": {"$lte": lock_threshold.isoformat()},
+            "status": {"$nin": ["completed", "cancelled"]}
         }).to_list(length=None)
         
         for order in orders_to_lock:
