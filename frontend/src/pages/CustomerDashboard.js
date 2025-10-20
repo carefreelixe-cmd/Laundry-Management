@@ -54,8 +54,14 @@ function CustomerDashboard() {
     try {
       setLoading(true);
       if (activeTab === 'orders') {
-        const ordersRes = await axios.get(`${API}/orders`);
+        const [ordersRes, skusRes, templatesRes] = await Promise.all([
+          axios.get(`${API}/orders`),
+          axios.get(`${API}/skus-with-pricing/${user.id}`),
+          axios.get(`${API}/frequency-templates`)
+        ]);
         setOrders(ordersRes.data);
+        setSkus(skusRes.data.map(item => ({ ...item.sku, price: item.pricing ? item.pricing.custom_price : item.sku.base_price })));
+        setFrequencyTemplates(templatesRes.data);
       } else if (activeTab === 'cases') {
         const casesRes = await axios.get(`${API}/cases`);
         setCases(casesRes.data);
