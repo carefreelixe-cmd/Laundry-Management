@@ -41,6 +41,18 @@ ALGORITHM = "HS256"
 app = FastAPI()
 api_router = APIRouter(prefix="/api")
 
+# Socket.io Setup
+sio = socketio.AsyncServer(
+    async_mode='asgi',
+    cors_allowed_origins='*',
+    logger=True,
+    engineio_logger=False
+)
+socket_app = socketio.ASGIApp(sio, other_asgi_app=app)
+
+# APScheduler Setup
+scheduler = AsyncIOScheduler()
+
 # Utility Functions
 def hash_password(password: str) -> str:
     return pwd_context.hash(password)
