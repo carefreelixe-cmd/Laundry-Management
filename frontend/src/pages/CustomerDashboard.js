@@ -496,7 +496,7 @@ function CustomerDashboard() {
                   <CardContent className="p-12 text-center">
                     <Package className="w-12 h-12 text-gray-400 mx-auto mb-4" />
                     <p className="text-gray-600">No orders found</p>
-                    <p className="text-sm text-gray-500 mt-2">Contact admin to create your first order</p>
+                    <p className="text-sm text-gray-500 mt-2">Click "Create Order" to place your first order</p>
                   </CardContent>
                 </Card>
               )}
