@@ -354,7 +354,7 @@ async def public_signup(user: UserCreate):
     await db.pending_users.insert_one(pending_user)
     
     # Send OTP via both email and SMS
-    email_sent = send_otp_email(user.email, otp, user.full_name)
+    send_otp_email(user.email, otp, user.full_name)
     sms_sent = False
     if user.phone:
         sms_sent = send_sms_otp(user.phone, otp, user.full_name)
