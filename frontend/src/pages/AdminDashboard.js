@@ -8,7 +8,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Package, Users, AlertCircle, Plus, Edit } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
+import { Package, Users, AlertCircle, Plus, Edit, Lock, Unlock, Repeat } from 'lucide-react';
 import axios from 'axios';
 
 function AdminDashboard() {
@@ -19,6 +20,7 @@ function AdminDashboard() {
   const [customers, setCustomers] = useState([]);
   const [skus, setSkus] = useState([]);
   const [deliveries, setDeliveries] = useState([]);
+  const [frequencyTemplates, setFrequencyTemplates] = useState([]);
   const [loading, setLoading] = useState(true);
   
   // Order form
@@ -32,7 +34,9 @@ function AdminDashboard() {
     delivery_date: '',
     pickup_address: '',
     delivery_address: '',
-    special_instructions: ''
+    special_instructions: '',
+    is_recurring: false,
+    frequency_template_id: ''
   });
   const [orderItems, setOrderItems] = useState([{ sku_id: '', sku_name: '', quantity: 1, price: 0 }]);
   
