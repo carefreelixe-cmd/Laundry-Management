@@ -349,3 +349,5 @@ test_plan:
 agent_communication:
   - agent: "main"
     message: "Completed Phase 1-2 of backend implementation. Integrated Socket.io and APScheduler. Created models and API endpoints for SKU management, customer-specific pricing, frequency templates, and recurring orders. Implemented order locking logic and comprehensive notification system. Ready for backend testing before proceeding with frontend implementation."
+  - agent: "testing"
+    message: "Backend testing completed successfully! Most features working correctly. Fixed Socket.io integration and SKU schema migration. All major APIs functional: Socket.io ✅, APScheduler ✅, Enhanced SKUs ✅, Customer Pricing ✅, Frequency Templates ✅, Recurring Orders ✅, Order Locking ✅, Notifications ✅. Minor issue: Customer order creation endpoint needs customer details auto-populated from JWT token instead of requiring in request body."
