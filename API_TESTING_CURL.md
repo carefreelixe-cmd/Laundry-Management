@@ -2,7 +2,7 @@
 
 ## Base URL
 ```
-https://laundry-manager-11.preview.emergentagent.com/api
+https://price-order-hub.preview.emergentagent.com/api
 ```
 
 ---
@@ -11,7 +11,7 @@ https://laundry-manager-11.preview.emergentagent.com/api
 
 ### 1.1 Public Signup
 ```bash
-curl -X POST https://laundry-manager-11.preview.emergentagent.com/api/auth/signup \
+curl -X POST https://price-order-hub.preview.emergentagent.com/api/auth/signup \
   -H "Content-Type: application/json" \
   -d '{
     "email": "newuser@example.com",
@@ -37,7 +37,7 @@ curl -X POST https://laundry-manager-11.preview.emergentagent.com/api/auth/signu
 ```bash
 # Get OTP from backend logs: tail -f /var/log/supervisor/backend.err.log
 
-curl -X POST https://laundry-manager-11.preview.emergentagent.com/api/auth/verify-otp \
+curl -X POST https://price-order-hub.preview.emergentagent.com/api/auth/verify-otp \
   -H "Content-Type: application/json" \
   -d '{
     "email": "newuser@example.com",
@@ -57,7 +57,7 @@ curl -X POST https://laundry-manager-11.preview.emergentagent.com/api/auth/verif
 
 ### 1.3 Resend OTP
 ```bash
-curl -X POST https://laundry-manager-11.preview.emergentagent.com/api/auth/resend-otp \
+curl -X POST https://price-order-hub.preview.emergentagent.com/api/auth/resend-otp \
   -H "Content-Type: application/json" \
   -d '{
     "email": "newuser@example.com"
@@ -75,7 +75,7 @@ curl -X POST https://laundry-manager-11.preview.emergentagent.com/api/auth/resen
 
 ### 1.4 Login
 ```bash
-curl -X POST https://laundry-manager-11.preview.emergentagent.com/api/auth/login \
+curl -X POST https://price-order-hub.preview.emergentagent.com/api/auth/login \
   -H "Content-Type: application/json" \
   -d '{
     "email": "customer@clienty.com",
@@ -105,7 +105,7 @@ curl -X POST https://laundry-manager-11.preview.emergentagent.com/api/auth/login
 ```bash
 TOKEN="your-jwt-token-here"
 
-curl -X GET https://laundry-manager-11.preview.emergentagent.com/api/auth/me \
+curl -X GET https://price-order-hub.preview.emergentagent.com/api/auth/me \
   -H "Authorization: Bearer $TOKEN"
 ```
 
@@ -129,7 +129,7 @@ curl -X GET https://laundry-manager-11.preview.emergentagent.com/api/auth/me \
 ```bash
 TOKEN="owner-or-admin-jwt-token"
 
-curl -X POST https://laundry-manager-11.preview.emergentagent.com/api/auth/register \
+curl -X POST https://price-order-hub.preview.emergentagent.com/api/auth/register \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer $TOKEN" \
   -d '{
@@ -148,7 +148,7 @@ curl -X POST https://laundry-manager-11.preview.emergentagent.com/api/auth/regis
 ```bash
 TOKEN="owner-or-admin-jwt-token"
 
-curl -X GET https://laundry-manager-11.preview.emergentagent.com/api/users \
+curl -X GET https://price-order-hub.preview.emergentagent.com/api/users \
   -H "Authorization: Bearer $TOKEN"
 ```
 
@@ -159,7 +159,7 @@ curl -X GET https://laundry-manager-11.preview.emergentagent.com/api/users \
 TOKEN="owner-or-admin-jwt-token"
 USER_ID="user-uuid-here"
 
-curl -X GET https://laundry-manager-11.preview.emergentagent.com/api/users/$USER_ID \
+curl -X GET https://price-order-hub.preview.emergentagent.com/api/users/$USER_ID \
   -H "Authorization: Bearer $TOKEN"
 ```
 
@@ -170,7 +170,7 @@ curl -X GET https://laundry-manager-11.preview.emergentagent.com/api/users/$USER
 TOKEN="owner-jwt-token"
 USER_ID="user-uuid-here"
 
-curl -X DELETE https://laundry-manager-11.preview.emergentagent.com/api/users/$USER_ID \
+curl -X DELETE https://price-order-hub.preview.emergentagent.com/api/users/$USER_ID \
   -H "Authorization: Bearer $TOKEN"
 ```
 
@@ -182,7 +182,7 @@ curl -X DELETE https://laundry-manager-11.preview.emergentagent.com/api/users/$U
 ```bash
 TOKEN="admin-or-owner-jwt-token"
 
-curl -X POST https://laundry-manager-11.preview.emergentagent.com/api/orders \
+curl -X POST https://price-order-hub.preview.emergentagent.com/api/orders \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer $TOKEN" \
   -d '{
@@ -217,7 +217,7 @@ curl -X POST https://laundry-manager-11.preview.emergentagent.com/api/orders \
 ```bash
 TOKEN="your-jwt-token"
 
-curl -X GET https://laundry-manager-11.preview.emergentagent.com/api/orders \
+curl -X GET https://price-order-hub.preview.emergentagent.com/api/orders \
   -H "Authorization: Bearer $TOKEN"
 ```
 
@@ -228,7 +228,7 @@ curl -X GET https://laundry-manager-11.preview.emergentagent.com/api/orders \
 TOKEN="your-jwt-token"
 ORDER_ID="order-uuid"
 
-curl -X GET https://laundry-manager-11.preview.emergentagent.com/api/orders/$ORDER_ID \
+curl -X GET https://price-order-hub.preview.emergentagent.com/api/orders/$ORDER_ID \
   -H "Authorization: Bearer $TOKEN"
 ```
 
@@ -239,7 +239,7 @@ curl -X GET https://laundry-manager-11.preview.emergentagent.com/api/orders/$ORD
 TOKEN="admin-or-owner-jwt-token"
 ORDER_ID="order-uuid"
 
-curl -X PUT https://laundry-manager-11.preview.emergentagent.com/api/orders/$ORDER_ID \
+curl -X PUT https://price-order-hub.preview.emergentagent.com/api/orders/$ORDER_ID \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer $TOKEN" \
   -d '{
@@ -254,7 +254,7 @@ curl -X PUT https://laundry-manager-11.preview.emergentagent.com/api/orders/$ORD
 TOKEN="your-jwt-token"
 ORDER_ID="order-uuid"
 
-curl -X DELETE https://laundry-manager-11.preview.emergentagent.com/api/orders/$ORDER_ID \
+curl -X DELETE https://price-order-hub.preview.emergentagent.com/api/orders/$ORDER_ID \
   -H "Authorization: Bearer $TOKEN"
 ```
 
@@ -266,7 +266,7 @@ curl -X DELETE https://laundry-manager-11.preview.emergentagent.com/api/orders/$
 ```bash
 TOKEN="customer-jwt-token"
 
-curl -X POST https://laundry-manager-11.preview.emergentagent.com/api/cases \
+curl -X POST https://price-order-hub.preview.emergentagent.com/api/cases \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer $TOKEN" \
   -d '{
@@ -308,7 +308,7 @@ curl -X POST https://laundry-manager-11.preview.emergentagent.com/api/cases \
 ```bash
 TOKEN="your-jwt-token"
 
-curl -X GET https://laundry-manager-11.preview.emergentagent.com/api/cases \
+curl -X GET https://price-order-hub.preview.emergentagent.com/api/cases \
   -H "Authorization: Bearer $TOKEN"
 ```
 
@@ -319,7 +319,7 @@ curl -X GET https://laundry-manager-11.preview.emergentagent.com/api/cases \
 TOKEN="your-jwt-token"
 CASE_ID="case-uuid"
 
-curl -X GET https://laundry-manager-11.preview.emergentagent.com/api/cases/$CASE_ID \
+curl -X GET https://price-order-hub.preview.emergentagent.com/api/cases/$CASE_ID \
   -H "Authorization: Bearer $TOKEN"
 ```
 
@@ -330,7 +330,7 @@ curl -X GET https://laundry-manager-11.preview.emergentagent.com/api/cases/$CASE
 TOKEN="admin-or-owner-jwt-token"
 CASE_ID="case-uuid"
 
-curl -X PUT https://laundry-manager-11.preview.emergentagent.com/api/cases/$CASE_ID \
+curl -X PUT https://price-order-hub.preview.emergentagent.com/api/cases/$CASE_ID \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer $TOKEN" \
   -d '{
@@ -348,7 +348,7 @@ curl -X PUT https://laundry-manager-11.preview.emergentagent.com/api/cases/$CASE
 ```bash
 TOKEN="admin-or-owner-jwt-token"
 
-curl -X POST https://laundry-manager-11.preview.emergentagent.com/api/skus \
+curl -X POST https://price-order-hub.preview.emergentagent.com/api/skus \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer $TOKEN" \
   -d '{
@@ -364,7 +364,7 @@ curl -X POST https://laundry-manager-11.preview.emergentagent.com/api/skus \
 
 ### 5.2 Get All SKUs (Public)
 ```bash
-curl -X GET https://laundry-manager-11.preview.emergentagent.com/api/skus
+curl -X GET https://price-order-hub.preview.emergentagent.com/api/skus
 ```
 
 ---
@@ -374,7 +374,7 @@ curl -X GET https://laundry-manager-11.preview.emergentagent.com/api/skus
 TOKEN="admin-or-owner-jwt-token"
 SKU_ID="sku-uuid"
 
-curl -X PUT https://laundry-manager-11.preview.emergentagent.com/api/skus/$SKU_ID \
+curl -X PUT https://price-order-hub.preview.emergentagent.com/api/skus/$SKU_ID \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer $TOKEN" \
   -d '{
@@ -393,7 +393,7 @@ curl -X PUT https://laundry-manager-11.preview.emergentagent.com/api/skus/$SKU_I
 TOKEN="owner-jwt-token"
 SKU_ID="sku-uuid"
 
-curl -X DELETE https://laundry-manager-11.preview.emergentagent.com/api/skus/$SKU_ID \
+curl -X DELETE https://price-order-hub.preview.emergentagent.com/api/skus/$SKU_ID \
   -H "Authorization: Bearer $TOKEN"
 ```
 
@@ -405,7 +405,7 @@ curl -X DELETE https://laundry-manager-11.preview.emergentagent.com/api/skus/$SK
 ```bash
 TOKEN="your-jwt-token"
 
-curl -X GET https://laundry-manager-11.preview.emergentagent.com/api/notifications \
+curl -X GET https://price-order-hub.preview.emergentagent.com/api/notifications \
   -H "Authorization: Bearer $TOKEN"
 ```
 
@@ -416,7 +416,7 @@ curl -X GET https://laundry-manager-11.preview.emergentagent.com/api/notificatio
 TOKEN="your-jwt-token"
 NOTIF_ID="notification-uuid"
 
-curl -X PUT https://laundry-manager-11.preview.emergentagent.com/api/notifications/$NOTIF_ID/read \
+curl -X PUT https://price-order-hub.preview.emergentagent.com/api/notifications/$NOTIF_ID/read \
   -H "Authorization: Bearer $TOKEN"
 ```
 
@@ -426,7 +426,7 @@ curl -X PUT https://laundry-manager-11.preview.emergentagent.com/api/notificatio
 ```bash
 TOKEN="your-jwt-token"
 
-curl -X PUT https://laundry-manager-11.preview.emergentagent.com/api/notifications/read-all \
+curl -X PUT https://price-order-hub.preview.emergentagent.com/api/notifications/read-all \
   -H "Authorization: Bearer $TOKEN"
 ```
 
@@ -438,7 +438,7 @@ curl -X PUT https://laundry-manager-11.preview.emergentagent.com/api/notificatio
 ```bash
 TOKEN="owner-or-admin-jwt-token"
 
-curl -X GET https://laundry-manager-11.preview.emergentagent.com/api/analytics/dashboard \
+curl -X GET https://price-order-hub.preview.emergentagent.com/api/analytics/dashboard \
   -H "Authorization: Bearer $TOKEN"
 ```
 
@@ -460,7 +460,7 @@ curl -X GET https://laundry-manager-11.preview.emergentagent.com/api/analytics/d
 
 ### 8.1 Submit Contact Form
 ```bash
-curl -X POST https://laundry-manager-11.preview.emergentagent.com/api/contact \
+curl -X POST https://price-order-hub.preview.emergentagent.com/api/contact \
   -H "Content-Type: application/json" \
   -d '{
     "name": "John Doe",
@@ -478,7 +478,7 @@ curl -X POST https://laundry-manager-11.preview.emergentagent.com/api/contact \
 ```bash
 TOKEN="admin-or-owner-jwt-token"
 
-curl -X POST https://laundry-manager-11.preview.emergentagent.com/api/deliveries \
+curl -X POST https://price-order-hub.preview.emergentagent.com/api/deliveries \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer $TOKEN" \
   -d '{
@@ -496,7 +496,7 @@ curl -X POST https://laundry-manager-11.preview.emergentagent.com/api/deliveries
 ```bash
 TOKEN="admin-or-owner-jwt-token"
 
-curl -X GET https://laundry-manager-11.preview.emergentagent.com/api/deliveries \
+curl -X GET https://price-order-hub.preview.emergentagent.com/api/deliveries \
   -H "Authorization: Bearer $TOKEN"
 ```
 
@@ -507,7 +507,7 @@ curl -X GET https://laundry-manager-11.preview.emergentagent.com/api/deliveries 
 TOKEN="your-jwt-token"
 ORDER_ID="order-uuid"
 
-curl -X GET https://laundry-manager-11.preview.emergentagent.com/api/deliveries/order/$ORDER_ID \
+curl -X GET https://price-order-hub.preview.emergentagent.com/api/deliveries/order/$ORDER_ID \
   -H "Authorization: Bearer $TOKEN"
 ```
 
@@ -521,7 +521,7 @@ curl -X GET https://laundry-manager-11.preview.emergentagent.com/api/deliveries/
 
 # 1. Signup
 echo "Testing Signup..."
-SIGNUP_RESPONSE=$(curl -s -X POST https://laundry-manager-11.preview.emergentagent.com/api/auth/signup \
+SIGNUP_RESPONSE=$(curl -s -X POST https://price-order-hub.preview.emergentagent.com/api/auth/signup \
   -H "Content-Type: application/json" \
   -d '{
     "email": "testuser@example.com",
@@ -539,7 +539,7 @@ echo "Check backend logs for OTP"
 # 3. Verify OTP (replace with actual OTP)
 OTP="123456"
 echo "Testing OTP Verification..."
-VERIFY_RESPONSE=$(curl -s -X POST https://laundry-manager-11.preview.emergentagent.com/api/auth/verify-otp \
+VERIFY_RESPONSE=$(curl -s -X POST https://price-order-hub.preview.emergentagent.com/api/auth/verify-otp \
   -H "Content-Type: application/json" \
   -d "{
     \"email\": \"testuser@example.com\",
@@ -549,7 +549,7 @@ echo $VERIFY_RESPONSE
 
 # 4. Login
 echo "Testing Login..."
-LOGIN_RESPONSE=$(curl -s -X POST https://laundry-manager-11.preview.emergentagent.com/api/auth/login \
+LOGIN_RESPONSE=$(curl -s -X POST https://price-order-hub.preview.emergentagent.com/api/auth/login \
   -H "Content-Type: application/json" \
   -d '{
     "email": "testuser@example.com",
@@ -563,7 +563,7 @@ echo "Token: $TOKEN"
 
 # 5. Create Case
 echo "Testing Create Case..."
-CASE_RESPONSE=$(curl -s -X POST https://laundry-manager-11.preview.emergentagent.com/api/cases \
+CASE_RESPONSE=$(curl -s -X POST https://price-order-hub.preview.emergentagent.com/api/cases \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer $TOKEN" \
   -d '{

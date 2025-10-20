@@ -10,7 +10,7 @@ import time
 from datetime import datetime, timedelta
 
 # Configuration
-BASE_URL = "https://laundry-manager-11.preview.emergentagent.com/api"
+BASE_URL = "https://price-order-hub.preview.emergentagent.com/api"
 HEADERS = {"Content-Type": "application/json"}
 
 # Test credentials
@@ -91,7 +91,7 @@ def test_socket_io_integration():
     
     # Test Socket.io endpoint accessibility
     try:
-        response = requests.get("https://laundry-manager-11.preview.emergentagent.com/socket.io/", timeout=10)
+        response = requests.get("https://price-order-hub.preview.emergentagent.com/socket.io/", timeout=10)
         if response.status_code in [200, 400]:  # 400 is expected for GET request to socket.io
             log_test("Socket.io Server Accessibility", "PASS", "Socket.io server is accessible")
         else:
