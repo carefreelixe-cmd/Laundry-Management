@@ -193,6 +193,9 @@ class OrderBase(BaseModel):
     pickup_address: str
     delivery_address: str
     special_instructions: Optional[str] = None
+    is_recurring: bool = False
+    recurrence_pattern: Optional[dict] = None
+    next_occurrence_date: Optional[str] = None
 
 class Order(OrderBase):
     model_config = ConfigDict(extra="ignore")
@@ -203,6 +206,8 @@ class Order(OrderBase):
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     created_by: str
+    is_locked: bool = False
+    locked_at: Optional[datetime] = None
 
 class OrderUpdate(BaseModel):
     status: Optional[str] = None
