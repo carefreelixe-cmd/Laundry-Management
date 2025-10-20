@@ -202,15 +202,18 @@ backend:
   
   - task: "Recurring order creation endpoint"
     implemented: true
-    working: "NA"
+    working: false
     file: "backend/server.py"
     stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: "NA"
         agent: "main"
         comment: "Updated POST /api/orders and added POST /api/orders/customer to handle recurring orders. Calculates next_occurrence_date based on frequency pattern (daily, weekly, monthly)"
+      - working: false
+        agent: "testing"
+        comment: "Admin/Owner recurring order creation works perfectly. Customer recurring order creation has API design issue - requires customer_id, customer_name, customer_email in request body but should auto-populate from JWT token. POST /api/orders works, POST /api/orders/customer needs fix."
   
   - task: "Recurring orders list and cancel endpoints"
     implemented: true
