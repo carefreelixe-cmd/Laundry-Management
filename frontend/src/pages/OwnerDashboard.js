@@ -544,6 +544,245 @@ function OwnerDashboard() {
             </div>
           </div>
         )}
+
+        {/* Customer Pricing Tab */}
+        {activeTab === 'customer-pricing' && (
+          <div>
+            <div className="mb-6">
+              <h2 className="text-2xl font-bold text-gray-900 mb-4">Customer-Specific Pricing</h2>
+              <div className="mb-4">
+                <Label>Select Customer</Label>
+                <Select value={selectedCustomer || ''} onValueChange={setSelectedCustomer}>
+                  <SelectTrigger className="w-full max-w-md" data-testid="select-customer">
+                    <SelectValue placeholder="Choose a customer" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {customers.map((customer) => (
+                      <SelectItem key={customer.id} value={customer.id}>
+                        {customer.full_name} ({customer.email})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {selectedCustomer && (
+              <div>
+                <div className="flex justify-between items-center mb-6">
+                  <h3 className="text-xl font-semibold text-gray-900">Custom Pricing for Selected Customer</h3>
+                  <Dialog open={showPricingDialog} onOpenChange={setShowPricingDialog}>
+                    <DialogTrigger asChild>
+                      <Button className="bg-teal-500 hover:bg-teal-600" data-testid="add-pricing-btn">
+                        <Plus className="w-4 h-4 mr-2" />
+                        Add Custom Price
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>Set Custom Price for Customer</DialogTitle>
+                      </DialogHeader>
+                      <form onSubmit={handleCreateOrUpdatePricing} className="space-y-4">
+                        <div>
+                          <Label>Select SKU</Label>
+                          <Select value={pricingForm.sku_id} onValueChange={(value) => setPricingForm({ ...pricingForm, sku_id: value })}>
+                            <SelectTrigger data-testid="pricing-sku-select">
+                              <SelectValue placeholder="Choose a SKU" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {skus.map((sku) => (
+                                <SelectItem key={sku.id} value={sku.id}>
+                                  {sku.name} (Base: ${sku.price})
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div>
+                          <Label>Custom Price ($)</Label>
+                          <Input
+                            type="number"
+                            step="0.01"
+                            value={pricingForm.custom_price}
+                            onChange={(e) => setPricingForm({ ...pricingForm, custom_price: e.target.value })}
+                            required
+                            data-testid="custom-price-input"
+                          />
+                        </div>
+                        <Button type="submit" className="w-full bg-teal-500 hover:bg-teal-600" data-testid="pricing-submit-btn">
+                          Set Custom Price
+                        </Button>
+                      </form>
+                    </DialogContent>
+                  </Dialog>
+                </div>
+
+                <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {skusWithPricing.map((item) => (
+                    <Card key={item.sku.id} className="card-hover">
+                      <CardHeader>
+                        <CardTitle className="flex justify-between items-start">
+                          <span>{item.sku.name}</span>
+                          {item.pricing && (
+                            <button
+                              onClick={() => handleDeletePricing(item.pricing.id)}
+                              className="text-red-600 hover:text-red-800"
+                              data-testid={`delete-pricing-${item.pricing.id}`}
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          )}
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="space-y-2">
+                          <p className="text-sm text-gray-600">Category: {item.sku.category}</p>
+                          <div className="flex items-center gap-2">
+                            <p className="text-lg text-gray-400 line-through">${item.sku.base_price.toFixed(2)}</p>
+                            {item.pricing && (
+                              <div className="flex items-center gap-1">
+                                <Tag className="w-4 h-4 text-teal-600" />
+                                <p className="text-2xl font-bold text-teal-600">${item.pricing.custom_price.toFixed(2)}</p>
+                              </div>
+                            )}
+                            {!item.pricing && (
+                              <p className="text-2xl font-bold text-gray-900">${item.sku.base_price.toFixed(2)}</p>
+                            )}
+                          </div>
+                          <p className="text-sm text-gray-500">{item.sku.unit}</p>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Frequency Templates Tab */}
+        {activeTab === 'frequency-templates' && (
+          <div>
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-2xl font-bold text-gray-900">Frequency Templates</h2>
+              <Dialog open={showTemplateDialog} onOpenChange={(open) => {
+                setShowTemplateDialog(open);
+                if (!open) {
+                  setEditingTemplate(null);
+                  setTemplateForm({ name: '', frequency_type: 'daily', frequency_value: '1', description: '' });
+                }
+              }}>
+                <DialogTrigger asChild>
+                  <Button className="bg-teal-500 hover:bg-teal-600" data-testid="create-template-btn">
+                    <Plus className="w-4 h-4 mr-2" />
+                    Create Template
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>{editingTemplate ? 'Edit Template' : 'Create Frequency Template'}</DialogTitle>
+                  </DialogHeader>
+                  <form onSubmit={handleCreateOrUpdateTemplate} className="space-y-4">
+                    <div>
+                      <Label>Template Name</Label>
+                      <Input
+                        value={templateForm.name}
+                        onChange={(e) => setTemplateForm({ ...templateForm, name: e.target.value })}
+                        placeholder="e.g., Weekly Pickup"
+                        required
+                        data-testid="template-name-input"
+                      />
+                    </div>
+                    <div>
+                      <Label>Frequency Type</Label>
+                      <Select value={templateForm.frequency_type} onValueChange={(value) => setTemplateForm({ ...templateForm, frequency_type: value })}>
+                        <SelectTrigger data-testid="template-type-select">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="daily">Daily</SelectItem>
+                          <SelectItem value="weekly">Weekly</SelectItem>
+                          <SelectItem value="monthly">Monthly</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label>Frequency Value</Label>
+                      <Input
+                        type="number"
+                        min="1"
+                        value={templateForm.frequency_value}
+                        onChange={(e) => setTemplateForm({ ...templateForm, frequency_value: e.target.value })}
+                        placeholder="e.g., 1 for every day, 2 for every 2 days"
+                        required
+                        data-testid="template-value-input"
+                      />
+                      <p className="text-xs text-gray-500 mt-1">
+                        {templateForm.frequency_type === 'daily' && `Every ${templateForm.frequency_value} day(s)`}
+                        {templateForm.frequency_type === 'weekly' && `Every ${templateForm.frequency_value} week(s)`}
+                        {templateForm.frequency_type === 'monthly' && `Every ${templateForm.frequency_value} month(s)`}
+                      </p>
+                    </div>
+                    <div>
+                      <Label>Description (Optional)</Label>
+                      <Input
+                        value={templateForm.description}
+                        onChange={(e) => setTemplateForm({ ...templateForm, description: e.target.value })}
+                        placeholder="Additional details"
+                        data-testid="template-description-input"
+                      />
+                    </div>
+                    <Button type="submit" className="w-full bg-teal-500 hover:bg-teal-600" data-testid="template-submit-btn">
+                      {editingTemplate ? 'Update Template' : 'Create Template'}
+                    </Button>
+                  </form>
+                </DialogContent>
+              </Dialog>
+            </div>
+
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {frequencyTemplates.map((template) => (
+                <Card key={template.id} className="card-hover">
+                  <CardHeader>
+                    <CardTitle className="flex justify-between items-start">
+                      <span>{template.name}</span>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => handleEditTemplate(template)}
+                          className="text-teal-600 hover:text-teal-800"
+                          data-testid={`edit-template-${template.id}`}
+                        >
+                          <Edit className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => handleDeleteTemplate(template.id)}
+                          className="text-red-600 hover:text-red-800"
+                          data-testid={`delete-template-${template.id}`}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2">
+                        <Clock className="w-4 h-4 text-teal-600" />
+                        <p className="text-lg font-semibold text-gray-900">
+                          Every {template.frequency_value} {template.frequency_type === 'daily' ? 'Day(s)' : template.frequency_type === 'weekly' ? 'Week(s)' : 'Month(s)'}
+                        </p>
+                      </div>
+                      <p className="text-sm text-gray-600 capitalize">Type: {template.frequency_type}</p>
+                      {template.description && (
+                        <p className="text-sm text-gray-500 mt-2">{template.description}</p>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </DashboardLayout>
   );
