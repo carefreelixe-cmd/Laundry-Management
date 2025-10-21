@@ -197,6 +197,9 @@ function CustomerDashboard() {
 
   const handleCreateCase = async (e) => {
     e.preventDefault();
+    if (submitting) return; // Prevent duplicate submissions
+    
+    setSubmitting(true);
     try {
       const caseData = {
         ...caseForm,
@@ -218,6 +221,8 @@ function CustomerDashboard() {
     } catch (error) {
       console.error('Failed to create case:', error);
       toast.error(error.response?.data?.detail || 'Failed to create case. Please try again.');
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -237,11 +242,18 @@ function CustomerDashboard() {
 
   const handleCancelOrder = async (orderId) => {
     if (!window.confirm('Are you sure you want to cancel this order?')) return;
+    if (submitting) return; // Prevent duplicate submissions
+    
+    setSubmitting(true);
     try {
       await axios.delete(`${API}/orders/${orderId}`);
+      toast.success('Order cancelled successfully!');
       fetchData();
     } catch (error) {
-      alert(error.response?.data?.detail || 'Failed to cancel order');
+      console.error('Failed to cancel order:', error);
+      toast.error(error.response?.data?.detail || 'Failed to cancel order');
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -518,8 +530,8 @@ function CustomerDashboard() {
                       )}
                     </div>
 
-                    <Button type="submit" className="w-full bg-teal-500 hover:bg-teal-600" data-testid="customer-order-submit-btn">
-                      {editingOrderId ? 'Update Order' : 'Create Order'}
+                    <Button type="submit" className="w-full bg-teal-500 hover:bg-teal-600" disabled={submitting} data-testid="customer-order-submit-btn">
+                      {submitting ? 'Processing...' : (editingOrderId ? 'Update Order' : 'Create Order')}
                     </Button>
                   </form>
                 </DialogContent>
@@ -721,7 +733,9 @@ function CustomerDashboard() {
                         </SelectContent>
                       </Select>
                     </div>
-                    <Button type="submit" className="w-full bg-teal-500 hover:bg-teal-600" data-testid="case-submit-btn">Submit Case</Button>
+                    <Button type="submit" className="w-full bg-teal-500 hover:bg-teal-600" disabled={submitting} data-testid="case-submit-btn">
+                      {submitting ? 'Submitting...' : 'Submit Case'}
+                    </Button>
                   </form>
                 </DialogContent>
               </Dialog>
