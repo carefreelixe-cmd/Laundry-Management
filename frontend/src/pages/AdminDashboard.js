@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Switch } from '@/components/ui/switch';
-import { Package, Users, AlertCircle, Plus, Edit, Lock, Unlock, Repeat } from 'lucide-react';
+import { Package, Users, AlertCircle, Plus, Edit, Lock, Unlock, Repeat, Truck, MapPin, Clock, CheckCircle } from 'lucide-react';
 import axios from 'axios';
 
 function AdminDashboard() {
@@ -22,6 +22,7 @@ function AdminDashboard() {
   const [deliveries, setDeliveries] = useState([]);
   const [frequencyTemplates, setFrequencyTemplates] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [selectedOrderForTracking, setSelectedOrderForTracking] = useState(null);
   
   // Order form
   const [showOrderDialog, setShowOrderDialog] = useState(false);
@@ -69,6 +70,9 @@ function AdminDashboard() {
       } else if (activeTab === 'deliveries') {
         const deliveriesRes = await axios.get(`${API}/deliveries`);
         setDeliveries(deliveriesRes.data);
+      } else if (activeTab === 'delivery-tracking') {
+        const ordersRes = await axios.get(`${API}/orders`);
+        setOrders(ordersRes.data);
       }
     } catch (error) {
       console.error('Failed to fetch data', error);
@@ -222,6 +226,17 @@ function AdminDashboard() {
             data-testid="deliveries-tab"
           >
             Deliveries
+          </button>
+          <button
+            onClick={() => setActiveTab('delivery-tracking')}
+            className={`pb-3 px-1 font-medium transition-colors ${
+              activeTab === 'delivery-tracking'
+                ? 'text-teal-600 border-b-2 border-teal-600'
+                : 'text-gray-500 hover:text-gray-700'
+            }`}
+            data-testid="delivery-tracking-tab"
+          >
+            Delivery Tracking
           </button>
         </div>
 
@@ -578,6 +593,258 @@ function AdminDashboard() {
                   </CardContent>
                 </Card>
               )}
+            </div>
+          </div>
+        )}
+
+        {/* Delivery Tracking Tab */}
+        {activeTab === 'delivery-tracking' && (
+          <div>
+            <div className="mb-6">
+              <h2 className="text-2xl font-bold text-gray-900">Delivery Tracking</h2>
+              <p className="text-gray-600 mt-1">Track delivery progress and view detailed timeline with driver information</p>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              {/* Orders List */}
+              <Card className="lg:col-span-1">
+                <CardHeader>
+                  <CardTitle>Orders with Delivery</CardTitle>
+                </CardHeader>
+                <CardContent className="max-h-[600px] overflow-y-auto">
+                  {orders.filter(o => o.driver_id).length === 0 ? (
+                    <div className="text-center py-8 text-gray-500">
+                      <Truck className="h-12 w-12 mx-auto mb-2 opacity-50" />
+                      <p>No orders with assigned drivers</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      {orders.filter(o => o.driver_id).map((order) => (
+                        <div
+                          key={order.id}
+                          onClick={() => setSelectedOrderForTracking(order)}
+                          className={`p-3 border rounded-lg cursor-pointer transition-all ${
+                            selectedOrderForTracking?.id === order.id
+                              ? 'border-teal-500 bg-teal-50'
+                              : 'border-gray-200 hover:border-teal-300 hover:bg-gray-50'
+                          }`}
+                        >
+                          <div className="flex justify-between items-start">
+                            <div>
+                              <p className="font-semibold text-sm">{order.order_number}</p>
+                              <p className="text-xs text-gray-600">{order.customer_name}</p>
+                            </div>
+                            <span className={`px-2 py-1 text-xs rounded-full ${
+                              order.delivery_status === 'delivered' ? 'bg-green-100 text-green-800' :
+                              order.delivery_status === 'out_for_delivery' ? 'bg-orange-100 text-orange-800' :
+                              order.delivery_status === 'picked_up' ? 'bg-yellow-100 text-yellow-800' :
+                              'bg-blue-100 text-blue-800'
+                            }`}>
+                              {order.delivery_status?.replace(/_/g, ' ') || 'assigned'}
+                            </span>
+                          </div>
+                          <div className="mt-2 text-xs text-gray-500">
+                            <p><strong>Driver:</strong> {order.driver_name || 'Not assigned'}</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Delivery Details */}
+              <Card className="lg:col-span-2">
+                <CardHeader>
+                  <CardTitle>Delivery Timeline & Driver Info</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {!selectedOrderForTracking ? (
+                    <div className="text-center py-16 text-gray-500">
+                      <Package className="h-16 w-16 mx-auto mb-4 opacity-50" />
+                      <p>Select an order to view delivery details</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-6">
+                      {/* Order Info */}
+                      <div className="bg-gray-50 p-4 rounded-lg">
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <p className="text-xs text-gray-600">Order Number</p>
+                            <p className="font-semibold">{selectedOrderForTracking.order_number}</p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-gray-600">Customer</p>
+                            <p className="font-semibold">{selectedOrderForTracking.customer_name}</p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-gray-600">Driver Assigned</p>
+                            <p className="font-semibold text-teal-600">{selectedOrderForTracking.driver_name || 'Not assigned'}</p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-gray-600">Current Status</p>
+                            <span className={`inline-block px-2 py-1 text-xs rounded-full ${
+                              selectedOrderForTracking.delivery_status === 'delivered' ? 'bg-green-100 text-green-800' :
+                              selectedOrderForTracking.delivery_status === 'out_for_delivery' ? 'bg-orange-100 text-orange-800' :
+                              selectedOrderForTracking.delivery_status === 'picked_up' ? 'bg-yellow-100 text-yellow-800' :
+                              'bg-blue-100 text-blue-800'
+                            }`}>
+                              {selectedOrderForTracking.delivery_status?.replace(/_/g, ' ').toUpperCase() || 'ASSIGNED'}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Addresses */}
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="border border-gray-200 p-4 rounded-lg">
+                          <div className="flex items-start gap-2">
+                            <MapPin className="w-5 h-5 text-blue-600 mt-1" />
+                            <div>
+                              <p className="text-xs text-gray-600 mb-1">Pickup Address</p>
+                              <p className="text-sm font-medium">{selectedOrderForTracking.pickup_address}</p>
+                              <p className="text-xs text-gray-500 mt-1">Date: {new Date(selectedOrderForTracking.pickup_date).toLocaleDateString()}</p>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="border border-gray-200 p-4 rounded-lg">
+                          <div className="flex items-start gap-2">
+                            <MapPin className="w-5 h-5 text-green-600 mt-1" />
+                            <div>
+                              <p className="text-xs text-gray-600 mb-1">Delivery Address</p>
+                              <p className="text-sm font-medium">{selectedOrderForTracking.delivery_address}</p>
+                              <p className="text-xs text-gray-500 mt-1">Date: {new Date(selectedOrderForTracking.delivery_date).toLocaleDateString()}</p>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Timeline */}
+                      <div>
+                        <h3 className="font-semibold text-gray-900 mb-4">Delivery Progress</h3>
+                        <div className="space-y-4">
+                          {/* Assigned */}
+                          <div className="flex gap-4">
+                            <div className="flex flex-col items-center">
+                              <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                                selectedOrderForTracking.assigned_at ? 'bg-teal-500 text-white' : 'bg-gray-200 text-gray-400'
+                              }`}>
+                                <Clock className="w-5 h-5" />
+                              </div>
+                              {selectedOrderForTracking.assigned_at && <div className="w-0.5 h-16 bg-teal-500 mt-2"></div>}
+                            </div>
+                            <div className="flex-1 pt-2">
+                              <p className="font-semibold text-gray-900">Assigned to Driver</p>
+                              {selectedOrderForTracking.assigned_at ? (
+                                <>
+                                  <p className="text-sm text-gray-600">
+                                    {new Date(selectedOrderForTracking.assigned_at).toLocaleString()}
+                                  </p>
+                                  <p className="text-sm text-teal-600 mt-1">
+                                    Driver: {selectedOrderForTracking.driver_name}
+                                  </p>
+                                </>
+                              ) : (
+                                <p className="text-sm text-gray-400">Not assigned yet</p>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Picked Up */}
+                          <div className="flex gap-4">
+                            <div className="flex flex-col items-center">
+                              <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                                selectedOrderForTracking.picked_up_at ? 'bg-yellow-500 text-white' : 'bg-gray-200 text-gray-400'
+                              }`}>
+                                <Package className="w-5 h-5" />
+                              </div>
+                              {selectedOrderForTracking.picked_up_at && <div className="w-0.5 h-16 bg-yellow-500 mt-2"></div>}
+                            </div>
+                            <div className="flex-1 pt-2">
+                              <p className="font-semibold text-gray-900">Picked Up</p>
+                              {selectedOrderForTracking.picked_up_at ? (
+                                <p className="text-sm text-gray-600">
+                                  {new Date(selectedOrderForTracking.picked_up_at).toLocaleString()}
+                                </p>
+                              ) : (
+                                <p className="text-sm text-gray-400">Not picked up yet</p>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Out for Delivery */}
+                          <div className="flex gap-4">
+                            <div className="flex flex-col items-center">
+                              <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                                selectedOrderForTracking.delivery_status === 'out_for_delivery' || selectedOrderForTracking.delivery_status === 'delivered' ? 'bg-orange-500 text-white' : 'bg-gray-200 text-gray-400'
+                              }`}>
+                                <Truck className="w-5 h-5" />
+                              </div>
+                              {(selectedOrderForTracking.delivery_status === 'out_for_delivery' || selectedOrderForTracking.delivery_status === 'delivered') && <div className="w-0.5 h-16 bg-orange-500 mt-2"></div>}
+                            </div>
+                            <div className="flex-1 pt-2">
+                              <p className="font-semibold text-gray-900">Out for Delivery</p>
+                              {selectedOrderForTracking.delivery_status === 'out_for_delivery' || selectedOrderForTracking.delivery_status === 'delivered' ? (
+                                <p className="text-sm text-gray-600">In transit</p>
+                              ) : (
+                                <p className="text-sm text-gray-400">Not started yet</p>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Delivered */}
+                          <div className="flex gap-4">
+                            <div className="flex flex-col items-center">
+                              <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                                selectedOrderForTracking.delivered_at ? 'bg-green-500 text-white' : 'bg-gray-200 text-gray-400'
+                              }`}>
+                                <CheckCircle className="w-5 h-5" />
+                              </div>
+                            </div>
+                            <div className="flex-1 pt-2">
+                              <p className="font-semibold text-gray-900">Delivered</p>
+                              {selectedOrderForTracking.delivered_at ? (
+                                <p className="text-sm text-gray-600">
+                                  {new Date(selectedOrderForTracking.delivered_at).toLocaleString()}
+                                </p>
+                              ) : (
+                                <p className="text-sm text-gray-400">Not delivered yet</p>
+                              )}
+                              {selectedOrderForTracking.delivery_notes && (
+                                <p className="text-sm text-gray-600 mt-2 italic bg-gray-50 p-2 rounded">
+                                  Note: {selectedOrderForTracking.delivery_notes}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Order Items */}
+                      <div className="border-t pt-4">
+                        <h3 className="font-semibold text-gray-900 mb-3">Order Items</h3>
+                        <div className="space-y-2">
+                          {selectedOrderForTracking.items?.map((item, idx) => (
+                            <div key={idx} className="flex justify-between bg-gray-50 p-3 rounded">
+                              <span className="text-sm">{item.sku_name || item.sku_id}</span>
+                              <div className="text-sm text-gray-600">
+                                <span>Qty: {item.quantity}</span>
+                                {item.price && <span className="ml-4 font-medium">${(item.price * item.quantity).toFixed(2)}</span>}
+                              </div>
+                            </div>
+                          ))}
+                          {selectedOrderForTracking.total_amount && (
+                            <div className="flex justify-between pt-2 border-t font-semibold text-teal-600">
+                              <span>Total Amount:</span>
+                              <span>${selectedOrderForTracking.total_amount.toFixed(2)}</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
             </div>
           </div>
         )}
