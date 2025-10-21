@@ -19,8 +19,9 @@ export const SocketProvider = ({ children }) => {
   const { toast } = useToast();
 
   useEffect(() => {
-    // Get backend URL from environment
-    const backendUrl = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8001';
+    // Get backend URL from environment variable
+    const backendUrl = process.env.REACT_APP_BACKEND_URL || process.env.REACT_APP_API_URL || 'http://localhost:8000';
+    // Remove /api suffix if present to get base URL for socket connection
     const socketUrl = backendUrl.replace('/api', '');
 
     // Initialize socket connection
