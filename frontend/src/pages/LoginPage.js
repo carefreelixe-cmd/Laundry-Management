@@ -117,12 +117,15 @@ function LoginPage() {
             </Button>
           </form>
 
-          <div className="mt-6 sm:mt-8 p-3 sm:p-4 bg-teal-50 rounded-xl">
-            <p className="text-xs sm:text-sm text-gray-700 text-center">
-              <span className="font-semibold">Demo Credentials:</span><br />
-              Owner: owner@clienty.com / owner123<br />
-              Admin: admin@clienty.com / admin123<br />
-              Customer: customer@clienty.com / customer123
+          <div className="mt-6 sm:mt-8 text-center">
+            <p className="text-sm text-gray-600">
+              Don't have an account?{' '}
+              <button
+                onClick={() => navigate('/signup')}
+                className="text-teal-600 hover:text-teal-700 font-medium"
+              >
+                Sign up here
+              </button>
             </p>
           </div>
         </div>

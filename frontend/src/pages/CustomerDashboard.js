@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Switch } from '@/components/ui/switch';
-import { Package, AlertCircle, Plus, MapPin, Calendar, Lock, Unlock, Repeat, Edit } from 'lucide-react';
+import { Package, AlertCircle, Plus, MapPin, Calendar, Lock, Unlock, Repeat, Edit, Truck, Clock, CheckCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import axios from 'axios';
 
@@ -22,6 +22,7 @@ function CustomerDashboard() {
   const [frequencyTemplates, setFrequencyTemplates] = useState([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [selectedOrderForTracking, setSelectedOrderForTracking] = useState(null);
   
   // Order form
   const [showOrderDialog, setShowOrderDialog] = useState(false);
@@ -69,6 +70,11 @@ function CustomerDashboard() {
       } else if (activeTab === 'cases') {
         const casesRes = await axios.get(`${API}/cases`);
         setCases(casesRes.data);
+      } else if (activeTab === 'delivery-tracking') {
+        const ordersRes = await axios.get(`${API}/orders`);
+        // Filter orders that have drivers assigned
+        const ordersWithDrivers = ordersRes.data.filter(order => order.driver_id);
+        setOrders(ordersWithDrivers);
       }
     } catch (error) {
       console.error('Failed to fetch data', error);
@@ -385,6 +391,17 @@ function CustomerDashboard() {
             data-testid="customer-cases-tab"
           >
             My Cases
+          </button>
+          <button
+            onClick={() => setActiveTab('delivery-tracking')}
+            className={`pb-3 px-1 font-medium transition-colors ${
+              activeTab === 'delivery-tracking'
+                ? 'text-teal-600 border-b-2 border-teal-600'
+                : 'text-gray-500 hover:text-gray-700'
+            }`}
+            data-testid="customer-delivery-tracking-tab"
+          >
+            Delivery Tracking
           </button>
         </div>
 
@@ -795,6 +812,246 @@ function CustomerDashboard() {
                   </CardContent>
                 </Card>
               )}
+            </div>
+          </div>
+        )}
+
+        {/* Delivery Tracking Tab */}
+        {activeTab === 'delivery-tracking' && (
+          <div>
+            <div className="mb-6">
+              <h2 className="text-2xl font-bold text-gray-900">Delivery Tracking</h2>
+              <p className="text-gray-600 mt-1">Track your order deliveries in real-time</p>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              {/* Left Panel - Order List */}
+              <div className="lg:col-span-1">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg">Orders with Delivery</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    {orders.length > 0 ? (
+                      orders.map((order) => (
+                        <button
+                          key={order.id}
+                          onClick={() => setSelectedOrderForTracking(order)}
+                          className={`w-full text-left p-4 rounded-lg border transition-all ${
+                            selectedOrderForTracking?.id === order.id
+                              ? 'bg-teal-50 border-teal-500 shadow-md'
+                              : 'bg-white border-gray-200 hover:bg-gray-50'
+                          }`}
+                        >
+                          <div className="flex justify-between items-start mb-2">
+                            <span className="font-semibold text-gray-900">{order.order_number}</span>
+                            <span className={`px-2 py-1 text-xs font-semibold rounded-full ${
+                              order.delivery_status === 'delivered' ? 'bg-green-100 text-green-800' :
+                              order.delivery_status === 'out_for_delivery' ? 'bg-orange-100 text-orange-800' :
+                              order.delivery_status === 'picked_up' ? 'bg-yellow-100 text-yellow-800' :
+                              'bg-blue-100 text-blue-800'
+                            }`}>
+                              {order.delivery_status?.replace('_', ' ') || 'Assigned'}
+                            </span>
+                          </div>
+                          <p className="text-sm text-gray-600">Driver: {order.driver_name}</p>
+                          <p className="text-xs text-gray-500 mt-1">
+                            {new Date(order.created_at).toLocaleDateString()}
+                          </p>
+                        </button>
+                      ))
+                    ) : (
+                      <div className="text-center py-8">
+                        <Truck className="w-12 h-12 text-gray-400 mx-auto mb-3" />
+                        <p className="text-gray-600">No deliveries in progress</p>
+                        <p className="text-sm text-gray-500 mt-1">Orders with assigned drivers will appear here</p>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Right Panel - Delivery Timeline */}
+              <div className="lg:col-span-2">
+                {selectedOrderForTracking ? (
+                  <div className="space-y-6">
+                    {/* Order Info Card */}
+                    <Card>
+                      <CardContent className="p-6">
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <h3 className="text-xl font-bold text-gray-900 mb-1">
+                              {selectedOrderForTracking.order_number}
+                            </h3>
+                            <p className="text-sm text-gray-600">
+                              Status: <span className="font-semibold">{selectedOrderForTracking.status}</span>
+                            </p>
+                          </div>
+                          <span className={`px-3 py-1 text-sm font-semibold rounded-full ${
+                            selectedOrderForTracking.delivery_status === 'delivered' ? 'bg-green-100 text-green-800' :
+                            selectedOrderForTracking.delivery_status === 'out_for_delivery' ? 'bg-orange-100 text-orange-800' :
+                            selectedOrderForTracking.delivery_status === 'picked_up' ? 'bg-yellow-100 text-yellow-800' :
+                            'bg-blue-100 text-blue-800'
+                          }`}>
+                            {selectedOrderForTracking.delivery_status?.replace('_', ' ') || 'Assigned'}
+                          </span>
+                        </div>
+                        <div className="mt-4 grid grid-cols-2 gap-4 text-sm">
+                          <div>
+                            <p className="text-gray-600">Driver</p>
+                            <p className="font-semibold text-gray-900">{selectedOrderForTracking.driver_name}</p>
+                          </div>
+                          <div>
+                            <p className="text-gray-600">Total Amount</p>
+                            <p className="font-semibold text-gray-900">${selectedOrderForTracking.total_amount?.toFixed(2)}</p>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+
+                    {/* Addresses Card */}
+                    <Card>
+                      <CardContent className="p-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                          <div>
+                            <div className="flex items-center gap-2 mb-2">
+                              <MapPin className="w-5 h-5 text-teal-600" />
+                              <h4 className="font-semibold text-gray-900">Pickup Address</h4>
+                            </div>
+                            <p className="text-sm text-gray-600 ml-7">{selectedOrderForTracking.pickup_address}</p>
+                            <p className="text-xs text-gray-500 ml-7 mt-1">
+                              {new Date(selectedOrderForTracking.pickup_date).toLocaleString()}
+                            </p>
+                          </div>
+                          <div>
+                            <div className="flex items-center gap-2 mb-2">
+                              <MapPin className="w-5 h-5 text-green-600" />
+                              <h4 className="font-semibold text-gray-900">Delivery Address</h4>
+                            </div>
+                            <p className="text-sm text-gray-600 ml-7">{selectedOrderForTracking.delivery_address}</p>
+                            <p className="text-xs text-gray-500 ml-7 mt-1">
+                              {new Date(selectedOrderForTracking.delivery_date).toLocaleString()}
+                            </p>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+
+                    {/* Delivery Timeline */}
+                    <Card>
+                      <CardHeader>
+                        <CardTitle>Delivery Timeline</CardTitle>
+                      </CardHeader>
+                      <CardContent className="p-6">
+                        <div className="space-y-6">
+                          {/* Stage 1: Assigned */}
+                          <div className="flex items-start gap-4">
+                            <div className="flex flex-col items-center">
+                              <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                                selectedOrderForTracking.assigned_at ? 'bg-blue-500' : 'bg-gray-200'
+                              }`}>
+                                <Clock className={`w-5 h-5 ${selectedOrderForTracking.assigned_at ? 'text-white' : 'text-gray-400'}`} />
+                              </div>
+                              {selectedOrderForTracking.picked_up_at && (
+                                <div className="w-0.5 h-12 bg-yellow-500 my-1"></div>
+                              )}
+                            </div>
+                            <div className="flex-1">
+                              <h4 className="font-semibold text-gray-900">Driver Assigned</h4>
+                              <p className="text-sm text-gray-600">
+                                {selectedOrderForTracking.assigned_at 
+                                  ? new Date(selectedOrderForTracking.assigned_at).toLocaleString()
+                                  : 'Not completed yet'}
+                              </p>
+                            </div>
+                          </div>
+
+                          {/* Stage 2: Picked Up */}
+                          <div className="flex items-start gap-4">
+                            <div className="flex flex-col items-center">
+                              <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                                selectedOrderForTracking.picked_up_at ? 'bg-yellow-500' : 'bg-gray-200'
+                              }`}>
+                                <Package className={`w-5 h-5 ${selectedOrderForTracking.picked_up_at ? 'text-white' : 'text-gray-400'}`} />
+                              </div>
+                              {selectedOrderForTracking.picked_up_at && selectedOrderForTracking.delivery_status === 'out_for_delivery' && (
+                                <div className="w-0.5 h-12 bg-orange-500 my-1"></div>
+                              )}
+                            </div>
+                            <div className="flex-1">
+                              <h4 className="font-semibold text-gray-900">Order Picked Up</h4>
+                              <p className="text-sm text-gray-600">
+                                {selectedOrderForTracking.picked_up_at 
+                                  ? new Date(selectedOrderForTracking.picked_up_at).toLocaleString()
+                                  : 'Not completed yet'}
+                              </p>
+                            </div>
+                          </div>
+
+                          {/* Stage 3: Out for Delivery */}
+                          <div className="flex items-start gap-4">
+                            <div className="flex flex-col items-center">
+                              <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                                selectedOrderForTracking.delivery_status === 'out_for_delivery' || selectedOrderForTracking.delivery_status === 'delivered' ? 'bg-orange-500' : 'bg-gray-200'
+                              }`}>
+                                <Truck className={`w-5 h-5 ${
+                                  selectedOrderForTracking.delivery_status === 'out_for_delivery' || selectedOrderForTracking.delivery_status === 'delivered' ? 'text-white' : 'text-gray-400'
+                                }`} />
+                              </div>
+                              {selectedOrderForTracking.delivered_at && (
+                                <div className="w-0.5 h-12 bg-green-500 my-1"></div>
+                              )}
+                            </div>
+                            <div className="flex-1">
+                              <h4 className="font-semibold text-gray-900">Out for Delivery</h4>
+                              <p className="text-sm text-gray-600">
+                                {selectedOrderForTracking.delivery_status === 'out_for_delivery' || selectedOrderForTracking.delivery_status === 'delivered'
+                                  ? 'In transit to delivery address'
+                                  : 'Not completed yet'}
+                              </p>
+                            </div>
+                          </div>
+
+                          {/* Stage 4: Delivered */}
+                          <div className="flex items-start gap-4">
+                            <div className="flex flex-col items-center">
+                              <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                                selectedOrderForTracking.delivered_at ? 'bg-green-500' : 'bg-gray-200'
+                              }`}>
+                                <CheckCircle className={`w-5 h-5 ${selectedOrderForTracking.delivered_at ? 'text-white' : 'text-gray-400'}`} />
+                              </div>
+                            </div>
+                            <div className="flex-1">
+                              <h4 className="font-semibold text-gray-900">Delivered</h4>
+                              <p className="text-sm text-gray-600">
+                                {selectedOrderForTracking.delivered_at 
+                                  ? new Date(selectedOrderForTracking.delivered_at).toLocaleString()
+                                  : 'Not completed yet'}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Delivery Notes */}
+                        {selectedOrderForTracking.delivery_notes && (
+                          <div className="mt-6 p-4 bg-gray-50 rounded-lg">
+                            <h4 className="font-semibold text-gray-900 mb-2">Delivery Notes</h4>
+                            <p className="text-sm text-gray-700">{selectedOrderForTracking.delivery_notes}</p>
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  </div>
+                ) : (
+                  <Card className="h-full">
+                    <CardContent className="flex flex-col items-center justify-center p-12 text-center h-full min-h-[400px]">
+                      <Truck className="w-16 h-16 text-gray-400 mb-4" />
+                      <h3 className="text-xl font-semibold text-gray-900 mb-2">Select an Order</h3>
+                      <p className="text-gray-600">Choose an order from the list to view delivery tracking details</p>
+                    </CardContent>
+                  </Card>
+                )}
+              </div>
             </div>
           </div>
         )}

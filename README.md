@@ -1,6 +1,6 @@
-# Clienty - Professional Laundry Management System
+# Infinite Laundry Solutions - Professional Laundry Management System
 
-A complete web-based management system for **Clienty**, a professional laundry and delivery service provider in Australia.
+A complete web-based management system for **Infinite Laundry Solutions**, a professional laundry and delivery service provider in Queensland, Australia.
 
 ## 🌟 Features
 
@@ -191,7 +191,7 @@ TWILIO_PHONE_NUMBER="your-twilio-number"
 ## 🧪 Testing the System
 
 ### Test Owner Features:
-1. Login as owner@clienty.com / owner123
+1. Login with Owner credentials
 2. Navigate to "User Management" tab - create new users
 3. Navigate to "SKU & Pricing" tab - add/edit/delete service items
 4. Navigate to "Customer Pricing" - set custom prices for customers
@@ -199,7 +199,7 @@ TWILIO_PHONE_NUMBER="your-twilio-number"
 6. View analytics dashboard with real-time stats
 
 ### Test Admin Features:
-1. Login as admin@clienty.com / admin123
+1. Login with Admin credentials
 2. Navigate to "Orders" tab - create a new order for a customer
 3. Create a recurring order with custom frequency
 4. Navigate to "Cases" tab - view and update customer cases
@@ -207,7 +207,7 @@ TWILIO_PHONE_NUMBER="your-twilio-number"
 6. Receive real-time Socket.io notifications for all events
 
 ### Test Customer Features:
-1. Login as customer@clienty.com / customer123
+1. Login with Customer credentials
 2. View your orders and their status with lock indicators
 3. Create a recurring order for regular service
 4. Navigate to "My Cases" - raise a new case/request
@@ -291,17 +291,17 @@ While the current system is fully functional, here are potential future features
 
 ## 📄 License
 
-Copyright © 2025 Clienty. All rights reserved.
+Copyright © 2025 Infinite Laundry Solutions. All rights reserved.
 
 ## 🤝 Support
 
 For support and questions:
-- Email: info@clienty.com.au
+- Email: info@infinitelaundry.com.au
 - Phone: 1800 LAUNDRY
-- Address: Sydney, Melbourne, Brisbane
+- Location: Serving Queensland
 
 ---
 
-**Built with FastAPI + React + MongoDB + Socket.io on Emergent Platform**
+**Built with FastAPI + React + MongoDB + Socket.io**
 
-**Latest Update**: January 2025 - Added recurring orders, customer-specific pricing, order locking, and real-time notifications
+**Latest Update**: January 2025 - Added recurring orders, customer-specific pricing, order locking, driver management, delivery tracking, and real-time notifications

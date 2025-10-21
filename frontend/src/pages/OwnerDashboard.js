@@ -52,6 +52,9 @@ function OwnerDashboard() {
   const [drivers, setDrivers] = useState([]);
   const [selectedDriver, setSelectedDriver] = useState({});
   const [showOrderDialog, setShowOrderDialog] = useState(false);
+  const [creatingOrder, setCreatingOrder] = useState(false);
+  const [editingOrder, setEditingOrder] = useState(null);
+  const [deletingOrderId, setDeletingOrderId] = useState(null);
   const [orderForm, setOrderForm] = useState({
     customer_id: '',
     customer_name: '',
@@ -67,6 +70,7 @@ function OwnerDashboard() {
   });
   const [orderItems, setOrderItems] = useState([{ sku_id: '', quantity: 1 }]);
   const [selectedOrderForTracking, setSelectedOrderForTracking] = useState(null);
+  const [customerSkus, setCustomerSkus] = useState([]);
 
   useEffect(() => {
     fetchData();
@@ -86,6 +90,15 @@ function OwnerDashboard() {
       fetchOrders();
     }
   }, [activeTab]);
+
+  // Fetch customer-specific SKU pricing when customer is selected in order form
+  useEffect(() => {
+    if (orderForm.customer_id) {
+      fetchCustomerSkus(orderForm.customer_id);
+    } else {
+      setCustomerSkus([]);
+    }
+  }, [orderForm.customer_id]);
 
   useEffect(() => {
     if (selectedCustomer) {
@@ -138,6 +151,16 @@ function OwnerDashboard() {
       setFrequencyTemplates(res.data);
     } catch (error) {
       console.error('Failed to fetch frequency templates', error);
+    }
+  };
+
+  const fetchCustomerSkus = async (customerId) => {
+    try {
+      const res = await axios.get(`${API}/skus-with-pricing/${customerId}`);
+      setCustomerSkus(res.data);
+    } catch (error) {
+      console.error('Failed to fetch customer SKUs', error);
+      setCustomerSkus(skus); // Fallback to base SKUs
     }
   };
 
@@ -310,10 +333,40 @@ function OwnerDashboard() {
 
   const handleCreateOrder = async (e) => {
     e.preventDefault();
+    setCreatingOrder(true);
     try {
       const selectedCustomer = customers.find(c => c.id === orderForm.customer_id);
       if (!selectedCustomer) {
         alert('Please select a customer');
+        setCreatingOrder(false);
+        return;
+      }
+
+      // Use customerSkus if available (has custom pricing), otherwise fallback to base skus
+      const skuList = customerSkus.length > 0 ? customerSkus : skus;
+
+      // Filter valid items and add price and sku_name
+      const validItems = orderItems
+        .filter(item => item.sku_id && item.quantity > 0)
+        .map(item => {
+          const sku = skuList.find(s => s.id === item.sku_id);
+          if (!sku) return null;
+          
+          // Use customer_price if available (from customer-specific endpoint), otherwise base price
+          const price = sku.customer_price !== undefined ? sku.customer_price : sku.price;
+          
+          return {
+            sku_id: item.sku_id,
+            sku_name: sku.name,
+            quantity: parseInt(item.quantity),
+            price: parseFloat(price)
+          };
+        })
+        .filter(item => item !== null);
+
+      if (validItems.length === 0) {
+        alert('Please add at least one valid item');
+        setCreatingOrder(false);
         return;
       }
 
@@ -321,12 +374,12 @@ function OwnerDashboard() {
         customer_id: selectedCustomer.id,
         customer_name: selectedCustomer.full_name,
         customer_email: selectedCustomer.email,
-        items: orderItems.filter(item => item.sku_id && item.quantity > 0),
+        items: validItems,
         pickup_date: orderForm.pickup_date,
         delivery_date: orderForm.delivery_date,
         pickup_address: orderForm.pickup_address,
         delivery_address: orderForm.delivery_address,
-        special_instructions: orderForm.special_instructions || undefined,
+        special_instructions: orderForm.special_instructions || null,
         is_recurring: orderForm.is_recurring || false
       };
 
@@ -339,11 +392,6 @@ function OwnerDashboard() {
             frequency_value: template.frequency_value
           };
         }
-      }
-
-      if (orderData.items.length === 0) {
-        alert('Please add at least one item');
-        return;
       }
 
       await axios.post(`${API}/orders`, orderData);
@@ -363,9 +411,116 @@ function OwnerDashboard() {
         frequency_template_id: ''
       });
       setOrderItems([{ sku_id: '', quantity: 1 }]);
+      setCustomerSkus([]); // Clear customer SKUs
       fetchOrders();
     } catch (error) {
-      alert(error.response?.data?.detail || 'Failed to create order');
+      console.error('Order creation error:', error.response?.data);
+      alert(error.response?.data?.detail || JSON.stringify(error.response?.data) || 'Failed to create order');
+    } finally {
+      setCreatingOrder(false);
+    }
+  };
+
+  const handleEditOrder = (order) => {
+    setEditingOrder(order);
+    setOrderForm({
+      customer_id: order.customer_id,
+      customer_name: order.customer_name,
+      customer_email: order.customer_email,
+      pickup_date: order.pickup_date,
+      delivery_date: order.delivery_date,
+      pickup_address: order.pickup_address,
+      delivery_address: order.delivery_address,
+      special_instructions: order.special_instructions || '',
+      is_recurring: order.is_recurring || false,
+      frequency_template_id: order.recurrence_pattern ? '' : ''
+    });
+    setOrderItems(order.items.map(item => ({
+      sku_id: item.sku_id,
+      quantity: item.quantity
+    })));
+    setShowOrderDialog(true);
+  };
+
+  const handleUpdateOrder = async (e) => {
+    e.preventDefault();
+    setCreatingOrder(true);
+    try {
+      const skuList = customerSkus.length > 0 ? customerSkus : skus;
+
+      const validItems = orderItems
+        .filter(item => item.sku_id && item.quantity > 0)
+        .map(item => {
+          const sku = skuList.find(s => s.id === item.sku_id);
+          if (!sku) return null;
+          
+          const price = sku.customer_price !== undefined ? sku.customer_price : sku.price;
+          
+          return {
+            sku_id: item.sku_id,
+            sku_name: sku.name,
+            quantity: parseInt(item.quantity),
+            price: parseFloat(price)
+          };
+        })
+        .filter(item => item !== null);
+
+      if (validItems.length === 0) {
+        alert('Please add at least one valid item');
+        setCreatingOrder(false);
+        return;
+      }
+
+      const updateData = {
+        pickup_date: orderForm.pickup_date,
+        delivery_date: orderForm.delivery_date,
+        pickup_address: orderForm.pickup_address,
+        delivery_address: orderForm.delivery_address,
+        special_instructions: orderForm.special_instructions || null,
+        items: validItems
+      };
+
+      await axios.put(`${API}/orders/${editingOrder.id}`, updateData);
+      alert('Order updated successfully');
+      setShowOrderDialog(false);
+      setEditingOrder(null);
+      setOrderForm({
+        customer_id: '',
+        customer_name: '',
+        customer_email: '',
+        items: [],
+        pickup_date: '',
+        delivery_date: '',
+        pickup_address: '',
+        delivery_address: '',
+        special_instructions: '',
+        is_recurring: false,
+        frequency_template_id: ''
+      });
+      setOrderItems([{ sku_id: '', quantity: 1 }]);
+      setCustomerSkus([]);
+      fetchOrders();
+    } catch (error) {
+      console.error('Order update error:', error.response?.data);
+      alert(error.response?.data?.detail || 'Failed to update order');
+    } finally {
+      setCreatingOrder(false);
+    }
+  };
+
+  const handleDeleteOrder = async (orderId) => {
+    if (!window.confirm('Are you sure you want to delete this order?')) return;
+    
+    setDeletingOrderId(orderId);
+    try {
+      await axios.delete(`${API}/orders/${orderId}`);
+      alert('Order deleted successfully');
+      fetchOrders();
+    } catch (error) {
+      console.error('Order delete error:', error.response?.data);
+      alert(error.response?.data?.detail || 'Failed to delete order');
+    } finally {
+      setDeletingOrderId(null);
     }
   };
 
@@ -961,7 +1116,27 @@ function OwnerDashboard() {
                 <h2 className="text-2xl font-bold text-gray-900">Orders & Driver Assignment</h2>
                 <p className="text-gray-600 mt-1">Create orders and assign drivers for delivery</p>
               </div>
-              <Dialog open={showOrderDialog} onOpenChange={setShowOrderDialog}>
+              <Dialog open={showOrderDialog} onOpenChange={(open) => {
+                setShowOrderDialog(open);
+                if (!open) {
+                  setEditingOrder(null);
+                  setOrderForm({
+                    customer_id: '',
+                    customer_name: '',
+                    customer_email: '',
+                    items: [],
+                    pickup_date: '',
+                    delivery_date: '',
+                    pickup_address: '',
+                    delivery_address: '',
+                    special_instructions: '',
+                    is_recurring: false,
+                    frequency_template_id: ''
+                  });
+                  setOrderItems([{ sku_id: '', quantity: 1 }]);
+                  setCustomerSkus([]);
+                }
+              }}>
                 <DialogTrigger asChild>
                   <Button className="bg-teal-500 hover:bg-teal-600">
                     <Plus className="w-4 h-4 mr-2" />
@@ -970,9 +1145,9 @@ function OwnerDashboard() {
                 </DialogTrigger>
                 <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
                   <DialogHeader>
-                    <DialogTitle>Create New Order</DialogTitle>
+                    <DialogTitle>{editingOrder ? 'Edit Order' : 'Create New Order'}</DialogTitle>
                   </DialogHeader>
-                  <form onSubmit={handleCreateOrder} className="space-y-4">
+                  <form onSubmit={editingOrder ? handleUpdateOrder : handleCreateOrder} className="space-y-4">
                     <div>
                       <Label>Select Customer</Label>
                       <Select value={orderForm.customer_id} onValueChange={(value) => setOrderForm({ ...orderForm, customer_id: value })}>
@@ -993,16 +1168,24 @@ function OwnerDashboard() {
                       <Label>Order Items</Label>
                       {orderItems.map((item, index) => (
                         <div key={index} className="flex gap-2 mb-2">
-                          <Select value={item.sku_id} onValueChange={(value) => updateOrderItem(index, 'sku_id', value)}>
+                          <Select 
+                            value={item.sku_id} 
+                            onValueChange={(value) => updateOrderItem(index, 'sku_id', value)}
+                            disabled={!orderForm.customer_id}
+                          >
                             <SelectTrigger className="flex-1">
-                              <SelectValue placeholder="Select item" />
+                              <SelectValue placeholder={orderForm.customer_id ? "Select item" : "Select customer first"} />
                             </SelectTrigger>
                             <SelectContent>
-                              {skus.map((sku) => (
-                                <SelectItem key={sku.id} value={sku.id}>
-                                  {sku.name} - ${sku.price}
-                                </SelectItem>
-                              ))}
+                              {(customerSkus.length > 0 ? customerSkus : skus).map((sku) => {
+                                const price = sku.customer_price !== undefined ? sku.customer_price : sku.price;
+                                return (
+                                  <SelectItem key={sku.id} value={sku.id}>
+                                    {sku.name} - ${price.toFixed(2)}
+                                    {sku.customer_price !== undefined && ' (Custom)'}
+                                  </SelectItem>
+                                );
+                              })}
                             </SelectContent>
                           </Select>
                           <Input
@@ -1114,8 +1297,15 @@ function OwnerDashboard() {
                       )}
                     </div>
 
-                    <Button type="submit" className="w-full bg-teal-500 hover:bg-teal-600">
-                      Create Order
+                    <Button type="submit" className="w-full bg-teal-500 hover:bg-teal-600" disabled={creatingOrder}>
+                      {creatingOrder ? (
+                        <>
+                          <span className="animate-spin mr-2">⏳</span>
+                          {editingOrder ? 'Updating...' : 'Creating...'}
+                        </>
+                      ) : (
+                        editingOrder ? 'Update Order' : 'Create Order'
+                      )}
                     </Button>
                   </form>
                 </DialogContent>
@@ -1144,6 +1334,7 @@ function OwnerDashboard() {
                           <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Delivery Status</th>
                           <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Assigned Driver</th>
                           <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Assign Driver</th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-gray-200">
@@ -1211,6 +1402,33 @@ function OwnerDashboard() {
                                   className="bg-teal-500 hover:bg-teal-600"
                                 >
                                   Assign
+                                </Button>
+                              </div>
+                            </td>
+                            <td className="px-4 py-3">
+                              <div className="flex items-center gap-2">
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => handleEditOrder(order)}
+                                  disabled={order.is_locked || creatingOrder}
+                                  className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                                  title={order.is_locked ? "Order is locked (>8 hours old)" : "Edit order"}
+                                >
+                                  <Edit className="w-4 h-4" />
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => handleDeleteOrder(order.id)}
+                                  disabled={deletingOrderId === order.id}
+                                  className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                                >
+                                  {deletingOrderId === order.id ? (
+                                    <span className="animate-spin">⏳</span>
+                                  ) : (
+                                    <Trash2 className="w-4 h-4" />
+                                  )}
                                 </Button>
                               </div>
                             </td>
