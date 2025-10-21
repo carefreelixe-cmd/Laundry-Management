@@ -24,8 +24,16 @@ function AdminDashboard() {
   const [loading, setLoading] = useState(true);
   const [selectedOrderForTracking, setSelectedOrderForTracking] = useState(null);
   
+  // Loading states for operations
+  const [creatingOrder, setCreatingOrder] = useState(false);
+  const [editingOrderId, setEditingOrderId] = useState(null);
+  const [deletingOrderId, setDeletingOrderId] = useState(null);
+  const [updatingCaseId, setUpdatingCaseId] = useState(null);
+  
   // Order form
   const [showOrderDialog, setShowOrderDialog] = useState(false);
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [editingOrder, setEditingOrder] = useState(null);
   const [orderForm, setOrderForm] = useState({
     customer_id: '',
     customer_name: '',
@@ -83,7 +91,15 @@ function AdminDashboard() {
 
   const handleCreateOrder = async (e) => {
     e.preventDefault();
+    if (creatingOrder || editingOrderId) return; // Prevent duplicate submissions
+    
     try {
+      if (isEditMode && editingOrder) {
+        setEditingOrderId(editingOrder.id);
+      } else {
+        setCreatingOrder(true);
+      }
+      
       const customer = customers.find(c => c.id === orderForm.customer_id);
       const formData = {
         ...orderForm,
@@ -109,8 +125,15 @@ function AdminDashboard() {
         };
       }
       
-      await axios.post(`${API}/orders`, formData);
+      if (isEditMode && editingOrder) {
+        await axios.put(`${API}/orders/${editingOrder.id}`, formData);
+      } else {
+        await axios.post(`${API}/orders`, formData);
+      }
+      
       setShowOrderDialog(false);
+      setIsEditMode(false);
+      setEditingOrder(null);
       setOrderForm({
         customer_id: '',
         customer_name: '',
@@ -127,7 +150,49 @@ function AdminDashboard() {
       setOrderItems([{ sku_id: '', sku_name: '', quantity: 1, price: 0 }]);
       fetchData();
     } catch (error) {
-      alert(error.response?.data?.detail || 'Failed to create order');
+      alert(error.response?.data?.detail || `Failed to ${isEditMode ? 'update' : 'create'} order`);
+    } finally {
+      setCreatingOrder(false);
+      setEditingOrderId(null);
+    }
+  };
+
+  const handleEditOrder = (order) => {
+    setIsEditMode(true);
+    setEditingOrder(order);
+    setOrderForm({
+      customer_id: order.customer_id,
+      customer_name: order.customer_name,
+      customer_email: order.customer_email,
+      pickup_date: order.pickup_date.slice(0, 16),
+      delivery_date: order.delivery_date.slice(0, 16),
+      pickup_address: order.pickup_address,
+      delivery_address: order.delivery_address,
+      special_instructions: order.special_instructions || '',
+      is_recurring: order.is_recurring || false,
+      frequency_template_id: order.frequency_template_id || ''
+    });
+    setOrderItems(order.items.map(item => ({
+      sku_id: item.sku_id,
+      sku_name: item.sku_name,
+      quantity: item.quantity,
+      price: item.price
+    })));
+    setShowOrderDialog(true);
+  };
+
+  const handleDeleteOrder = async (orderId) => {
+    if (!window.confirm('Are you sure you want to delete this order?')) return;
+    if (deletingOrderId) return; // Prevent duplicate deletions
+    
+    try {
+      setDeletingOrderId(orderId);
+      await axios.delete(`${API}/orders/${orderId}`);
+      fetchData();
+    } catch (error) {
+      alert('Failed to delete order');
+    } finally {
+      setDeletingOrderId(null);
     }
   };
 
@@ -142,7 +207,10 @@ function AdminDashboard() {
 
   const handleUpdateCase = async (e) => {
     e.preventDefault();
+    if (updatingCaseId) return; // Prevent duplicate submissions
+    
     try {
+      setUpdatingCaseId(selectedCase.id);
       await axios.put(`${API}/cases/${selectedCase.id}`, caseUpdate);
       setShowCaseDialog(false);
       setSelectedCase(null);
@@ -150,6 +218,8 @@ function AdminDashboard() {
       fetchData();
     } catch (error) {
       alert('Failed to update case');
+    } finally {
+      setUpdatingCaseId(null);
     }
   };
 
@@ -245,16 +315,43 @@ function AdminDashboard() {
           <div>
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-2xl font-bold text-gray-900">Order Management</h2>
-              <Dialog open={showOrderDialog} onOpenChange={setShowOrderDialog}>
+              <Dialog open={showOrderDialog} onOpenChange={(open) => {
+                setShowOrderDialog(open);
+                if (!open) {
+                  setIsEditMode(false);
+                  setEditingOrder(null);
+                  setOrderForm({
+                    customer_id: '',
+                    customer_name: '',
+                    customer_email: '',
+                    items: [],
+                    pickup_date: '',
+                    delivery_date: '',
+                    pickup_address: '',
+                    delivery_address: '',
+                    special_instructions: '',
+                    is_recurring: false,
+                    frequency_template_id: ''
+                  });
+                  setOrderItems([{ sku_id: '', sku_name: '', quantity: 1, price: 0 }]);
+                }
+              }}>
                 <DialogTrigger asChild>
-                  <Button className="bg-teal-500 hover:bg-teal-600" data-testid="create-order-btn">
+                  <Button 
+                    className="bg-teal-500 hover:bg-teal-600" 
+                    onClick={() => {
+                      setIsEditMode(false);
+                      setEditingOrder(null);
+                    }}
+                    data-testid="create-order-btn"
+                  >
                     <Plus className="w-4 h-4 mr-2" />
                     Create Order
                   </Button>
                 </DialogTrigger>
                 <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
                   <DialogHeader>
-                    <DialogTitle>Create New Order</DialogTitle>
+                    <DialogTitle>{isEditMode ? 'Edit Order' : 'Create New Order'}</DialogTitle>
                   </DialogHeader>
                   <form onSubmit={handleCreateOrder} className="space-y-4">
                     <div>
@@ -366,7 +463,21 @@ function AdminDashboard() {
                       )}
                     </div>
 
-                    <Button type="submit" className="w-full bg-teal-500 hover:bg-teal-600" data-testid="order-submit-btn">Create Order</Button>
+                    <Button 
+                      type="submit" 
+                      className="w-full bg-teal-500 hover:bg-teal-600" 
+                      disabled={creatingOrder || editingOrderId !== null}
+                      data-testid="order-submit-btn"
+                    >
+                      {creatingOrder || editingOrderId ? (
+                        <>
+                          <Clock className="w-4 h-4 mr-2 animate-spin" />
+                          {isEditMode ? 'Updating...' : 'Creating...'}
+                        </>
+                      ) : (
+                        isEditMode ? 'Update Order' : 'Create Order'
+                      )}
+                    </Button>
                   </form>
                 </DialogContent>
               </Dialog>
@@ -434,6 +545,44 @@ function AdminDashboard() {
                             <SelectItem value="cancelled">Cancelled</SelectItem>
                           </SelectContent>
                         </Select>
+                        
+                        {!order.is_locked && (
+                          <div className="flex flex-col gap-2 mt-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleEditOrder(order)}
+                              disabled={editingOrderId === order.id}
+                            >
+                              {editingOrderId === order.id ? (
+                                <>
+                                  <Clock className="w-4 h-4 mr-1 animate-spin" />
+                                  Editing...
+                                </>
+                              ) : (
+                                <>
+                                  <Edit className="w-4 h-4 mr-1" />
+                                  Edit
+                                </>
+                              )}
+                            </Button>
+                            <Button
+                              variant="destructive"
+                              size="sm"
+                              onClick={() => handleDeleteOrder(order.id)}
+                              disabled={deletingOrderId === order.id}
+                            >
+                              {deletingOrderId === order.id ? (
+                                <>
+                                  <Clock className="w-4 h-4 mr-1 animate-spin" />
+                                  Deleting...
+                                </>
+                              ) : (
+                                'Delete'
+                              )}
+                            </Button>
+                          </div>
+                        )}
                       </div>
                     </div>
                   </CardContent>
@@ -555,7 +704,21 @@ function AdminDashboard() {
                     <Label>Resolution</Label>
                     <Textarea value={caseUpdate.resolution} onChange={(e) => setCaseUpdate({ ...caseUpdate, resolution: e.target.value })} rows={4} data-testid="case-resolution-input" />
                   </div>
-                  <Button type="submit" className="w-full bg-teal-500 hover:bg-teal-600" data-testid="case-update-submit-btn">Update Case</Button>
+                  <Button 
+                    type="submit" 
+                    className="w-full bg-teal-500 hover:bg-teal-600" 
+                    disabled={updatingCaseId !== null}
+                    data-testid="case-update-submit-btn"
+                  >
+                    {updatingCaseId ? (
+                      <>
+                        <Clock className="w-4 h-4 mr-2 animate-spin" />
+                        Updating...
+                      </>
+                    ) : (
+                      'Update Case'
+                    )}
+                  </Button>
                 </form>
               </DialogContent>
             </Dialog>
@@ -563,7 +726,7 @@ function AdminDashboard() {
         )}
 
         {/* Deliveries Tab */}
-        {activeTab === 'deliveries' && (
+        {/* {activeTab === 'deliveries' && (
           <div>
             <h2 className="text-2xl font-bold text-gray-900 mb-6">Delivery Management</h2>
             <div className="grid gap-4">
@@ -595,7 +758,7 @@ function AdminDashboard() {
               )}
             </div>
           </div>
-        )}
+        )} */}
 
         {/* Delivery Tracking Tab */}
         {activeTab === 'delivery-tracking' && (
