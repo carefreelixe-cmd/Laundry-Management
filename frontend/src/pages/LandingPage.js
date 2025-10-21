@@ -1440,9 +1440,51 @@ function LandingPage() {
               <img src="/assets/logo.png" alt="Infinite Laundry Solutions Logo" className="h-20  w-auto" />
             </div>
             <div className="hidden lg:flex items-center space-x-6">
-              <a href="#services" className="text-sm xl:text-base text-gray-700 hover:text-teal-500 transition-colors font-medium">Services</a>
-              <a href="#about" className="text-sm xl:text-base text-gray-700 hover:text-teal-500 transition-colors font-medium">About</a>
-              <a href="#contact" className="text-sm xl:text-base text-gray-700 hover:text-teal-500 transition-colors font-medium">Contact</a>
+              <a 
+                href="#services" 
+                onClick={(e) => {
+                  e.preventDefault();
+                  const element = document.getElementById('services');
+                  if (element) {
+                    const yOffset = -80;
+                    const y = element.getBoundingClientRect().top + window.pageYOffset + yOffset;
+                    window.scrollTo({ top: y, behavior: 'smooth' });
+                  }
+                }}
+                className="text-sm xl:text-base text-gray-700 hover:text-teal-500 transition-colors font-medium cursor-pointer"
+              >
+                Services
+              </a>
+              <a 
+                href="#about" 
+                onClick={(e) => {
+                  e.preventDefault();
+                  const element = document.getElementById('about');
+                  if (element) {
+                    const yOffset = -80;
+                    const y = element.getBoundingClientRect().top + window.pageYOffset + yOffset;
+                    window.scrollTo({ top: y, behavior: 'smooth' });
+                  }
+                }}
+                className="text-sm xl:text-base text-gray-700 hover:text-teal-500 transition-colors font-medium cursor-pointer"
+              >
+                About
+              </a>
+              <a 
+                href="#contact" 
+                onClick={(e) => {
+                  e.preventDefault();
+                  const element = document.getElementById('contact');
+                  if (element) {
+                    const yOffset = -80;
+                    const y = element.getBoundingClientRect().top + window.pageYOffset + yOffset;
+                    window.scrollTo({ top: y, behavior: 'smooth' });
+                  }
+                }}
+                className="text-sm xl:text-base text-gray-700 hover:text-teal-500 transition-colors font-medium cursor-pointer"
+              >
+                Contact
+              </a>
               <div className='space-x-3'>
                 <Button onClick={() => navigate('/signup')} variant="outline" className="border-2 border-teal-500 text-teal-500 hover:bg-teal-50 rounded-full px-4 py-2 xl:px-6 text-sm xl:text-base" data-testid="nav-signup-btn">Sign Up</Button>
                 <Button onClick={() => navigate('/login')} className="bg-teal-500 hover:bg-teal-600 text-white py-2 rounded-full px-4 xl:px-6 text-sm xl:text-base" data-testid="nav-login-btn">Login</Button>
@@ -1457,9 +1499,54 @@ function LandingPage() {
           {mobileMenuOpen && (
             <div className="lg:hidden py-4 border-t animate-fade-in" data-testid="mobile-menu">
               <div className="flex flex-col space-y-3">
-                <a href="#services" onClick={() => setMobileMenuOpen(false)} className="text-gray-700 hover:text-teal-500 transition-colors font-medium py-2 px-4 rounded-lg hover:bg-teal-50">Services</a>
-                <a href="#about" onClick={() => setMobileMenuOpen(false)} className="text-gray-700 hover:text-teal-500 transition-colors font-medium py-2 px-4 rounded-lg hover:bg-teal-50">About</a>
-                <a href="#contact" onClick={() => setMobileMenuOpen(false)} className="text-gray-700 hover:text-teal-500 transition-colors font-medium py-2 px-4 rounded-lg hover:bg-teal-50">Contact</a>
+                <a 
+                  href="#services" 
+                  onClick={(e) => {
+                    e.preventDefault();
+                    setMobileMenuOpen(false);
+                    const element = document.getElementById('services');
+                    if (element) {
+                      const yOffset = -80;
+                      const y = element.getBoundingClientRect().top + window.pageYOffset + yOffset;
+                      window.scrollTo({ top: y, behavior: 'smooth' });
+                    }
+                  }}
+                  className="text-gray-700 hover:text-teal-500 transition-colors font-medium py-2 px-4 rounded-lg hover:bg-teal-50 cursor-pointer"
+                >
+                  Services
+                </a>
+                <a 
+                  href="#about" 
+                  onClick={(e) => {
+                    e.preventDefault();
+                    setMobileMenuOpen(false);
+                    const element = document.getElementById('about');
+                    if (element) {
+                      const yOffset = -80;
+                      const y = element.getBoundingClientRect().top + window.pageYOffset + yOffset;
+                      window.scrollTo({ top: y, behavior: 'smooth' });
+                    }
+                  }}
+                  className="text-gray-700 hover:text-teal-500 transition-colors font-medium py-2 px-4 rounded-lg hover:bg-teal-50 cursor-pointer"
+                >
+                  About
+                </a>
+                <a 
+                  href="#contact" 
+                  onClick={(e) => {
+                    e.preventDefault();
+                    setMobileMenuOpen(false);
+                    const element = document.getElementById('contact');
+                    if (element) {
+                      const yOffset = -80;
+                      const y = element.getBoundingClientRect().top + window.pageYOffset + yOffset;
+                      window.scrollTo({ top: y, behavior: 'smooth' });
+                    }
+                  }}
+                  className="text-gray-700 hover:text-teal-500 transition-colors font-medium py-2 px-4 rounded-lg hover:bg-teal-50 cursor-pointer"
+                >
+                  Contact
+                </a>
                 <Button onClick={() => { navigate('/signup'); setMobileMenuOpen(false); }} variant="outline" className="border-2 border-teal-500 text-teal-500 hover:bg-teal-50 rounded-full w-full">Sign Up</Button>
                 <Button onClick={() => { navigate('/login'); setMobileMenuOpen(false); }} className="bg-teal-500 hover:bg-teal-600 text-white rounded-full w-full">Login</Button>
               </div>
@@ -1543,7 +1630,23 @@ function LandingPage() {
                   </div>
                   <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-2">{service.title}</h3>
                   <p className="text-sm sm:text-base text-gray-600 mb-4">{service.description}</p>
-                  <p className="text-xl sm:text-2xl font-bold text-teal-500">{service.price}</p>
+                  {service.price === 'Custom Quote' ? (
+                    <p 
+                      className="text-xl sm:text-2xl font-bold text-teal-500 cursor-pointer hover:text-teal-600 transition-colors"
+                      onClick={() => {
+                        const element = document.getElementById('contact');
+                        if (element) {
+                          const yOffset = -80;
+                          const y = element.getBoundingClientRect().top + window.pageYOffset + yOffset;
+                          window.scrollTo({ top: y, behavior: 'smooth' });
+                        }
+                      }}
+                    >
+                      {service.price}
+                    </p>
+                  ) : (
+                    <p className="text-xl sm:text-2xl font-bold text-teal-500">{service.price}</p>
+                  )}
                 </div>
               );
             })}
