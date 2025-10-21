@@ -1254,8 +1254,7 @@ async def create_case(case: CaseRequestBase, current_user: dict = Depends(get_cu
     Case Number: {case_number}
     Customer: {case.customer_name}
     Email: {case.customer_email}
-    Phone: {case.customer_phone}
-    Type: {case.case_type}
+    Type: {case.type}
     Subject: {case.subject}
     Description: {case.description}
     Priority: {case.priority}
