@@ -34,19 +34,29 @@ function DashboardLayout({ children }) {
 
   const markAsRead = async (notifId) => {
     try {
+      // Optimistically update UI
+      setNotifications(prev => 
+        prev.map(n => n.id === notifId ? { ...n, is_read: true } : n)
+      );
       await axios.put(`${API}/notifications/${notifId}/read`);
-      fetchNotifications();
     } catch (error) {
       console.error('Failed to mark notification as read', error);
+      // Revert on error
+      fetchNotifications();
     }
   };
 
   const markAllAsRead = async () => {
     try {
+      // Optimistically update UI
+      setNotifications(prev => 
+        prev.map(n => ({ ...n, is_read: true }))
+      );
       await axios.put(`${API}/notifications/read-all`);
-      fetchNotifications();
     } catch (error) {
       console.error('Failed to mark all as read', error);
+      // Revert on error
+      fetchNotifications();
     }
   };
 
@@ -79,7 +89,10 @@ function DashboardLayout({ children }) {
               {/* Notifications */}
               <div className="relative">
                 <button
-                  onClick={() => setShowNotifications(!showNotifications)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setShowNotifications(!showNotifications);
+                  }}
                   className="relative p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-full"
                   data-testid="notifications-btn"
                 >
@@ -90,17 +103,34 @@ function DashboardLayout({ children }) {
                 </button>
 
                 {showNotifications && (
-                  <div className="absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-xl border border-gray-200 z-50" data-testid="notifications-dropdown">
+                  <>
+                    {/* Click outside overlay to close */}
+                    <div
+                      className="fixed inset-0 z-40"
+                      onClick={() => setShowNotifications(false)}
+                    ></div>
+                    
+                    {/* Notification dropdown */}
+                    <div 
+                      className="absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-xl border border-gray-200 z-50" 
+                      data-testid="notifications-dropdown"
+                      onClick={(e) => e.stopPropagation()}
+                    >
                     <div className="p-4 border-b border-gray-200 flex justify-between items-center">
                       <h3 className="font-semibold text-gray-900">Notifications</h3>
                       {unreadCount > 0 && (
-                        <button
-                          onClick={markAllAsRead}
-                          className="text-xs text-teal-600 hover:text-teal-700"
+                        <Button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            markAllAsRead();
+                          }}
+                          variant="ghost"
+                          size="sm"
+                          className="text-xs text-teal-600 hover:text-teal-700 hover:bg-teal-50 h-7"
                           data-testid="mark-all-read-btn"
                         >
                           Mark all as read
-                        </button>
+                        </Button>
                       )}
                     </div>
                     <div className="max-h-96 overflow-y-auto">
@@ -113,19 +143,28 @@ function DashboardLayout({ children }) {
                         notifications.map((notif) => (
                           <div
                             key={notif.id}
-                            onClick={() => !notif.is_read && markAsRead(notif.id)}
-                            className={`p-4 border-b border-gray-100 hover:bg-gray-50 cursor-pointer ${
-                              !notif.is_read ? 'bg-teal-50' : ''
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (!notif.is_read) {
+                                markAsRead(notif.id);
+                              }
+                            }}
+                            className={`p-4 border-b border-gray-100 hover:bg-gray-50 cursor-pointer transition-colors ${
+                              !notif.is_read ? 'bg-teal-50 border-l-4 border-l-teal-500' : ''
                             }`}
                             data-testid={`notification-${notif.id}`}
                           >
                             <div className="flex justify-between items-start mb-1">
-                              <p className="font-semibold text-sm text-gray-900">{notif.title}</p>
+                              <p className={`font-semibold text-sm ${!notif.is_read ? 'text-gray-900' : 'text-gray-600'}`}>
+                                {notif.title}
+                              </p>
                               {!notif.is_read && (
-                                <span className="w-2 h-2 bg-teal-500 rounded-full"></span>
+                                <span className="w-2 h-2 bg-teal-500 rounded-full flex-shrink-0 ml-2"></span>
                               )}
                             </div>
-                            <p className="text-sm text-gray-600">{notif.message}</p>
+                            <p className={`text-sm ${!notif.is_read ? 'text-gray-700' : 'text-gray-500'}`}>
+                              {notif.message}
+                            </p>
                             <p className="text-xs text-gray-400 mt-1">
                               {new Date(notif.created_at).toLocaleString()}
                             </p>
@@ -134,6 +173,7 @@ function DashboardLayout({ children }) {
                       )}
                     </div>
                   </div>
+                  </>
                 )}
               </div>
 
@@ -179,14 +219,6 @@ function DashboardLayout({ children }) {
           {children}
         </main>
       </div>
-
-      {/* Click outside to close notifications */}
-      {showNotifications && (
-        <div
-          className="fixed inset-0 z-40"
-          onClick={() => setShowNotifications(false)}
-        ></div>
-      )}
     </div>
   );
 }
