@@ -1,4 +1,4 @@
-from fastapi import FastAPI, APIRouter, HTTPException, Depends, status
+from fastapi import FastAPI, APIRouter, HTTPException, Depends, status, Body
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
@@ -219,6 +219,13 @@ class Order(OrderBase):
     created_by: str
     is_locked: bool = False
     locked_at: Optional[datetime] = None
+    driver_id: Optional[str] = None
+    driver_name: Optional[str] = None
+    delivery_status: Optional[str] = None  # "assigned", "picked_up", "out_for_delivery", "delivered"
+    assigned_at: Optional[datetime] = None
+    picked_up_at: Optional[datetime] = None
+    delivered_at: Optional[datetime] = None
+    delivery_notes: Optional[str] = None
 
 class OrderUpdate(BaseModel):
     status: Optional[str] = None
@@ -596,6 +603,72 @@ async def delete_user(user_id: str, current_user: dict = Depends(require_role(["
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="User not found")
     return {"message": "User deleted successfully"}
+
+# Driver Management Routes
+@api_router.get("/drivers", response_model=List[User])
+async def get_drivers(current_user: dict = Depends(require_role(["owner", "admin"]))):
+    """Get all drivers for assignment"""
+    drivers = await db.users.find({"role": "driver"}, {"_id": 0, "password": 0}).to_list(1000)
+    for driver in drivers:
+        driver['created_at'] = datetime.fromisoformat(driver['created_at']) if isinstance(driver['created_at'], str) else driver['created_at']
+    return drivers
+
+@api_router.get("/driver/orders")
+async def get_driver_orders(current_user: dict = Depends(require_role(["driver"]))):
+    """Get orders assigned to the current driver"""
+    driver_id = current_user['id']
+    orders = await db.orders.find({"driver_id": driver_id}, {"_id": 0}).to_list(1000)
+    for order in orders:
+        order['created_at'] = datetime.fromisoformat(order['created_at']) if isinstance(order['created_at'], str) else order['created_at']
+        order['updated_at'] = datetime.fromisoformat(order['updated_at']) if isinstance(order['updated_at'], str) else order['updated_at']
+        if order.get('assigned_at'):
+            order['assigned_at'] = datetime.fromisoformat(order['assigned_at']) if isinstance(order['assigned_at'], str) else order['assigned_at']
+        if order.get('picked_up_at'):
+            order['picked_up_at'] = datetime.fromisoformat(order['picked_up_at']) if isinstance(order['picked_up_at'], str) else order['picked_up_at']
+        if order.get('delivered_at'):
+            order['delivered_at'] = datetime.fromisoformat(order['delivered_at']) if isinstance(order['delivered_at'], str) else order['delivered_at']
+    return orders
+
+@api_router.put("/driver/orders/{order_id}/status")
+async def update_delivery_status(
+    order_id: str,
+    status: str = Body(..., embed=True),
+    notes: Optional[str] = Body(None, embed=True),
+    current_user: dict = Depends(require_role(["driver"]))
+):
+    """Update delivery status by driver"""
+    driver_id = current_user['id']
+    
+    # Verify order is assigned to this driver
+    order = await db.orders.find_one({"id": order_id, "driver_id": driver_id})
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found or not assigned to you")
+    
+    update_data = {
+        "delivery_status": status,
+        "updated_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    # Set timestamps based on status
+    if status == "picked_up" and not order.get('picked_up_at'):
+        update_data["picked_up_at"] = datetime.now(timezone.utc).isoformat()
+    elif status == "delivered" and not order.get('delivered_at'):
+        update_data["delivered_at"] = datetime.now(timezone.utc).isoformat()
+    
+    if notes:
+        update_data["delivery_notes"] = notes
+    
+    await db.orders.update_one({"id": order_id}, {"$set": update_data})
+    
+    # Send notification to customer
+    await create_notification(
+        order['customer_id'],
+        "Delivery Update",
+        f"Your order {order['order_number']} is now {status.replace('_', ' ')}",
+        "delivery"
+    )
+    
+    return {"message": "Status updated successfully"}
 
 # SKU Management Routes
 @api_router.post("/skus", response_model=SKU)
@@ -1035,6 +1108,52 @@ async def cancel_order(order_id: str, current_user: dict = Depends(get_current_u
         )
     
     return {"message": "Order cancelled successfully"}
+
+@api_router.put("/orders/{order_id}/assign-driver")
+async def assign_driver_to_order(
+    order_id: str,
+    driver_id: str = Body(..., embed=True),
+    current_user: dict = Depends(require_role(["owner", "admin"]))
+):
+    """Assign a driver to an order"""
+    # Verify order exists
+    order = await db.orders.find_one({"id": order_id})
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+    
+    # Verify driver exists and has driver role
+    driver = await db.users.find_one({"id": driver_id, "role": "driver"})
+    if not driver:
+        raise HTTPException(status_code=404, detail="Driver not found")
+    
+    # Update order with driver info
+    update_data = {
+        "driver_id": driver_id,
+        "driver_name": driver['full_name'],
+        "delivery_status": "assigned",
+        "assigned_at": datetime.now(timezone.utc).isoformat(),
+        "updated_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    await db.orders.update_one({"id": order_id}, {"$set": update_data})
+    
+    # Send notification to driver
+    await create_notification(
+        driver_id,
+        "New Delivery Assignment",
+        f"You have been assigned to deliver order {order['order_number']}",
+        "delivery"
+    )
+    
+    # Send notification to customer
+    await create_notification(
+        order['customer_id'],
+        "Driver Assigned",
+        f"A driver has been assigned to your order {order['order_number']}",
+        "delivery"
+    )
+    
+    return {"message": "Driver assigned successfully"}
 
 # Recurring Orders Routes
 @api_router.get("/orders/recurring/list", response_model=List[Order])

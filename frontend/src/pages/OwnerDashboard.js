@@ -7,7 +7,8 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Users, Package, DollarSign, AlertCircle, Plus, Edit, Trash2, Tag, Clock } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
+import { Users, Package, DollarSign, AlertCircle, Plus, Edit, Trash2, Tag, Clock, Truck, Repeat } from 'lucide-react';
 import axios from 'axios';
 
 function OwnerDashboard() {
@@ -46,6 +47,26 @@ function OwnerDashboard() {
     description: ''
   });
 
+  // Orders and Drivers
+  const [orders, setOrders] = useState([]);
+  const [drivers, setDrivers] = useState([]);
+  const [selectedDriver, setSelectedDriver] = useState({});
+  const [showOrderDialog, setShowOrderDialog] = useState(false);
+  const [orderForm, setOrderForm] = useState({
+    customer_id: '',
+    customer_name: '',
+    customer_email: '',
+    items: [],
+    pickup_date: '',
+    delivery_date: '',
+    pickup_address: '',
+    delivery_address: '',
+    special_instructions: '',
+    is_recurring: false,
+    frequency_template_id: ''
+  });
+  const [orderItems, setOrderItems] = useState([{ sku_id: '', quantity: 1 }]);
+
   useEffect(() => {
     fetchData();
   }, []);
@@ -54,6 +75,11 @@ function OwnerDashboard() {
     if (activeTab === 'customer-pricing') {
       fetchCustomers();
     } else if (activeTab === 'frequency-templates') {
+      fetchFrequencyTemplates();
+    } else if (activeTab === 'orders') {
+      fetchOrders();
+      fetchDrivers();
+      fetchCustomers();
       fetchFrequencyTemplates();
     }
   }, [activeTab]);
@@ -246,6 +272,114 @@ function OwnerDashboard() {
     setShowTemplateDialog(true);
   };
 
+  const fetchOrders = async () => {
+    try {
+      const res = await axios.get(`${API}/orders`);
+      setOrders(res.data);
+    } catch (error) {
+      console.error('Failed to fetch orders', error);
+    }
+  };
+
+  const fetchDrivers = async () => {
+    try {
+      const res = await axios.get(`${API}/drivers`);
+      setDrivers(res.data);
+    } catch (error) {
+      console.error('Failed to fetch drivers', error);
+    }
+  };
+
+  const handleAssignDriver = async (orderId) => {
+    const driverId = selectedDriver[orderId];
+    if (!driverId) {
+      alert('Please select a driver');
+      return;
+    }
+    try {
+      await axios.put(`${API}/orders/${orderId}/assign-driver`, { driver_id: driverId });
+      alert('Driver assigned successfully');
+      fetchOrders();
+    } catch (error) {
+      alert(error.response?.data?.detail || 'Failed to assign driver');
+    }
+  };
+
+  const handleCreateOrder = async (e) => {
+    e.preventDefault();
+    try {
+      const selectedCustomer = customers.find(c => c.id === orderForm.customer_id);
+      if (!selectedCustomer) {
+        alert('Please select a customer');
+        return;
+      }
+
+      const orderData = {
+        customer_id: selectedCustomer.id,
+        customer_name: selectedCustomer.full_name,
+        customer_email: selectedCustomer.email,
+        items: orderItems.filter(item => item.sku_id && item.quantity > 0),
+        pickup_date: orderForm.pickup_date,
+        delivery_date: orderForm.delivery_date,
+        pickup_address: orderForm.pickup_address,
+        delivery_address: orderForm.delivery_address,
+        special_instructions: orderForm.special_instructions || undefined,
+        is_recurring: orderForm.is_recurring || false
+      };
+
+      // Include recurring data only if is_recurring is true
+      if (orderData.is_recurring && orderForm.frequency_template_id) {
+        const template = frequencyTemplates.find(t => t.id === orderForm.frequency_template_id);
+        if (template) {
+          orderData.recurrence_pattern = {
+            frequency_type: template.frequency_type,
+            frequency_value: template.frequency_value
+          };
+        }
+      }
+
+      if (orderData.items.length === 0) {
+        alert('Please add at least one item');
+        return;
+      }
+
+      await axios.post(`${API}/orders`, orderData);
+      alert('Order created successfully');
+      setShowOrderDialog(false);
+      setOrderForm({
+        customer_id: '',
+        customer_name: '',
+        customer_email: '',
+        items: [],
+        pickup_date: '',
+        delivery_date: '',
+        pickup_address: '',
+        delivery_address: '',
+        special_instructions: '',
+        is_recurring: false,
+        frequency_template_id: ''
+      });
+      setOrderItems([{ sku_id: '', quantity: 1 }]);
+      fetchOrders();
+    } catch (error) {
+      alert(error.response?.data?.detail || 'Failed to create order');
+    }
+  };
+
+  const addOrderItem = () => {
+    setOrderItems([...orderItems, { sku_id: '', quantity: 1 }]);
+  };
+
+  const removeOrderItem = (index) => {
+    setOrderItems(orderItems.filter((_, i) => i !== index));
+  };
+
+  const updateOrderItem = (index, field, value) => {
+    const updated = [...orderItems];
+    updated[index][field] = field === 'quantity' ? parseInt(value) : value;
+    setOrderItems(updated);
+  };
+
   if (loading) {
     return (
       <DashboardLayout>
@@ -369,6 +503,17 @@ function OwnerDashboard() {
           >
             Frequency Templates
           </button>
+          <button
+            onClick={() => setActiveTab('orders')}
+            className={`pb-3 px-1 font-medium transition-colors ${
+              activeTab === 'orders'
+                ? 'text-teal-600 border-b-2 border-teal-600'
+                : 'text-gray-500 hover:text-gray-700'
+            }`}
+            data-testid="orders-tab"
+          >
+            Orders & Drivers
+          </button>
         </div>
 
         {/* Users Tab */}
@@ -410,6 +555,7 @@ function OwnerDashboard() {
                           <SelectItem value="customer">Customer</SelectItem>
                           <SelectItem value="admin">Admin</SelectItem>
                           <SelectItem value="owner">Owner</SelectItem>
+                          <SelectItem value="driver">Driver</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
@@ -790,6 +936,312 @@ function OwnerDashboard() {
                 </Card>
               ))}
             </div>
+          </div>
+        )}
+
+        {/* Orders Tab */}
+        {activeTab === 'orders' && (
+          <div>
+            <div className="mb-6 flex justify-between items-center">
+              <div>
+                <h2 className="text-2xl font-bold text-gray-900">Orders & Driver Assignment</h2>
+                <p className="text-gray-600 mt-1">Create orders and assign drivers for delivery</p>
+              </div>
+              <Dialog open={showOrderDialog} onOpenChange={setShowOrderDialog}>
+                <DialogTrigger asChild>
+                  <Button className="bg-teal-500 hover:bg-teal-600">
+                    <Plus className="w-4 h-4 mr-2" />
+                    Create Order
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+                  <DialogHeader>
+                    <DialogTitle>Create New Order</DialogTitle>
+                  </DialogHeader>
+                  <form onSubmit={handleCreateOrder} className="space-y-4">
+                    <div>
+                      <Label>Select Customer</Label>
+                      <Select value={orderForm.customer_id} onValueChange={(value) => setOrderForm({ ...orderForm, customer_id: value })}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Choose customer" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {customers.map((customer) => (
+                            <SelectItem key={customer.id} value={customer.id}>
+                              {customer.full_name} - {customer.email}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div>
+                      <Label>Order Items</Label>
+                      {orderItems.map((item, index) => (
+                        <div key={index} className="flex gap-2 mb-2">
+                          <Select value={item.sku_id} onValueChange={(value) => updateOrderItem(index, 'sku_id', value)}>
+                            <SelectTrigger className="flex-1">
+                              <SelectValue placeholder="Select item" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {skus.map((sku) => (
+                                <SelectItem key={sku.id} value={sku.id}>
+                                  {sku.name} - ${sku.price}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <Input
+                            type="number"
+                            min="1"
+                            value={item.quantity}
+                            onChange={(e) => updateOrderItem(index, 'quantity', e.target.value)}
+                            placeholder="Qty"
+                            className="w-20"
+                          />
+                          {orderItems.length > 1 && (
+                            <Button type="button" variant="destructive" size="sm" onClick={() => removeOrderItem(index)}>
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          )}
+                        </div>
+                      ))}
+                      <Button type="button" variant="outline" size="sm" onClick={addOrderItem} className="mt-2">
+                        <Plus className="w-4 h-4 mr-1" /> Add Item
+                      </Button>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label>Pickup Date</Label>
+                        <Input
+                          type="date"
+                          value={orderForm.pickup_date}
+                          onChange={(e) => setOrderForm({ ...orderForm, pickup_date: e.target.value })}
+                          required
+                        />
+                      </div>
+                      <div>
+                        <Label>Delivery Date</Label>
+                        <Input
+                          type="date"
+                          value={orderForm.delivery_date}
+                          onChange={(e) => setOrderForm({ ...orderForm, delivery_date: e.target.value })}
+                          required
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <Label>Pickup Address</Label>
+                      <Input
+                        value={orderForm.pickup_address}
+                        onChange={(e) => setOrderForm({ ...orderForm, pickup_address: e.target.value })}
+                        placeholder="Enter pickup address"
+                        required
+                      />
+                    </div>
+
+                    <div>
+                      <Label>Delivery Address</Label>
+                      <Input
+                        value={orderForm.delivery_address}
+                        onChange={(e) => setOrderForm({ ...orderForm, delivery_address: e.target.value })}
+                        placeholder="Enter delivery address"
+                        required
+                      />
+                    </div>
+
+                    <div>
+                      <Label>Special Instructions (Optional)</Label>
+                      <Input
+                        value={orderForm.special_instructions}
+                        onChange={(e) => setOrderForm({ ...orderForm, special_instructions: e.target.value })}
+                        placeholder="Any special requirements"
+                      />
+                    </div>
+
+                    <div className="border-t pt-4 mt-4">
+                      <div className="flex items-center gap-3 mb-4">
+                        <Switch
+                          checked={orderForm.is_recurring}
+                          onCheckedChange={(checked) => setOrderForm({ ...orderForm, is_recurring: checked })}
+                        />
+                        <Label className="flex items-center gap-2 cursor-pointer">
+                          <Repeat className="w-4 h-4 text-teal-600" />
+                          Make this a recurring order
+                        </Label>
+                      </div>
+
+                      {orderForm.is_recurring && (
+                        <div>
+                          <Label>Select Frequency Template</Label>
+                          <Select 
+                            value={orderForm.frequency_template_id} 
+                            onValueChange={(value) => setOrderForm({ ...orderForm, frequency_template_id: value })}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Choose recurring frequency" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {frequencyTemplates.map((template) => (
+                                <SelectItem key={template.id} value={template.id}>
+                                  {template.name} - Every {template.frequency_value} {template.frequency_type}
+                                </SelectItem>
+                              ))}
+                              {frequencyTemplates.length === 0 && (
+                                <div className="p-2 text-sm text-gray-500 text-center">
+                                  No templates available. Create one in Frequency Templates tab.
+                                </div>
+                              )}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      )}
+                    </div>
+
+                    <Button type="submit" className="w-full bg-teal-500 hover:bg-teal-600">
+                      Create Order
+                    </Button>
+                  </form>
+                </DialogContent>
+              </Dialog>
+            </div>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>All Orders</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {orders.length === 0 ? (
+                  <div className="text-center py-8 text-gray-500">
+                    <Package className="h-12 w-12 mx-auto mb-2 opacity-50" />
+                    <p>No orders available</p>
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full">
+                      <thead className="bg-gray-50">
+                        <tr>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Order #</th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Customer</th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Type</th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Delivery Status</th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Assigned Driver</th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Assign Driver</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-200">
+                        {orders.map((order) => (
+                          <tr key={order.id} className="hover:bg-gray-50">
+                            <td className="px-4 py-3 text-sm font-medium text-gray-900">{order.order_number}</td>
+                            <td className="px-4 py-3 text-sm text-gray-600">{order.customer_name}</td>
+                            <td className="px-4 py-3">
+                              {order.is_recurring ? (
+                                <span className="px-2 py-1 text-xs rounded-full bg-purple-100 text-purple-800 flex items-center gap-1 w-fit">
+                                  <Repeat className="w-3 h-3" />
+                                  Recurring
+                                </span>
+                              ) : (
+                                <span className="text-xs text-gray-500">Regular</span>
+                              )}
+                            </td>
+                            <td className="px-4 py-3">
+                              <span className={`px-2 py-1 text-xs rounded-full ${
+                                order.status === 'completed' ? 'bg-green-100 text-green-800' :
+                                order.status === 'processing' ? 'bg-blue-100 text-blue-800' :
+                                order.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                                'bg-gray-100 text-gray-800'
+                              }`}>
+                                {order.status}
+                              </span>
+                            </td>
+                            <td className="px-4 py-3">
+                              {order.delivery_status ? (
+                                <span className={`px-2 py-1 text-xs rounded-full ${
+                                  order.delivery_status === 'delivered' ? 'bg-green-100 text-green-800' :
+                                  order.delivery_status === 'out_for_delivery' ? 'bg-orange-100 text-orange-800' :
+                                  order.delivery_status === 'picked_up' ? 'bg-yellow-100 text-yellow-800' :
+                                  'bg-blue-100 text-blue-800'
+                                }`}>
+                                  {order.delivery_status.replace(/_/g, ' ')}
+                                </span>
+                              ) : (
+                                <span className="text-xs text-gray-400">Not assigned</span>
+                              )}
+                            </td>
+                            <td className="px-4 py-3 text-sm text-gray-600">
+                              {order.driver_name || <span className="text-gray-400">-</span>}
+                            </td>
+                            <td className="px-4 py-3">
+                              <div className="flex items-center gap-2">
+                                <Select 
+                                  value={selectedDriver[order.id] || ''} 
+                                  onValueChange={(value) => setSelectedDriver({ ...selectedDriver, [order.id]: value })}
+                                >
+                                  <SelectTrigger className="w-40">
+                                    <SelectValue placeholder="Select driver" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {drivers.map((driver) => (
+                                      <SelectItem key={driver.id} value={driver.id}>
+                                        {driver.full_name}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                                <Button 
+                                  size="sm" 
+                                  onClick={() => handleAssignDriver(order.id)}
+                                  className="bg-teal-500 hover:bg-teal-600"
+                                >
+                                  Assign
+                                </Button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Driver List */}
+            <Card className="mt-6">
+              <CardHeader>
+                <CardTitle>Available Drivers</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {drivers.length === 0 ? (
+                  <div className="text-center py-8 text-gray-500">
+                    <Users className="h-12 w-12 mx-auto mb-2 opacity-50" />
+                    <p>No drivers available. Create driver accounts in User Management.</p>
+                  </div>
+                ) : (
+                  <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {drivers.map((driver) => (
+                      <Card key={driver.id} className="border border-gray-200">
+                        <CardContent className="pt-4">
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 bg-teal-100 rounded-full flex items-center justify-center">
+                              <Users className="w-5 h-5 text-teal-600" />
+                            </div>
+                            <div>
+                              <p className="font-semibold text-gray-900">{driver.full_name}</p>
+                              <p className="text-sm text-gray-600">{driver.email}</p>
+                              {driver.phone && <p className="text-xs text-gray-500">{driver.phone}</p>}
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
           </div>
         )}
       </div>
