@@ -8,7 +8,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Label } from "../components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../components/ui/table";
-import { Truck, Package, CheckCircle, Clock, MapPin } from 'lucide-react';
+import { Truck, Package, CheckCircle, Clock, MapPin, Repeat, Calendar, DollarSign, AlertCircle } from 'lucide-react';
 
 function DriverDashboard() {
   const [orders, setOrders] = useState([]);
@@ -195,7 +195,17 @@ function DriverDashboard() {
               <TableBody>
                 {orders.map((order) => (
                   <TableRow key={order.id}>
-                    <TableCell className="font-medium">{order.order_number}</TableCell>
+                    <TableCell className="font-medium">
+                      <div className="flex items-center gap-2">
+                        {order.order_number}
+                        {order.is_recurring && (
+                          <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700 border-blue-200">
+                            <Repeat className="w-3 h-3 mr-1" />
+                            Recurring
+                          </Badge>
+                        )}
+                      </div>
+                    </TableCell>
                     <TableCell>{order.customer_name}</TableCell>
                     <TableCell>
                       <div className="flex items-center gap-1">
@@ -227,7 +237,7 @@ function DriverDashboard() {
                             Update Status
                           </Button>
                         </DialogTrigger>
-                        <DialogContent>
+                        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
                           <DialogHeader>
                             <DialogTitle>Update Delivery Status</DialogTitle>
                             <DialogDescription>
@@ -235,6 +245,27 @@ function DriverDashboard() {
                             </DialogDescription>
                           </DialogHeader>
                           <div className="space-y-4 mt-4">
+                            {/* Order Type Badge */}
+                            {order.is_recurring && (
+                              <div className="flex items-center gap-2 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                                <Repeat className="w-5 h-5 text-blue-600" />
+                                <div className="flex-1">
+                                  <span className="font-semibold text-blue-900">Recurring Order</span>
+                                  {order.next_occurrence_date && (
+                                    <p className="text-sm text-blue-700 mt-1">
+                                      Next Scheduled: {new Date(order.next_occurrence_date).toLocaleDateString()}
+                                    </p>
+                                  )}
+                                  {order.recurrence_pattern && (
+                                    <p className="text-sm text-blue-700 mt-1">
+                                      Pattern: {order.recurrence_pattern.frequency || 'Custom'} 
+                                      {order.recurrence_pattern.interval > 1 && ` (every ${order.recurrence_pattern.interval} ${order.recurrence_pattern.frequency}s)`}
+                                    </p>
+                                  )}
+                                </div>
+                              </div>
+                            )}
+                            
                             <div>
                               <Label>Current Status</Label>
                               <div className="mt-2 flex items-center gap-2">
@@ -268,18 +299,86 @@ function DriverDashboard() {
                               />
                             </div>
                             
-                            <div className="bg-gray-50 p-3 rounded space-y-2 text-sm">
-                              <div className="flex justify-between">
-                                <span className="text-gray-600">Pickup:</span>
-                                <span className="font-medium">{order.pickup_address}</span>
-                              </div>
-                              <div className="flex justify-between">
-                                <span className="text-gray-600">Delivery:</span>
-                                <span className="font-medium">{order.delivery_address}</span>
-                              </div>
-                              <div className="flex justify-between">
-                                <span className="text-gray-600">Items:</span>
-                                <span className="font-medium">{order.items?.length || 0} items</span>
+                            {/* Order Details Section */}
+                            <div className="border-t pt-4 space-y-4">
+                              <h4 className="font-semibold text-gray-900 flex items-center gap-2">
+                                <Package className="w-4 h-4" />
+                                Order Details
+                              </h4>
+                              
+                              <div className="bg-gray-50 p-4 rounded space-y-3 text-sm">
+                                <div className="flex items-start gap-2">
+                                  <MapPin className="w-4 h-4 text-gray-500 mt-0.5 flex-shrink-0" />
+                                  <div className="flex-1">
+                                    <span className="text-gray-600 font-medium">Pickup Address:</span>
+                                    <p className="text-gray-900 mt-1">{order.pickup_address}</p>
+                                  </div>
+                                </div>
+                                
+                                <div className="flex items-start gap-2">
+                                  <MapPin className="w-4 h-4 text-gray-500 mt-0.5 flex-shrink-0" />
+                                  <div className="flex-1">
+                                    <span className="text-gray-600 font-medium">Delivery Address:</span>
+                                    <p className="text-gray-900 mt-1">{order.delivery_address}</p>
+                                  </div>
+                                </div>
+                                
+                                <div className="flex items-start gap-2">
+                                  <Calendar className="w-4 h-4 text-gray-500 mt-0.5 flex-shrink-0" />
+                                  <div className="flex-1">
+                                    <span className="text-gray-600 font-medium">Schedule:</span>
+                                    <p className="text-gray-900 mt-1">
+                                      Pickup: {new Date(order.pickup_date).toLocaleString()} <br />
+                                      Delivery: {new Date(order.delivery_date).toLocaleString()}
+                                    </p>
+                                  </div>
+                                </div>
+                                
+                                <div className="flex items-start gap-2">
+                                  <Package className="w-4 h-4 text-gray-500 mt-0.5 flex-shrink-0" />
+                                  <div className="flex-1">
+                                    <span className="text-gray-600 font-medium">Items ({order.items?.length || 0}):</span>
+                                    <div className="mt-2 space-y-1">
+                                      {order.items?.map((item, idx) => (
+                                        <div key={idx} className="flex justify-between bg-white p-2 rounded border">
+                                          <span>{item.sku_name || item.sku_id}</span>
+                                          <span className="text-gray-600">Qty: {item.quantity}</span>
+                                          {item.price && <span className="font-medium">${item.price}</span>}
+                                        </div>
+                                      ))}
+                                    </div>
+                                  </div>
+                                </div>
+                                
+                                {order.total_amount && (
+                                  <div className="flex items-center justify-between pt-2 border-t">
+                                    <span className="text-gray-600 font-medium flex items-center gap-2">
+                                      <DollarSign className="w-4 h-4" />
+                                      Total Amount:
+                                    </span>
+                                    <span className="text-lg font-bold text-teal-600">${order.total_amount.toFixed(2)}</span>
+                                  </div>
+                                )}
+                                
+                                {order.special_instructions && (
+                                  <div className="flex items-start gap-2 pt-2 border-t">
+                                    <AlertCircle className="w-4 h-4 text-amber-500 mt-0.5 flex-shrink-0" />
+                                    <div className="flex-1">
+                                      <span className="text-gray-600 font-medium">Special Instructions:</span>
+                                      <p className="text-gray-900 mt-1 italic">{order.special_instructions}</p>
+                                    </div>
+                                  </div>
+                                )}
+                                
+                                {order.delivery_notes && (
+                                  <div className="flex items-start gap-2 pt-2 border-t">
+                                    <AlertCircle className="w-4 h-4 text-blue-500 mt-0.5 flex-shrink-0" />
+                                    <div className="flex-1">
+                                      <span className="text-gray-600 font-medium">Previous Delivery Notes:</span>
+                                      <p className="text-gray-900 mt-1">{order.delivery_notes}</p>
+                                    </div>
+                                  </div>
+                                )}
                               </div>
                             </div>
                             
