@@ -20,9 +20,10 @@ export const SocketProvider = ({ children }) => {
 
   useEffect(() => {
     // Get backend URL from environment variable
-    const backendUrl = process.env.REACT_APP_BACKEND_URL || process.env.REACT_APP_API_URL || 'http://localhost:8000';
-    // Remove /api suffix if present to get base URL for socket connection
-    const socketUrl = backendUrl.replace('/api', '');
+    // Socket.IO connects to the same backend server (e.g., https://api.infinitelaundrysolutions.com.au)
+    const socketUrl = process.env.REACT_APP_BACKEND_URL || process.env.REACT_APP_API_URL || 'http://localhost:8000';
+
+    console.log('Socket.IO connecting to:', socketUrl);
 
     // Initialize socket connection
     const newSocket = io(socketUrl, {
