@@ -66,6 +66,7 @@ function OwnerDashboard() {
     frequency_template_id: ''
   });
   const [orderItems, setOrderItems] = useState([{ sku_id: '', quantity: 1 }]);
+  const [selectedOrderForTracking, setSelectedOrderForTracking] = useState(null);
 
   useEffect(() => {
     fetchData();
@@ -81,6 +82,8 @@ function OwnerDashboard() {
       fetchDrivers();
       fetchCustomers();
       fetchFrequencyTemplates();
+    } else if (activeTab === 'delivery-tracking') {
+      fetchOrders();
     }
   }, [activeTab]);
 
@@ -513,6 +516,17 @@ function OwnerDashboard() {
             data-testid="orders-tab"
           >
             Orders & Drivers
+          </button>
+          <button
+            onClick={() => setActiveTab('delivery-tracking')}
+            className={`pb-3 px-1 font-medium transition-colors ${
+              activeTab === 'delivery-tracking'
+                ? 'text-teal-600 border-b-2 border-teal-600'
+                : 'text-gray-500 hover:text-gray-700'
+            }`}
+            data-testid="delivery-tracking-tab"
+          >
+            Delivery Tracking
           </button>
         </div>
 
