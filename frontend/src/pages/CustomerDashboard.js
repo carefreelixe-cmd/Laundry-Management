@@ -22,6 +22,7 @@ function CustomerDashboard() {
   const [frequencyTemplates, setFrequencyTemplates] = useState([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [cancellingOrderId, setCancellingOrderId] = useState(null);
   const [selectedOrderForTracking, setSelectedOrderForTracking] = useState(null);
   
   // Order form
@@ -248,9 +249,9 @@ function CustomerDashboard() {
 
   const handleCancelOrder = async (orderId) => {
     if (!window.confirm('Are you sure you want to cancel this order?')) return;
-    if (submitting) return; // Prevent duplicate submissions
+    if (cancellingOrderId) return; // Prevent duplicate submissions
     
-    setSubmitting(true);
+    setCancellingOrderId(orderId);
     try {
       await axios.delete(`${API}/orders/${orderId}`);
       toast.success('Order cancelled successfully!');
@@ -259,7 +260,7 @@ function CustomerDashboard() {
       console.error('Failed to cancel order:', error);
       toast.error(error.response?.data?.detail || 'Failed to cancel order');
     } finally {
-      setSubmitting(false);
+      setCancellingOrderId(null);
     }
   };
 
@@ -607,9 +608,17 @@ function CustomerDashboard() {
                             variant="destructive"
                             size="sm"
                             onClick={() => handleCancelOrder(order.id)}
+                            disabled={cancellingOrderId === order.id}
                             data-testid={`cancel-order-${order.id}`}
                           >
-                            Cancel Order
+                            {cancellingOrderId === order.id ? (
+                              <>
+                                <Clock className="w-4 h-4 mr-1 animate-spin" />
+                                Cancelling...
+                              </>
+                            ) : (
+                              'Cancel Order'
+                            )}
                           </Button>
                         </div>
                       )}
