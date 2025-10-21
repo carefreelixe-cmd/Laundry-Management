@@ -19,7 +19,6 @@ function AdminDashboard() {
   const [cases, setCases] = useState([]);
   const [customers, setCustomers] = useState([]);
   const [skus, setSkus] = useState([]);
-  const [deliveries, setDeliveries] = useState([]);
   const [frequencyTemplates, setFrequencyTemplates] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedOrderForTracking, setSelectedOrderForTracking] = useState(null);
@@ -29,6 +28,7 @@ function AdminDashboard() {
   const [editingOrderId, setEditingOrderId] = useState(null);
   const [deletingOrderId, setDeletingOrderId] = useState(null);
   const [updatingCaseId, setUpdatingCaseId] = useState(null);
+  const [updatingStatusOrderId, setUpdatingStatusOrderId] = useState(null);
   
   // Order form
   const [showOrderDialog, setShowOrderDialog] = useState(false);
@@ -75,9 +75,6 @@ function AdminDashboard() {
       } else if (activeTab === 'cases') {
         const casesRes = await axios.get(`${API}/cases`);
         setCases(casesRes.data);
-      } else if (activeTab === 'deliveries') {
-        const deliveriesRes = await axios.get(`${API}/deliveries`);
-        setDeliveries(deliveriesRes.data);
       } else if (activeTab === 'delivery-tracking') {
         const ordersRes = await axios.get(`${API}/orders`);
         setOrders(ordersRes.data);
@@ -197,11 +194,16 @@ function AdminDashboard() {
   };
 
   const handleUpdateOrderStatus = async (orderId, newStatus) => {
+    if (updatingStatusOrderId) return; // Prevent duplicate updates
+    
     try {
+      setUpdatingStatusOrderId(orderId);
       await axios.put(`${API}/orders/${orderId}`, { status: newStatus });
       fetchData();
     } catch (error) {
       alert('Failed to update order status');
+    } finally {
+      setUpdatingStatusOrderId(null);
     }
   };
 
@@ -285,17 +287,6 @@ function AdminDashboard() {
             data-testid="cases-tab"
           >
             Cases
-          </button>
-          <button
-            onClick={() => setActiveTab('deliveries')}
-            className={`pb-3 px-1 font-medium transition-colors ${
-              activeTab === 'deliveries'
-                ? 'text-teal-600 border-b-2 border-teal-600'
-                : 'text-gray-500 hover:text-gray-700'
-            }`}
-            data-testid="deliveries-tab"
-          >
-            Deliveries
           </button>
           <button
             onClick={() => setActiveTab('delivery-tracking')}
@@ -534,9 +525,20 @@ function AdminDashboard() {
                         </div>
                       </div>
                       <div className="flex flex-col gap-2">
-                        <Select value={order.status} onValueChange={(value) => handleUpdateOrderStatus(order.id, value)}>
+                        <Select 
+                          value={order.status} 
+                          onValueChange={(value) => handleUpdateOrderStatus(order.id, value)}
+                          disabled={updatingStatusOrderId === order.id}
+                        >
                           <SelectTrigger className="w-40">
-                            <SelectValue />
+                            {updatingStatusOrderId === order.id ? (
+                              <span className="flex items-center">
+                                <Clock className="w-4 h-4 mr-2 animate-spin" />
+                                Updating...
+                              </span>
+                            ) : (
+                              <SelectValue />
+                            )}
                           </SelectTrigger>
                           <SelectContent>
                             <SelectItem value="pending">Pending</SelectItem>
@@ -547,12 +549,13 @@ function AdminDashboard() {
                         </Select>
                         
                         {!order.is_locked && (
-                          <div className="flex flex-col gap-2 mt-2">
+                          <div className="flex gap-2 mt-3">
                             <Button
                               variant="outline"
                               size="sm"
                               onClick={() => handleEditOrder(order)}
                               disabled={editingOrderId === order.id}
+                              className="flex-1 border-teal-300 text-teal-600 hover:bg-teal-50 hover:text-teal-700"
                             >
                               {editingOrderId === order.id ? (
                                 <>
@@ -567,10 +570,11 @@ function AdminDashboard() {
                               )}
                             </Button>
                             <Button
-                              variant="destructive"
+                              variant="outline"
                               size="sm"
                               onClick={() => handleDeleteOrder(order.id)}
                               disabled={deletingOrderId === order.id}
+                              className="flex-1 border-red-300 text-red-600 hover:bg-red-50 hover:text-red-700"
                             >
                               {deletingOrderId === order.id ? (
                                 <>
@@ -724,41 +728,6 @@ function AdminDashboard() {
             </Dialog>
           </div>
         )}
-
-        {/* Deliveries Tab */}
-        {/* {activeTab === 'deliveries' && (
-          <div>
-            <h2 className="text-2xl font-bold text-gray-900 mb-6">Delivery Management</h2>
-            <div className="grid gap-4">
-              {deliveries.map((delivery) => (
-                <Card key={delivery.id} className="card-hover">
-                  <CardContent className="p-6">
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <h3 className="text-xl font-bold text-gray-900 mb-2">Delivery #{delivery.id.substring(0, 8)}</h3>
-                        <p className="text-gray-600">Order ID: {delivery.order_id.substring(0, 8)}</p>
-                        <div className="mt-3 space-y-1 text-sm">
-                          <p className="text-gray-700"><span className="font-semibold">Driver:</span> {delivery.driver_name || 'Not assigned'}</p>
-                          <p className="text-gray-700"><span className="font-semibold">Phone:</span> {delivery.driver_phone || 'N/A'}</p>
-                          <p className="text-gray-700"><span className="font-semibold">Vehicle:</span> {delivery.vehicle_number || 'N/A'}</p>
-                          <p className="text-gray-700"><span className="font-semibold">Status:</span> {delivery.status}</p>
-                        </div>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-              {deliveries.length === 0 && (
-                <Card>
-                  <CardContent className="p-12 text-center">
-                    <Package className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                    <p className="text-gray-600">No deliveries found</p>
-                  </CardContent>
-                </Card>
-              )}
-            </div>
-          </div>
-        )} */}
 
         {/* Delivery Tracking Tab */}
         {activeTab === 'delivery-tracking' && (
