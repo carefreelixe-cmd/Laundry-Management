@@ -974,7 +974,22 @@ function OwnerDashboard() {
                   <CardContent>
                     <div className="space-y-2">
                       <p className="text-sm text-gray-600">Category: {sku.category}</p>
-                      <p className="text-2xl font-bold text-teal-600">${sku.price.toFixed(2)}</p>
+                      <div className="mt-3 p-3 bg-gray-50 rounded border border-gray-200">
+                        <div className="space-y-1">
+                          <div className="flex justify-between text-sm">
+                            <span className="text-gray-600">Price (Ex GST)</span>
+                            <span className="text-gray-900 font-medium">${sku.price.toFixed(2)}</span>
+                          </div>
+                          <div className="flex justify-between text-sm">
+                            <span className="text-gray-600">GST (10%)</span>
+                            <span className="text-gray-900 font-medium">${(sku.price * 0.10).toFixed(2)}</span>
+                          </div>
+                          <div className="flex justify-between pt-2 border-t border-gray-300">
+                            <span className="text-sm font-semibold text-gray-900">Price (Inc GST)</span>
+                            <span className="text-xl font-bold text-teal-600">${(sku.price * 1.10).toFixed(2)}</span>
+                          </div>
+                        </div>
+                      </div>
                       <p className="text-sm text-gray-500">{sku.unit}</p>
                       {sku.description && <p className="text-sm text-gray-600 mt-2">{sku.description}</p>}
                     </div>
@@ -1081,19 +1096,48 @@ function OwnerDashboard() {
                       <CardContent>
                         <div className="space-y-2">
                           <p className="text-sm text-gray-600">Category: {sku.category}</p>
-                          <div className="flex items-center gap-2">
-                            {sku.has_custom_pricing ? (
-                              <>
+                          {sku.has_custom_pricing ? (
+                            <>
+                              <div className="flex items-center gap-2 mb-2">
                                 <p className="text-lg text-gray-400 line-through">${sku.price.toFixed(2)}</p>
-                                <div className="flex items-center gap-1">
-                                  <Tag className="w-4 h-4 text-teal-600" />
-                                  <p className="text-2xl font-bold text-teal-600">${sku.customer_price.toFixed(2)}</p>
+                                <Tag className="w-4 h-4 text-teal-600" />
+                                <span className="text-xs font-semibold text-teal-600">CUSTOM</span>
+                              </div>
+                              <div className="p-3 bg-teal-50 rounded border border-teal-200">
+                                <div className="space-y-1">
+                                  <div className="flex justify-between text-sm">
+                                    <span className="text-gray-600">Custom Price (Ex GST)</span>
+                                    <span className="text-gray-900 font-medium">${sku.customer_price.toFixed(2)}</span>
+                                  </div>
+                                  <div className="flex justify-between text-sm">
+                                    <span className="text-gray-600">GST (10%)</span>
+                                    <span className="text-gray-900 font-medium">${(sku.customer_price * 0.10).toFixed(2)}</span>
+                                  </div>
+                                  <div className="flex justify-between pt-2 border-t border-teal-300">
+                                    <span className="text-sm font-semibold text-gray-900">Price (Inc GST)</span>
+                                    <span className="text-xl font-bold text-teal-600">${(sku.customer_price * 1.10).toFixed(2)}</span>
+                                  </div>
                                 </div>
-                              </>
-                            ) : (
-                              <p className="text-2xl font-bold text-gray-900">${sku.price.toFixed(2)}</p>
-                            )}
-                          </div>
+                              </div>
+                            </>
+                          ) : (
+                            <div className="p-3 bg-gray-50 rounded border border-gray-200">
+                              <div className="space-y-1">
+                                <div className="flex justify-between text-sm">
+                                  <span className="text-gray-600">Base Price (Ex GST)</span>
+                                  <span className="text-gray-900 font-medium">${sku.price.toFixed(2)}</span>
+                                </div>
+                                <div className="flex justify-between text-sm">
+                                  <span className="text-gray-600">GST (10%)</span>
+                                  <span className="text-gray-900 font-medium">${(sku.price * 0.10).toFixed(2)}</span>
+                                </div>
+                                <div className="flex justify-between pt-2 border-t border-gray-300">
+                                  <span className="text-sm font-semibold text-gray-900">Price (Inc GST)</span>
+                                  <span className="text-xl font-bold text-gray-900">${(sku.price * 1.10).toFixed(2)}</span>
+                                </div>
+                              </div>
+                            </div>
+                          )}
                           <p className="text-sm text-gray-500">{sku.unit}</p>
                         </div>
                       </CardContent>
@@ -1417,6 +1461,61 @@ function OwnerDashboard() {
                         </div>
                       )}
                     </div>
+
+                    {/* Order Total with GST Breakdown */}
+                    {orderItems.some(item => item.sku_id && item.quantity) && (
+                      <div className="border-t pt-4 mt-4 bg-gray-50 p-4 rounded-lg">
+                        <h3 className="font-semibold text-gray-900 mb-3">Order Summary</h3>
+                        <div className="space-y-2">
+                          {orderItems.map((item, index) => {
+                            const sku = customerSkus.find(s => s.id === item.sku_id);
+                            if (!sku || !item.quantity) return null;
+                            const price = sku.customer_price !== undefined ? sku.customer_price : sku.price;
+                            const lineTotal = price * parseInt(item.quantity || 0);
+                            return (
+                              <div key={index} className="flex justify-between text-sm">
+                                <span className="text-gray-600">
+                                  {sku.name} x {item.quantity}
+                                </span>
+                                <span className="text-gray-900 font-medium">
+                                  ${lineTotal.toFixed(2)}
+                                </span>
+                              </div>
+                            );
+                          })}
+                          
+                          {(() => {
+                            const subtotalExGST = orderItems.reduce((total, item) => {
+                              const sku = customerSkus.find(s => s.id === item.sku_id);
+                              if (!sku || !item.quantity) return total;
+                              const price = sku.customer_price !== undefined ? sku.customer_price : sku.price;
+                              return total + (price * parseInt(item.quantity || 0));
+                            }, 0);
+                            const gstAmount = subtotalExGST * 0.10;
+                            const totalIncGST = subtotalExGST + gstAmount;
+                            
+                            return (
+                              <>
+                                <div className="border-t pt-2 mt-2">
+                                  <div className="flex justify-between text-sm">
+                                    <span className="text-gray-600">Subtotal (Ex GST)</span>
+                                    <span className="text-gray-900">${subtotalExGST.toFixed(2)}</span>
+                                  </div>
+                                  <div className="flex justify-between text-sm mt-1">
+                                    <span className="text-gray-600">GST (10%)</span>
+                                    <span className="text-gray-900">${gstAmount.toFixed(2)}</span>
+                                  </div>
+                                </div>
+                                <div className="border-t pt-2 mt-2 flex justify-between items-center">
+                                  <span className="text-lg font-bold text-gray-900">Total (Inc GST)</span>
+                                  <span className="text-2xl font-bold text-teal-600">${totalIncGST.toFixed(2)}</span>
+                                </div>
+                              </>
+                            );
+                          })()}
+                        </div>
+                      </div>
+                    )}
 
                     <Button type="submit" className="w-full bg-teal-500 hover:bg-teal-600" disabled={creatingOrder}>
                       {creatingOrder ? (
