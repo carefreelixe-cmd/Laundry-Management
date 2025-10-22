@@ -10,6 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Switch } from '@/components/ui/switch';
 import { Package, Users, AlertCircle, Plus, Edit, Lock, Unlock, Repeat, Truck, MapPin, Clock, CheckCircle } from 'lucide-react';
+import { toast } from 'sonner';
 import axios from 'axios';
 
 function AdminDashboard() {
@@ -29,6 +30,12 @@ function AdminDashboard() {
   const [deletingOrderId, setDeletingOrderId] = useState(null);
   const [updatingCaseId, setUpdatingCaseId] = useState(null);
   const [updatingStatusOrderId, setUpdatingStatusOrderId] = useState(null);
+  const [resettingPasswordUserId, setResettingPasswordUserId] = useState(null);
+  
+  // Password reset
+  const [showPasswordDialog, setShowPasswordDialog] = useState(false);
+  const [selectedUser, setSelectedUser] = useState(null);
+  const [newPassword, setNewPassword] = useState('');
   
   // Order form
   const [showOrderDialog, setShowOrderDialog] = useState(false);
@@ -75,6 +82,9 @@ function AdminDashboard() {
       } else if (activeTab === 'cases') {
         const casesRes = await axios.get(`${API}/cases`);
         setCases(casesRes.data);
+      } else if (activeTab === 'users') {
+        const usersRes = await axios.get(`${API}/users`);
+        setCustomers(usersRes.data);
       } else if (activeTab === 'delivery-tracking') {
         const ordersRes = await axios.get(`${API}/orders`);
         setOrders(ordersRes.data);
@@ -249,6 +259,39 @@ function AdminDashboard() {
     }
   };
 
+  const handlePasswordReset = async (e) => {
+    e.preventDefault();
+    if (!newPassword || newPassword.length < 6) {
+      toast.error('Password must be at least 6 characters long');
+      return;
+    }
+    if (!window.confirm(`Are you sure you want to reset the password for ${selectedUser?.full_name}?`)) {
+      return;
+    }
+    
+    setResettingPasswordUserId(selectedUser.id);
+    try {
+      await axios.put(`${API}/admin/reset-password/${selectedUser.id}`, {
+        new_password: newPassword
+      });
+      toast.success('Password reset successfully');
+      setShowPasswordDialog(false);
+      setSelectedUser(null);
+      setNewPassword('');
+    } catch (error) {
+      console.error('Failed to reset password:', error);
+      toast.error(error.response?.data?.detail || 'Failed to reset password');
+    } finally {
+      setResettingPasswordUserId(null);
+    }
+  };
+
+  const openPasswordResetDialog = (user) => {
+    setSelectedUser(user);
+    setNewPassword('');
+    setShowPasswordDialog(true);
+  };
+
   if (loading) {
     return (
       <DashboardLayout>
@@ -298,6 +341,17 @@ function AdminDashboard() {
             data-testid="delivery-tracking-tab"
           >
             Delivery Tracking
+          </button>
+          <button
+            onClick={() => setActiveTab('users')}
+            className={`pb-3 px-1 font-medium transition-colors ${
+              activeTab === 'users'
+                ? 'text-teal-600 border-b-2 border-teal-600'
+                : 'text-gray-500 hover:text-gray-700'
+            }`}
+            data-testid="users-tab"
+          >
+            User Management
           </button>
         </div>
 
@@ -978,6 +1032,147 @@ function AdminDashboard() {
                 </CardContent>
               </Card>
             </div>
+          </div>
+        )}
+
+        {/* User Management Tab */}
+        {activeTab === 'users' && (
+          <div className="space-y-6">
+            <div className="flex justify-between items-center">
+              <h2 className="text-2xl font-bold text-gray-900">User Management</h2>
+            </div>
+            
+            <div className="grid gap-4">
+              {customers.map((customer) => (
+                <Card key={customer.id} className="card-hover">
+                  <CardContent className="p-6">
+                    <div className="flex justify-between items-start">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-3 mb-3">
+                          <h3 className="text-xl font-bold text-gray-900">{customer.full_name}</h3>
+                          <span className={`px-3 py-1 text-xs font-semibold rounded-full ${
+                            customer.role === 'owner' ? 'bg-purple-100 text-purple-800' :
+                            customer.role === 'admin' ? 'bg-blue-100 text-blue-800' :
+                            customer.role === 'driver' ? 'bg-orange-100 text-orange-800' :
+                            'bg-green-100 text-green-800'
+                          }`}>
+                            {customer.role.charAt(0).toUpperCase() + customer.role.slice(1)}
+                          </span>
+                        </div>
+                        
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+                          <div>
+                            <p className="text-gray-600">Email</p>
+                            <p className="font-medium text-gray-900">{customer.email}</p>
+                          </div>
+                          <div>
+                            <p className="text-gray-600">Phone</p>
+                            <p className="font-medium text-gray-900">{customer.phone || 'N/A'}</p>
+                          </div>
+                          <div>
+                            <p className="text-gray-600">User ID</p>
+                            <p className="font-mono text-xs text-gray-600">{customer.id}</p>
+                          </div>
+                          <div>
+                            <p className="text-gray-600">Created</p>
+                            <p className="font-medium text-gray-900">
+                              {new Date(customer.created_at).toLocaleDateString()}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <div className="flex gap-2">
+                        <Button
+                          onClick={() => openPasswordResetDialog(customer)}
+                          variant="outline"
+                          size="sm"
+                          className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                          disabled={resettingPasswordUserId === customer.id}
+                        >
+                          {resettingPasswordUserId === customer.id ? (
+                            <>
+                              <Clock className="w-4 h-4 mr-1 animate-spin" />
+                              Resetting...
+                            </>
+                          ) : (
+                            <>
+                              <Lock className="w-4 h-4 mr-1" />
+                              Reset Password
+                            </>
+                          )}
+                        </Button>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+
+            {/* Password Reset Dialog */}
+            <Dialog open={showPasswordDialog} onOpenChange={setShowPasswordDialog}>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Reset Password</DialogTitle>
+                </DialogHeader>
+                <form onSubmit={handlePasswordReset} className="space-y-4">
+                  <div>
+                    <Label className="text-gray-700">User</Label>
+                    <p className="text-lg font-semibold text-gray-900">{selectedUser?.full_name}</p>
+                    <p className="text-sm text-gray-600">{selectedUser?.email}</p>
+                  </div>
+                  
+                  <div>
+                    <Label htmlFor="new-password">New Password</Label>
+                    <Input
+                      id="new-password"
+                      type="text"
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      placeholder="Enter new password (min 6 characters)"
+                      required
+                      minLength={6}
+                      autoComplete="off"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">
+                      Password must be at least 6 characters long
+                    </p>
+                  </div>
+
+                  <div className="bg-yellow-50 border border-yellow-200 rounded p-3">
+                    <p className="text-sm text-yellow-800">
+                      <strong>Warning:</strong> This will immediately change the user's password. 
+                      The user will need to use this new password to log in.
+                    </p>
+                  </div>
+
+                  <div className="flex gap-2 justify-end">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => setShowPasswordDialog(false)}
+                      disabled={resettingPasswordUserId}
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      type="submit"
+                      className="bg-blue-600 hover:bg-blue-700"
+                      disabled={resettingPasswordUserId}
+                    >
+                      {resettingPasswordUserId ? (
+                        <>
+                          <Clock className="w-4 h-4 mr-2 animate-spin" />
+                          Resetting...
+                        </>
+                      ) : (
+                        'Reset Password'
+                      )}
+                    </Button>
+                  </div>
+                </form>
+              </DialogContent>
+            </Dialog>
           </div>
         )}
       </div>

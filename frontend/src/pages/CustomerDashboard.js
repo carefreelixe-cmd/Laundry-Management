@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Switch } from '@/components/ui/switch';
-import { Package, AlertCircle, Plus, MapPin, Calendar, Lock, Unlock, Repeat, Edit, Truck, Clock, CheckCircle } from 'lucide-react';
+import { Package, AlertCircle, Plus, MapPin, Calendar, Lock, Unlock, Repeat, Edit, Truck, Clock, CheckCircle, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
 import axios from 'axios';
 
@@ -175,8 +175,21 @@ function CustomerDashboard() {
             quantity: parseInt(item.quantity),
             price: sku.customer_price
           };
-        })
+        }),
+        is_recurring: orderForm.is_recurring
       };
+      
+      // Include recurring data if enabled
+      if (formData.is_recurring && orderForm.frequency_template_id) {
+        const template = frequencyTemplates.find(t => t.id === orderForm.frequency_template_id);
+        if (template) {
+          formData.frequency_template_id = template.id;
+          formData.recurrence_pattern = {
+            frequency_type: template.frequency_type,
+            frequency_value: template.frequency_value
+          };
+        }
+      }
       
       await axios.put(`${API}/orders/${editingOrderId}`, formData);
       setShowOrderDialog(false);
@@ -332,6 +345,23 @@ function CustomerDashboard() {
           </div>
         </div>
 
+        {/* No Pricing Warning */}
+        {skus.length === 0 && (
+          <Card className="border-yellow-300 bg-yellow-50">
+            <CardContent className="p-4">
+              <div className="flex items-start gap-3">
+                <AlertTriangle className="w-5 h-5 text-yellow-600 mt-0.5" />
+                <div>
+                  <h3 className="font-semibold text-yellow-900">No Pricing Configured</h3>
+                  <p className="text-sm text-yellow-800 mt-1">
+                    You don't have any custom pricing set up yet. Please contact your administrator to configure pricing for your account before placing orders.
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <Card className="card-hover">
@@ -450,7 +480,7 @@ function CustomerDashboard() {
                             <SelectContent>
                               {skus.map(sku => (
                                 <SelectItem key={sku.id} value={sku.id}>
-                                  {sku.name} (${sku.customer_price.toFixed(2)})
+                                  {sku.name} (${sku.customer_price.toFixed(2)} Ex GST)
                                 </SelectItem>
                               ))}
                               {skus.length === 0 && (
@@ -504,19 +534,18 @@ function CustomerDashboard() {
                     </div>
 
                     <div className="border-t pt-4">
-                      {!editingOrderId && (
-                        <div className="flex items-center gap-3">
-                          <Switch
-                            checked={orderForm.is_recurring}
-                            onCheckedChange={(checked) => setOrderForm({ ...orderForm, is_recurring: checked })}
-                            data-testid="customer-recurring-switch"
-                          />
-                          <Label className="flex items-center gap-2 cursor-pointer">
-                            <Repeat className="w-4 h-4 text-teal-600" />
-                            Make this a recurring order
-                          </Label>
-                        </div>
-                      )}
+                      <div className="flex items-center gap-3">
+                        <Switch
+                          checked={orderForm.is_recurring}
+                          onCheckedChange={(checked) => setOrderForm({ ...orderForm, is_recurring: checked })}
+                          data-testid="customer-recurring-switch"
+                          disabled={editingOrderId && !canModifyOrder(orders.find(o => o.id === editingOrderId)?.created_at)}
+                        />
+                        <Label className="flex items-center gap-2 cursor-pointer">
+                          <Repeat className="w-4 h-4 text-teal-600" />
+                          Make this a recurring order
+                        </Label>
+                      </div>
                       
                       {orderForm.is_recurring && (
                         <div>
@@ -524,6 +553,7 @@ function CustomerDashboard() {
                           <Select 
                             value={orderForm.frequency_template_id} 
                             onValueChange={(value) => setOrderForm({ ...orderForm, frequency_template_id: value })}
+                            disabled={editingOrderId && !canModifyOrder(orders.find(o => o.id === editingOrderId)?.created_at)}
                           >
                             <SelectTrigger data-testid="customer-frequency-template-select">
                               <SelectValue placeholder="Choose recurring frequency" />
@@ -657,9 +687,19 @@ function CustomerDashboard() {
                           </li>
                         ))}
                       </ul>
-                      <div className="flex justify-between items-center mt-3 pt-3 border-t">
-                        <span className="text-lg font-bold text-gray-900">Total</span>
-                        <span className="text-2xl font-bold text-teal-600">${order.total_amount.toFixed(2)}</span>
+                      <div className="mt-3 pt-3 border-t space-y-2">
+                        <div className="flex justify-between text-sm">
+                          <span className="text-gray-600">Subtotal (Ex GST)</span>
+                          <span className="text-gray-900">${(order.total_amount / 1.1).toFixed(2)}</span>
+                        </div>
+                        <div className="flex justify-between text-sm">
+                          <span className="text-gray-600">GST (10%)</span>
+                          <span className="text-gray-900">${(order.total_amount - (order.total_amount / 1.1)).toFixed(2)}</span>
+                        </div>
+                        <div className="flex justify-between items-center pt-2 border-t">
+                          <span className="text-lg font-bold text-gray-900">Total (Inc GST)</span>
+                          <span className="text-2xl font-bold text-teal-600">${order.total_amount.toFixed(2)}</span>
+                        </div>
                       </div>
                     </div>
 
@@ -911,7 +951,7 @@ function CustomerDashboard() {
                             <p className="font-semibold text-gray-900">{selectedOrderForTracking.driver_name}</p>
                           </div>
                           <div>
-                            <p className="text-gray-600">Total Amount</p>
+                            <p className="text-gray-600">Total Amount (Inc GST)</p>
                             <p className="font-semibold text-gray-900">${selectedOrderForTracking.total_amount?.toFixed(2)}</p>
                           </div>
                         </div>

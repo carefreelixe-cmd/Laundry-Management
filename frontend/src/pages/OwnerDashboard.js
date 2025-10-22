@@ -8,7 +8,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Switch } from '@/components/ui/switch';
-import { Users, Package, DollarSign, AlertCircle, Plus, Edit, Trash2, Tag, Clock, Truck, Repeat, MapPin, CheckCircle } from 'lucide-react';
+import { Users, Package, DollarSign, AlertCircle, Plus, Edit, Trash2, Tag, Clock, Truck, Repeat, MapPin, CheckCircle, Lock } from 'lucide-react';
+import { toast } from 'sonner';
 import axios from 'axios';
 
 function OwnerDashboard() {
@@ -72,12 +73,20 @@ function OwnerDashboard() {
   const [selectedOrderForTracking, setSelectedOrderForTracking] = useState(null);
   const [customerSkus, setCustomerSkus] = useState([]);
 
+  // Password reset
+  const [showPasswordDialog, setShowPasswordDialog] = useState(false);
+  const [selectedUser, setSelectedUser] = useState(null);
+  const [newPassword, setNewPassword] = useState('');
+  const [resettingPasswordUserId, setResettingPasswordUserId] = useState(null);
+
   useEffect(() => {
     fetchData();
   }, []);
 
   useEffect(() => {
-    if (activeTab === 'customer-pricing') {
+    if (activeTab === 'users') {
+      fetchData(); // Refresh users list
+    } else if (activeTab === 'customer-pricing') {
       fetchCustomers();
     } else if (activeTab === 'frequency-templates') {
       fetchFrequencyTemplates();
@@ -184,6 +193,39 @@ function OwnerDashboard() {
     } catch (error) {
       alert('Failed to delete user');
     }
+  };
+
+  const handlePasswordReset = async (e) => {
+    e.preventDefault();
+    if (!newPassword || newPassword.length < 6) {
+      toast.error('Password must be at least 6 characters long');
+      return;
+    }
+    if (!window.confirm(`Are you sure you want to reset the password for ${selectedUser?.full_name}?`)) {
+      return;
+    }
+    
+    setResettingPasswordUserId(selectedUser.id);
+    try {
+      await axios.put(`${API}/admin/reset-password/${selectedUser.id}`, {
+        new_password: newPassword
+      });
+      toast.success('Password reset successfully');
+      setShowPasswordDialog(false);
+      setSelectedUser(null);
+      setNewPassword('');
+    } catch (error) {
+      console.error('Failed to reset password:', error);
+      toast.error(error.response?.data?.detail || 'Failed to reset password');
+    } finally {
+      setResettingPasswordUserId(null);
+    }
+  };
+
+  const openPasswordResetDialog = (user) => {
+    setSelectedUser(user);
+    setNewPassword('');
+    setShowPasswordDialog(true);
   };
 
   const handleCreateOrUpdateSku = async (e) => {
@@ -771,9 +813,23 @@ function OwnerDashboard() {
                           </td>
                           <td className="px-6 py-4 text-sm text-gray-600">{user.phone || '-'}</td>
                           <td className="px-6 py-4 text-sm">
-                            <button onClick={() => handleDeleteUser(user.id)} className="text-red-600 hover:text-red-800" data-testid={`delete-user-${user.id}`}>
-                              <Trash2 className="w-4 h-4" />
-                            </button>
+                            <div className="flex items-center gap-2">
+                              <button 
+                                onClick={() => openPasswordResetDialog(user)} 
+                                className="text-blue-600 hover:text-blue-800"
+                                title="Reset Password"
+                                disabled={resettingPasswordUserId === user.id}
+                              >
+                                {resettingPasswordUserId === user.id ? (
+                                  <Clock className="w-4 h-4 animate-spin" />
+                                ) : (
+                                  <Lock className="w-4 h-4" />
+                                )}
+                              </button>
+                              <button onClick={() => handleDeleteUser(user.id)} className="text-red-600 hover:text-red-800" data-testid={`delete-user-${user.id}`}>
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </div>
                           </td>
                         </tr>
                       ))}
@@ -782,6 +838,71 @@ function OwnerDashboard() {
                 </div>
               </CardContent>
             </Card>
+
+            {/* Password Reset Dialog */}
+            <Dialog open={showPasswordDialog} onOpenChange={setShowPasswordDialog}>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Reset Password</DialogTitle>
+                </DialogHeader>
+                <form onSubmit={handlePasswordReset} className="space-y-4">
+                  <div>
+                    <Label className="text-gray-700">User</Label>
+                    <p className="text-lg font-semibold text-gray-900">{selectedUser?.full_name}</p>
+                    <p className="text-sm text-gray-600">{selectedUser?.email}</p>
+                  </div>
+                  
+                  <div>
+                    <Label htmlFor="new-password">New Password</Label>
+                    <Input
+                      id="new-password"
+                      type="text"
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      placeholder="Enter new password (min 6 characters)"
+                      required
+                      minLength={6}
+                      autoComplete="off"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">
+                      Password must be at least 6 characters long
+                    </p>
+                  </div>
+
+                  <div className="bg-yellow-50 border border-yellow-200 rounded p-3">
+                    <p className="text-sm text-yellow-800">
+                      <strong>Warning:</strong> This will immediately change the user's password. 
+                      The user will need to use this new password to log in.
+                    </p>
+                  </div>
+
+                  <div className="flex gap-2 justify-end">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => setShowPasswordDialog(false)}
+                      disabled={resettingPasswordUserId}
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      type="submit"
+                      className="bg-blue-600 hover:bg-blue-700"
+                      disabled={resettingPasswordUserId}
+                    >
+                      {resettingPasswordUserId ? (
+                        <>
+                          <Clock className="w-4 h-4 mr-2 animate-spin" />
+                          Resetting...
+                        </>
+                      ) : (
+                        'Reset Password'
+                      )}
+                    </Button>
+                  </div>
+                </form>
+              </DialogContent>
+            </Dialog>
           </div>
         )}
 
@@ -1174,14 +1295,14 @@ function OwnerDashboard() {
                             disabled={!orderForm.customer_id}
                           >
                             <SelectTrigger className="flex-1">
-                              <SelectValue placeholder={orderForm.customer_id ? "Select item" : "Select customer first"} />
+                              <SelectValue placeholder={orderForm.customer_id ? (customerSkus.length > 0 ? "Select item" : "No custom pricing set for this customer") : "Select customer first"} />
                             </SelectTrigger>
                             <SelectContent>
-                              {(customerSkus.length > 0 ? customerSkus : skus).map((sku) => {
+                              {customerSkus.map((sku) => {
                                 const price = sku.customer_price !== undefined ? sku.customer_price : sku.price;
                                 return (
                                   <SelectItem key={sku.id} value={sku.id}>
-                                    {sku.name} - ${price.toFixed(2)}
+                                    {sku.name} - ${price.toFixed(2)} (Ex GST)
                                     {sku.customer_price !== undefined && ' (Custom)'}
                                   </SelectItem>
                                 );

@@ -604,6 +604,41 @@ async def delete_user(user_id: str, current_user: dict = Depends(require_role(["
         raise HTTPException(status_code=404, detail="User not found")
     return {"message": "User deleted successfully"}
 
+@api_router.put("/admin/reset-password/{user_id}")
+async def admin_reset_password(user_id: str, password_data: dict, current_user: dict = Depends(require_role(["owner", "admin"]))):
+    """Admin endpoint to reset user password"""
+    new_password = password_data.get('new_password')
+    if not new_password or len(new_password) < 6:
+        raise HTTPException(status_code=400, detail="Password must be at least 6 characters long")
+    
+    # Check if user exists
+    user = await db.users.find_one({"id": user_id})
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    # Hash the new password
+    hashed_password = hash_password(new_password)
+    
+    # Update password
+    result = await db.users.update_one(
+        {"id": user_id},
+        {"$set": {"password": hashed_password}}
+    )
+    
+    if result.modified_count == 0:
+        raise HTTPException(status_code=400, detail="Failed to update password")
+    
+    # Send notification to user
+    await send_notification(
+        user_id=user['id'],
+        email=user['email'],
+        title="Password Reset",
+        message=f"Your password has been reset by an administrator. Please use your new password to log in.",
+        notif_type="password_reset"
+    )
+    
+    return {"message": "Password reset successfully"}
+
 # Driver Management Routes
 @api_router.get("/drivers", response_model=List[User])
 async def get_drivers(current_user: dict = Depends(require_role(["owner", "admin"]))):
@@ -817,19 +852,20 @@ async def create_order(order: OrderBase, current_user: dict = Depends(require_ro
     
     # Handle recurring orders
     if order.is_recurring and order.recurrence_pattern:
-        current_date = datetime.now(timezone.utc).date()
+        # Use delivery date as the base for next occurrence, not creation date
+        delivery_date = datetime.fromisoformat(order.delivery_date).date() if isinstance(order.delivery_date, str) else order.delivery_date.date()
         frequency_type = order.recurrence_pattern.get('frequency_type')
         frequency_value = order.recurrence_pattern.get('frequency_value', 1)
         
-        # Calculate next occurrence date
+        # Calculate next occurrence date from first delivery date
         if frequency_type == 'daily':
-            next_date = current_date + timedelta(days=frequency_value)
+            next_date = delivery_date + timedelta(days=frequency_value)
         elif frequency_type == 'weekly':
-            next_date = current_date + timedelta(weeks=frequency_value)
+            next_date = delivery_date + timedelta(weeks=frequency_value)
         elif frequency_type == 'monthly':
-            next_date = current_date + timedelta(days=30 * frequency_value)
+            next_date = delivery_date + timedelta(days=30 * frequency_value)
         else:
-            next_date = current_date + timedelta(days=1)
+            next_date = delivery_date + timedelta(days=1)
         
         order_dict['next_occurrence_date'] = next_date.isoformat()
     
@@ -899,19 +935,20 @@ async def create_customer_order(order: CustomerOrderCreate, current_user: dict =
     
     # Handle recurring orders
     if order.is_recurring and order.recurrence_pattern:
-        current_date = datetime.now(timezone.utc).date()
+        # Use delivery_date as the base for calculating next occurrence
+        delivery_date = datetime.fromisoformat(order.delivery_date).date()
         frequency_type = order.recurrence_pattern.get('frequency_type')
         frequency_value = order.recurrence_pattern.get('frequency_value', 1)
         
-        # Calculate next occurrence date
+        # Calculate next occurrence date from delivery date
         if frequency_type == 'daily':
-            next_date = current_date + timedelta(days=frequency_value)
+            next_date = delivery_date + timedelta(days=frequency_value)
         elif frequency_type == 'weekly':
-            next_date = current_date + timedelta(weeks=frequency_value)
+            next_date = delivery_date + timedelta(weeks=frequency_value)
         elif frequency_type == 'monthly':
-            next_date = current_date + timedelta(days=30 * frequency_value)
+            next_date = delivery_date + timedelta(days=30 * frequency_value)
         else:
-            next_date = current_date + timedelta(days=1)
+            next_date = delivery_date + timedelta(days=1)
         
         order_dict['next_occurrence_date'] = next_date.isoformat()
     
@@ -1015,6 +1052,26 @@ async def update_order(order_id: str, update: OrderUpdate, current_user: dict = 
     
     update_data = {k: v for k, v in update.model_dump().items() if v is not None}
     update_data['updated_at'] = datetime.now(timezone.utc).isoformat()
+    
+    # Recalculate next_occurrence_date if this is a recurring order and delivery_date changed
+    if update_data.get('is_recurring') and update_data.get('recurrence_pattern'):
+        delivery_date_str = update_data.get('delivery_date', order_doc.get('delivery_date'))
+        if delivery_date_str:
+            delivery_date = datetime.fromisoformat(delivery_date_str).date()
+            frequency_type = update_data['recurrence_pattern'].get('frequency_type')
+            frequency_value = update_data['recurrence_pattern'].get('frequency_value', 1)
+            
+            # Calculate next occurrence date from delivery date
+            if frequency_type == 'daily':
+                next_date = delivery_date + timedelta(days=frequency_value)
+            elif frequency_type == 'weekly':
+                next_date = delivery_date + timedelta(weeks=frequency_value)
+            elif frequency_type == 'monthly':
+                next_date = delivery_date + timedelta(days=30 * frequency_value)
+            else:
+                next_date = delivery_date + timedelta(days=1)
+            
+            update_data['next_occurrence_date'] = next_date.isoformat()
     
     await db.orders.update_one({"id": order_id}, {"$set": update_data})
     
