@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Switch } from '@/components/ui/switch';
-import { Users, Package, DollarSign, AlertCircle, Plus, Edit, Trash2, Tag, Clock, Truck, Repeat, MapPin, CheckCircle, Lock } from 'lucide-react';
+import { Users, Package, DollarSign, AlertCircle, Plus, Edit, Trash2, Tag, Clock, Truck, Repeat, MapPin, CheckCircle, Lock, X } from 'lucide-react';
 import { toast } from 'sonner';
 import axios from 'axios';
 
@@ -370,6 +370,19 @@ function OwnerDashboard() {
       fetchOrders();
     } catch (error) {
       alert(error.response?.data?.detail || 'Failed to assign driver');
+    }
+  };
+
+  const handleUnassignDriver = async (orderId) => {
+    if (!window.confirm('Are you sure you want to unassign the driver from this order?')) {
+      return;
+    }
+    try {
+      await axios.put(`${API}/orders/${orderId}/unassign-driver`);
+      toast.success('Driver unassigned successfully');
+      fetchOrders();
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Failed to unassign driver');
     }
   };
 
@@ -1600,30 +1613,47 @@ function OwnerDashboard() {
                               {order.driver_name || <span className="text-gray-400">-</span>}
                             </td>
                             <td className="px-4 py-3">
-                              <div className="flex items-center gap-2">
-                                <Select 
-                                  value={selectedDriver[order.id] || ''} 
-                                  onValueChange={(value) => setSelectedDriver({ ...selectedDriver, [order.id]: value })}
-                                >
-                                  <SelectTrigger className="w-40">
-                                    <SelectValue placeholder="Select driver" />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    {drivers.map((driver) => (
-                                      <SelectItem key={driver.id} value={driver.id}>
-                                        {driver.full_name}
-                                      </SelectItem>
-                                    ))}
-                                  </SelectContent>
-                                </Select>
-                                <Button 
-                                  size="sm" 
-                                  onClick={() => handleAssignDriver(order.id)}
-                                  className="bg-teal-500 hover:bg-teal-600"
-                                >
-                                  Assign
-                                </Button>
-                              </div>
+                              {order.driver_id ? (
+                                <div className="flex items-center gap-2">
+                                  <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                    ✓ Already Assigned
+                                  </span>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => handleUnassignDriver(order.id)}
+                                    className="text-orange-600 hover:text-orange-700 hover:bg-orange-50"
+                                    title="Unassign driver to reassign"
+                                  >
+                                    <X className="w-4 h-4" />
+                                  </Button>
+                                </div>
+                              ) : (
+                                <div className="flex items-center gap-2">
+                                  <Select 
+                                    value={selectedDriver[order.id] || ''} 
+                                    onValueChange={(value) => setSelectedDriver({ ...selectedDriver, [order.id]: value })}
+                                  >
+                                    <SelectTrigger className="w-40">
+                                      <SelectValue placeholder="Select driver" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      {drivers.map((driver) => (
+                                        <SelectItem key={driver.id} value={driver.id}>
+                                          {driver.full_name}
+                                        </SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                  <Button 
+                                    size="sm" 
+                                    onClick={() => handleAssignDriver(order.id)}
+                                    className="bg-teal-500 hover:bg-teal-600"
+                                  >
+                                    Assign
+                                  </Button>
+                                </div>
+                              )}
                             </td>
                             <td className="px-4 py-3">
                               <div className="flex items-center gap-2">

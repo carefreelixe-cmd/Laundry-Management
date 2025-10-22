@@ -15,7 +15,7 @@ from passlib.context import CryptContext
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
-from utils.email_service import send_otp_email, send_welcome_email, send_email
+from utils.email_service import send_otp_email, send_welcome_email, send_email, send_order_status_email
 from utils.sms_service import send_sms_otp, send_welcome_sms
 from utils.otp_service import generate_otp, is_otp_expired
 import socketio
@@ -695,6 +695,9 @@ async def update_delivery_status(
     
     await db.orders.update_one({"id": order_id}, {"$set": update_data})
     
+    # Get customer details for email notification
+    customer = await db.users.find_one({"id": order['customer_id']})
+    
     # Send notification to customer
     await create_notification(
         order['customer_id'],
@@ -702,6 +705,22 @@ async def update_delivery_status(
         f"Your order {order['order_number']} is now {status.replace('_', ' ')}",
         "delivery"
     )
+    
+    # Send email notification to customer
+    if customer:
+        order_details = {
+            'pickup_date': order.get('pickup_date'),
+            'delivery_date': order.get('delivery_date'),
+            'total_amount': order.get('total_amount')
+        }
+        send_order_status_email(
+            to_email=customer['email'],
+            customer_name=customer.get('full_name', 'Customer'),
+            order_number=order['order_number'],
+            status=order.get('status', 'scheduled'),
+            delivery_status=status,
+            order_details=order_details
+        )
     
     return {"message": "Status updated successfully"}
 
@@ -893,6 +912,20 @@ async def create_order(order: OrderBase, current_user: dict = Depends(require_ro
             message=f"Your {order_type} #{order_number} has been created successfully.",
             notif_type="order_created"
         )
+        
+        # Send email notification to customer
+        order_details = {
+            'pickup_date': order.pickup_date,
+            'delivery_date': order.delivery_date,
+            'total_amount': total_amount
+        }
+        send_order_status_email(
+            to_email=customer['email'],
+            customer_name=customer.get('full_name', 'Customer'),
+            order_number=order_number,
+            status='scheduled',
+            order_details=order_details
+        )
     
     # Notify all owners and admins
     owners = await db.users.find({"role": "owner"}).to_list(length=None)
@@ -995,6 +1028,20 @@ async def create_customer_order(order: CustomerOrderCreate, current_user: dict =
         notif_type="order_created"
     )
     
+    # Send email notification to customer
+    order_details_dict = {
+        'pickup_date': order.pickup_date,
+        'delivery_date': order.delivery_date,
+        'total_amount': total_amount
+    }
+    send_order_status_email(
+        to_email=customer['email'],
+        customer_name=customer.get('full_name', 'Customer'),
+        order_number=order_number,
+        status='scheduled',
+        order_details=order_details_dict
+    )
+    
     # Notify all owners and admins
     owners = await db.users.find({"role": "owner"}).to_list(length=None)
     admins = await db.users.find({"role": "admin"}).to_list(length=None)
@@ -1053,6 +1100,9 @@ async def update_order(order_id: str, update: OrderUpdate, current_user: dict = 
     update_data = {k: v for k, v in update.model_dump().items() if v is not None}
     update_data['updated_at'] = datetime.now(timezone.utc).isoformat()
     
+    # Check if status is being changed
+    status_changed = 'status' in update_data and update_data['status'] != order_doc.get('status')
+    
     # Recalculate next_occurrence_date if this is a recurring order and delivery_date changed
     if update_data.get('is_recurring') and update_data.get('recurrence_pattern'):
         delivery_date_str = update_data.get('delivery_date', order_doc.get('delivery_date'))
@@ -1081,7 +1131,25 @@ async def update_order(order_id: str, update: OrderUpdate, current_user: dict = 
     if updated_order.get('locked_at'):
         updated_order['locked_at'] = datetime.fromisoformat(updated_order['locked_at']) if isinstance(updated_order['locked_at'], str) else updated_order['locked_at']
     
-    # Prepare order details
+    # Get customer details
+    customer = await db.users.find_one({"id": order_doc['customer_id']})
+    
+    # Send email notification to customer if status changed
+    if status_changed and customer:
+        order_details = {
+            'pickup_date': updated_order.get('pickup_date'),
+            'delivery_date': updated_order.get('delivery_date'),
+            'total_amount': updated_order.get('total_amount')
+        }
+        send_order_status_email(
+            to_email=customer['email'],
+            customer_name=customer.get('full_name', 'Customer'),
+            order_number=order_doc['order_number'],
+            status=updated_order.get('status', 'scheduled'),
+            order_details=order_details
+        )
+    
+    # Prepare order details for notifications
     order_details = f"""
     Order Number: {order_doc['order_number']}
     Status: {updated_order.get('status', 'N/A')}
@@ -1091,7 +1159,6 @@ async def update_order(order_id: str, update: OrderUpdate, current_user: dict = 
     """
     
     # Send notifications to customer, owner, and admin
-    customer = await db.users.find_one({"id": order_doc['customer_id']})
     if customer:
         await send_notification(
             user_id=customer['id'],
@@ -1178,6 +1245,13 @@ async def assign_driver_to_order(
     if not order:
         raise HTTPException(status_code=404, detail="Order not found")
     
+    # Check if order already has a driver assigned
+    if order.get('driver_id'):
+        raise HTTPException(
+            status_code=400, 
+            detail=f"Order is already assigned to driver: {order.get('driver_name', 'Unknown')}"
+        )
+    
     # Verify driver exists and has driver role
     driver = await db.users.find_one({"id": driver_id, "role": "driver"})
     if not driver:
@@ -1211,6 +1285,55 @@ async def assign_driver_to_order(
     )
     
     return {"message": "Driver assigned successfully"}
+
+@api_router.put("/orders/{order_id}/unassign-driver")
+async def unassign_driver_from_order(
+    order_id: str,
+    current_user: dict = Depends(require_role(["owner", "admin"]))
+):
+    """Unassign a driver from an order to allow reassignment"""
+    # Verify order exists
+    order = await db.orders.find_one({"id": order_id})
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+    
+    # Check if order has a driver assigned
+    if not order.get('driver_id'):
+        raise HTTPException(status_code=400, detail="Order does not have a driver assigned")
+    
+    # Store old driver info for notification
+    old_driver_id = order.get('driver_id')
+    old_driver_name = order.get('driver_name')
+    
+    # Remove driver assignment
+    update_data = {
+        "driver_id": None,
+        "driver_name": None,
+        "delivery_status": "pending",
+        "assigned_at": None,
+        "updated_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    await db.orders.update_one({"id": order_id}, {"$set": update_data})
+    
+    # Send notification to the unassigned driver
+    if old_driver_id:
+        await create_notification(
+            old_driver_id,
+            "Delivery Unassigned",
+            f"You have been unassigned from order {order['order_number']}",
+            "delivery"
+        )
+    
+    # Send notification to customer
+    await create_notification(
+        order['customer_id'],
+        "Driver Unassigned",
+        f"The driver assignment for your order {order['order_number']} has been updated",
+        "delivery"
+    )
+    
+    return {"message": "Driver unassigned successfully", "old_driver": old_driver_name}
 
 # Recurring Orders Routes
 @api_router.get("/orders/recurring/list", response_model=List[Order])
