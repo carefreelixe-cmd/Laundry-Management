@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Switch } from '@/components/ui/switch';
-import { Users, Package, DollarSign, AlertCircle, Plus, Edit, Trash2, Tag, Clock, Truck, Repeat, MapPin, CheckCircle, Lock, X } from 'lucide-react';
+import { Users, Package, DollarSign, AlertCircle, Plus, Edit, Trash2, Tag, Clock, Truck, Repeat, MapPin, CheckCircle, Lock, X, Ban, CheckCircle2 } from 'lucide-react';
 import { toast } from 'sonner';
 import axios from 'axios';
 
@@ -185,13 +185,15 @@ function OwnerDashboard() {
     }
   };
 
-  const handleDeleteUser = async (userId) => {
-    if (!window.confirm('Are you sure you want to delete this user?')) return;
+  const handleToggleUserStatus = async (user) => {
+    const action = user.is_active ? 'disable' : 'enable';
+    if (!window.confirm(`Are you sure you want to ${action} ${user.full_name}'s account?`)) return;
     try {
-      await axios.delete(`${API}/users/${userId}`);
+      await axios.put(`${API}/admin/users/${user.id}/toggle-status`);
+      toast.success(`User account ${action}d successfully`);
       fetchData();
     } catch (error) {
-      alert('Failed to delete user');
+      toast.error(error.response?.data?.detail || `Failed to ${action} user`);
     }
   };
 
@@ -806,13 +808,14 @@ function OwnerDashboard() {
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Email</th>
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Role</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Phone</th>
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-200" data-testid="users-table">
                       {users.map((user) => (
-                        <tr key={user.id} className="hover:bg-gray-50">
+                        <tr key={user.id} className={`hover:bg-gray-50 ${!user.is_active ? 'opacity-50 bg-gray-100' : ''}`}>
                           <td className="px-6 py-4 text-sm text-gray-900">{user.full_name}</td>
                           <td className="px-6 py-4 text-sm text-gray-600">{user.email}</td>
                           <td className="px-6 py-4">
@@ -822,6 +825,17 @@ function OwnerDashboard() {
                               'bg-green-100 text-green-800'
                             }`}>
                               {user.role}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4">
+                            <span className={`inline-flex items-center gap-1 px-2 py-1 text-xs font-semibold rounded-full ${
+                              user.is_active !== false ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                            }`}>
+                              {user.is_active !== false ? (
+                                <><CheckCircle2 className="w-3 h-3" /> Active</>
+                              ) : (
+                                <><Ban className="w-3 h-3" /> Disabled</>
+                              )}
                             </span>
                           </td>
                           <td className="px-6 py-4 text-sm text-gray-600">{user.phone || '-'}</td>
@@ -839,8 +853,17 @@ function OwnerDashboard() {
                                   <Lock className="w-4 h-4" />
                                 )}
                               </button>
-                              <button onClick={() => handleDeleteUser(user.id)} className="text-red-600 hover:text-red-800" data-testid={`delete-user-${user.id}`}>
-                                <Trash2 className="w-4 h-4" />
+                              <button 
+                                onClick={() => handleToggleUserStatus(user)} 
+                                className={`${user.is_active !== false ? 'text-red-600 hover:text-red-800' : 'text-green-600 hover:text-green-800'}`}
+                                title={user.is_active !== false ? 'Disable User' : 'Enable User'}
+                                data-testid={`toggle-status-${user.id}`}
+                              >
+                                {user.is_active !== false ? (
+                                  <Ban className="w-4 h-4" />
+                                ) : (
+                                  <CheckCircle2 className="w-4 h-4" />
+                                )}
                               </button>
                             </div>
                           </td>

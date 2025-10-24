@@ -565,7 +565,7 @@ async def login(credentials: UserLogin):
         raise HTTPException(status_code=401, detail="Invalid email or password")
     
     if not user_doc.get('is_active', True):
-        raise HTTPException(status_code=401, detail="Account is inactive. Please verify your email.")
+        raise HTTPException(status_code=403, detail="Your account has been disabled. Please contact support.")
     
     user_doc['created_at'] = datetime.fromisoformat(user_doc['created_at']) if isinstance(user_doc['created_at'], str) else user_doc['created_at']
     user_obj = User(**{k: v for k, v in user_doc.items() if k != 'password'})
@@ -638,6 +638,47 @@ async def admin_reset_password(user_id: str, password_data: dict, current_user: 
     )
     
     return {"message": "Password reset successfully"}
+
+@api_router.put("/admin/users/{user_id}/toggle-status")
+async def toggle_user_status(
+    user_id: str,
+    current_user: dict = Depends(require_role(["owner", "admin"]))
+):
+    """Enable or disable a user account"""
+    # Get the user
+    user = await db.users.find_one({"id": user_id})
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    # Don't allow disabling yourself
+    if user_id == current_user['id']:
+        raise HTTPException(status_code=400, detail="Cannot disable your own account")
+    
+    # Toggle is_active status
+    new_status = not user.get('is_active', True)
+    
+    await db.users.update_one(
+        {"id": user_id},
+        {"$set": {"is_active": new_status}}
+    )
+    
+    # Send notification to user
+    status_text = "enabled" if new_status else "disabled"
+    await send_email(
+        to_email=user['email'],
+        subject=f"Account {status_text.title()}",
+        html_content=f"""
+        <h2>Hello {user['full_name']},</h2>
+        <p>Your account has been <strong>{status_text}</strong> by an administrator.</p>
+        {f'<p>You can now log in to your account.</p>' if new_status else '<p>Please contact support if you believe this is an error.</p>'}
+        """
+    )
+    
+    return {
+        "message": f"User account {status_text} successfully",
+        "user_id": user_id,
+        "is_active": new_status
+    }
 
 # Driver Management Routes
 @api_router.get("/drivers", response_model=List[User])
