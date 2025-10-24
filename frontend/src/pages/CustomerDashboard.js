@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Switch } from '@/components/ui/switch';
-import { Package, AlertCircle, Plus, MapPin, Calendar, Lock, Unlock, Repeat, Edit, Truck, Clock, CheckCircle, AlertTriangle } from 'lucide-react';
+import { Package, AlertCircle, Plus, MapPin, Calendar, Lock, Unlock, Repeat, Edit, Truck, Clock, CheckCircle, AlertTriangle, Search, Filter, ArrowUpDown } from 'lucide-react';
 import { toast } from 'sonner';
 import axios from 'axios';
 
@@ -24,6 +24,14 @@ function CustomerDashboard() {
   const [submitting, setSubmitting] = useState(false);
   const [cancellingOrderId, setCancellingOrderId] = useState(null);
   const [selectedOrderForTracking, setSelectedOrderForTracking] = useState(null);
+  
+  // Filter & Sort
+  const [orderSearchQuery, setOrderSearchQuery] = useState('');
+  const [orderSortBy, setOrderSortBy] = useState('created_at');
+  const [orderSortOrder, setOrderSortOrder] = useState('desc');
+  const [orderStatusFilter, setOrderStatusFilter] = useState([]);
+  const [orderDateFilter, setOrderDateFilter] = useState('all');
+  const [orderTypeFilter, setOrderTypeFilter] = useState('all');
   
   // Order form
   const [showOrderDialog, setShowOrderDialog] = useState(false);
@@ -82,6 +90,109 @@ function CustomerDashboard() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const getFilteredAndSortedOrders = () => {
+    let filtered = [...orders];
+
+    // Search filter
+    if (orderSearchQuery.trim()) {
+      const query = orderSearchQuery.toLowerCase();
+      filtered = filtered.filter(order =>
+        order.order_number?.toLowerCase().includes(query) ||
+        order.status?.toLowerCase().includes(query)
+      );
+    }
+
+    // Status filter
+    if (orderStatusFilter.length > 0) {
+      filtered = filtered.filter(order => orderStatusFilter.includes(order.status));
+    }
+
+    // Type filter
+    if (orderTypeFilter !== 'all') {
+      filtered = filtered.filter(order => 
+        orderTypeFilter === 'recurring' ? order.is_recurring : !order.is_recurring
+      );
+    }
+
+    // Date filter
+    if (orderDateFilter !== 'all') {
+      const now = new Date();
+      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      
+      filtered = filtered.filter(order => {
+        const deliveryDate = new Date(order.delivery_date);
+        
+        switch(orderDateFilter) {
+          case 'today':
+            return deliveryDate.toDateString() === today.toDateString();
+          case 'week':
+            const weekAgo = new Date(today);
+            weekAgo.setDate(weekAgo.getDate() - 7);
+            return deliveryDate >= weekAgo;
+          case 'month':
+            const monthAgo = new Date(today);
+            monthAgo.setMonth(monthAgo.getMonth() - 1);
+            return deliveryDate >= monthAgo;
+          default:
+            return true;
+        }
+      });
+    }
+
+    // Sort
+    filtered.sort((a, b) => {
+      let aVal, bVal;
+
+      switch(orderSortBy) {
+        case 'order_number':
+          aVal = a.order_number || '';
+          bVal = b.order_number || '';
+          break;
+        case 'status':
+          aVal = a.status || '';
+          bVal = b.status || '';
+          break;
+        case 'total_amount':
+          aVal = a.total_amount || 0;
+          bVal = b.total_amount || 0;
+          break;
+        case 'delivery_date':
+          aVal = new Date(a.delivery_date || 0);
+          bVal = new Date(b.delivery_date || 0);
+          break;
+        case 'created_at':
+        default:
+          aVal = new Date(a.created_at || 0);
+          bVal = new Date(b.created_at || 0);
+          break;
+      }
+
+      if (orderSortBy === 'total_amount' || orderSortBy === 'delivery_date' || orderSortBy === 'created_at') {
+        return orderSortOrder === 'asc' ? aVal - bVal : bVal - aVal;
+      } else {
+        const comparison = aVal.toString().localeCompare(bVal.toString());
+        return orderSortOrder === 'asc' ? comparison : -comparison;
+      }
+    });
+
+    return filtered;
+  };
+
+  const toggleStatusFilter = (status) => {
+    setOrderStatusFilter(prev =>
+      prev.includes(status) ? prev.filter(s => s !== status) : [...prev, status]
+    );
+  };
+
+  const clearAllOrderFilters = () => {
+    setOrderSearchQuery('');
+    setOrderStatusFilter([]);
+    setOrderDateFilter('all');
+    setOrderTypeFilter('all');
+    setOrderSortBy('created_at');
+    setOrderSortOrder('desc');
   };
 
   const handleCreateOrder = async (e) => {
@@ -597,8 +708,130 @@ function CustomerDashboard() {
                 </DialogContent>
               </Dialog>
             </div>
-            <div className="grid gap-4" data-testid="customer-orders-list">
-              {orders.map((order) => (
+
+            {/* Filter & Sort Controls */}
+            <Card className="mb-6">
+              <CardContent className="pt-6 space-y-4">
+                {/* Search Bar */}
+                <div className="flex items-center gap-2">
+                  <div className="relative flex-1">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                    <Input
+                      type="text"
+                      placeholder="Search by order number or status..."
+                      value={orderSearchQuery}
+                      onChange={(e) => setOrderSearchQuery(e.target.value)}
+                      className="pl-10"
+                    />
+                  </div>
+                  {(orderSearchQuery || orderStatusFilter.length > 0 || orderDateFilter !== 'all' || orderTypeFilter !== 'all') && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={clearAllOrderFilters}
+                      className="whitespace-nowrap"
+                    >
+                      Clear Filters
+                    </Button>
+                  )}
+                </div>
+
+                <div className="flex flex-wrap items-center gap-3">
+                  {/* Sort By */}
+                  <div className="flex items-center gap-2">
+                    <Label className="text-sm font-medium whitespace-nowrap">Sort by:</Label>
+                    <Select value={orderSortBy} onValueChange={setOrderSortBy}>
+                      <SelectTrigger className="w-[150px]">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="created_at">Order Date</SelectItem>
+                        <SelectItem value="delivery_date">Delivery Date</SelectItem>
+                        <SelectItem value="status">Status</SelectItem>
+                        <SelectItem value="total_amount">Amount</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setOrderSortOrder(orderSortOrder === 'asc' ? 'desc' : 'asc')}
+                      title={orderSortOrder === 'asc' ? 'Ascending' : 'Descending'}
+                    >
+                      <ArrowUpDown className="w-4 h-4" />
+                      {orderSortOrder === 'asc' ? '↑' : '↓'}
+                    </Button>
+                  </div>
+
+                  {/* Date Filter */}
+                  <div className="flex items-center gap-2">
+                    <Calendar className="w-4 h-4 text-gray-500" />
+                    <Select value={orderDateFilter} onValueChange={setOrderDateFilter}>
+                      <SelectTrigger className="w-[130px]">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Dates</SelectItem>
+                        <SelectItem value="today">Today</SelectItem>
+                        <SelectItem value="week">This Week</SelectItem>
+                        <SelectItem value="month">This Month</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* Type Filter */}
+                  <div className="flex items-center gap-2">
+                    <Repeat className="w-4 h-4 text-gray-500" />
+                    <Select value={orderTypeFilter} onValueChange={setOrderTypeFilter}>
+                      <SelectTrigger className="w-[130px]">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Types</SelectItem>
+                        <SelectItem value="regular">Regular</SelectItem>
+                        <SelectItem value="recurring">Recurring</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                {/* Status Filter Chips */}
+                <div className="flex items-center gap-2 flex-wrap">
+                  <Filter className="w-4 h-4 text-gray-500" />
+                  <Label className="text-sm font-medium">Status:</Label>
+                  {['pending', 'scheduled', 'processing', 'ready_for_pickup', 'out_for_delivery', 'delivered', 'cancelled'].map(status => (
+                    <button
+                      key={status}
+                      onClick={() => toggleStatusFilter(status)}
+                      className={`px-3 py-1 text-xs rounded-full border transition-colors ${
+                        orderStatusFilter.includes(status)
+                          ? 'bg-teal-500 text-white border-teal-500'
+                          : 'bg-white text-gray-700 border-gray-300 hover:border-teal-500'
+                      }`}
+                    >
+                      {status.replace(/_/g, ' ')}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Results Count */}
+                <div className="text-sm text-gray-600">
+                  Showing <span className="font-semibold">{getFilteredAndSortedOrders().length}</span> of <span className="font-semibold">{orders.length}</span> orders
+                </div>
+              </CardContent>
+            </Card>
+
+            {getFilteredAndSortedOrders().length === 0 ? (
+              <Card>
+                <CardContent className="py-12 text-center text-gray-500">
+                  <Package className="h-12 w-12 mx-auto mb-2 opacity-50" />
+                  <p>{orderSearchQuery || orderStatusFilter.length > 0 || orderDateFilter !== 'all' || orderTypeFilter !== 'all' 
+                    ? 'No orders match your filters' 
+                    : 'No orders yet. Create your first order!'}</p>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="grid gap-4" data-testid="customer-orders-list">
+              {getFilteredAndSortedOrders().map((order) => (
                 <Card key={order.id} className="card-hover">
                   <CardContent className="p-6">
                     <div className="flex justify-between items-start mb-4">
@@ -730,16 +963,8 @@ function CustomerDashboard() {
                   </CardContent>
                 </Card>
               ))}
-              {orders.length === 0 && (
-                <Card>
-                  <CardContent className="p-12 text-center">
-                    <Package className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                    <p className="text-gray-600">No orders found</p>
-                    <p className="text-sm text-gray-500 mt-2">Click "Create Order" to place your first order</p>
-                  </CardContent>
-                </Card>
-              )}
             </div>
+            )}
           </div>
         )}
 
