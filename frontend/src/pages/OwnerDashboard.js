@@ -642,7 +642,7 @@ function OwnerDashboard() {
               </CardHeader>
               <CardContent>
                 <div className="text-3xl font-bold text-gray-900" data-testid="total-revenue-stat">${stats?.total_revenue?.toFixed(2) || 0}</div>
-                <p className="text-sm text-gray-500 mt-1">Completed orders</p>
+                <p className="text-sm text-gray-500 mt-1">Ready for pickup orders</p>
               </CardContent>
             </Card>
 
@@ -1587,7 +1587,8 @@ function OwnerDashboard() {
                             </td>
                             <td className="px-4 py-3">
                               <span className={`px-2 py-1 text-xs rounded-full ${
-                                order.status === 'completed' ? 'bg-green-100 text-green-800' :
+                                order.status === 'ready_for_pickup' ? 'bg-green-100 text-green-800' :
+                                order.status === 'delivered' ? 'bg-green-100 text-green-800' :
                                 order.status === 'processing' ? 'bg-blue-100 text-blue-800' :
                                 order.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
                                 'bg-gray-100 text-gray-800'

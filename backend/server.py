@@ -1559,11 +1559,11 @@ async def get_dashboard_stats(current_user: dict = Depends(require_role(["owner"
     total_orders = await db.orders.count_documents({})
     total_customers = await db.users.count_documents({"role": "customer"})
     pending_orders = await db.orders.count_documents({"status": "pending"})
-    completed_orders = await db.orders.count_documents({"status": "completed"})
+    completed_orders = await db.orders.count_documents({"status": "ready_for_pickup"})
     open_cases = await db.cases.count_documents({"status": "open"})
     
     # Calculate total revenue
-    orders = await db.orders.find({"status": "completed"}, {"total_amount": 1}).to_list(10000)
+    orders = await db.orders.find({"status": "ready_for_pickup"}, {"total_amount": 1}).to_list(10000)
     total_revenue = sum(order.get('total_amount', 0) for order in orders)
     
     return {
@@ -1643,7 +1643,7 @@ async def lock_orders_job():
         orders_to_lock = await db.orders.find({
             "is_locked": {"$ne": True},
             "created_at": {"$lte": lock_threshold.isoformat()},
-            "status": {"$nin": ["completed", "cancelled"]}
+            "status": {"$nin": ["ready_for_pickup", "delivered", "cancelled"]}
         }).to_list(length=None)
         
         for order in orders_to_lock:

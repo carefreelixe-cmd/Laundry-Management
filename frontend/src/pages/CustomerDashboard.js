@@ -280,8 +280,11 @@ function CustomerDashboard() {
   const getStatusBadgeClass = (status) => {
     switch(status) {
       case 'pending': return 'badge-pending';
+      case 'scheduled': return 'badge-scheduled';
       case 'processing': return 'badge-processing';
-      case 'completed': return 'badge-completed';
+      case 'ready_for_pickup': return 'badge-completed';
+      case 'out_for_delivery': return 'badge-out-for-delivery';
+      case 'delivered': return 'badge-completed';
       case 'cancelled': return 'badge-cancelled';
       default: return 'bg-gray-100 text-gray-800';
     }
@@ -623,7 +626,7 @@ function CustomerDashboard() {
                           </p>
                         )}
                       </div>
-                      {order.status !== 'completed' && order.status !== 'cancelled' && canModifyOrder(order.created_at) && (
+                      {order.status !== 'ready_for_pickup' && order.status !== 'delivered' && order.status !== 'cancelled' && canModifyOrder(order.created_at) && (
                         <div className="flex gap-2">
                           <Button
                             variant="outline"
@@ -710,7 +713,7 @@ function CustomerDashboard() {
                       </div>
                     )}
 
-                    {order.status !== 'completed' && order.status !== 'cancelled' && !canModifyOrder(order.created_at) && (
+                    {order.status !== 'ready_for_pickup' && order.status !== 'delivered' && order.status !== 'cancelled' && !canModifyOrder(order.created_at) && (
                       <div className="mt-4 p-3 bg-yellow-50 rounded-lg">
                         <p className="text-sm text-yellow-800">⚠️ This order cannot be modified (locked after 8 hours from creation)</p>
                       </div>

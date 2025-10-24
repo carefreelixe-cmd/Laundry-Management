@@ -256,9 +256,9 @@ def send_order_status_email(to_email: str, customer_name: str, order_number: str
                 'message': 'Your order has been successfully delivered.',
                 'color': '#4CAF50'
             },
-            'completed': {
-                'title': '✅ Order Completed',
-                'message': 'Your order has been completed.',
+            'ready_for_pickup': {
+                'title': '✅ Order Ready for Pickup',
+                'message': 'Your order is ready and waiting for pickup.',
                 'color': '#4CAF50'
             },
             'cancelled': {

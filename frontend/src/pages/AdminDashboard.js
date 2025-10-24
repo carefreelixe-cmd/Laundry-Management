@@ -253,7 +253,8 @@ function AdminDashboard() {
     switch(status) {
       case 'pending': return 'badge-pending';
       case 'processing': return 'badge-processing';
-      case 'completed': return 'badge-completed';
+      case 'ready_for_pickup': return 'badge-completed';
+      case 'delivered': return 'badge-completed';
       case 'cancelled': return 'badge-cancelled';
       default: return 'bg-gray-100 text-gray-800';
     }
@@ -596,8 +597,11 @@ function AdminDashboard() {
                           </SelectTrigger>
                           <SelectContent>
                             <SelectItem value="pending">Pending</SelectItem>
+                            <SelectItem value="scheduled">Scheduled</SelectItem>
                             <SelectItem value="processing">Processing</SelectItem>
-                            <SelectItem value="completed">Completed</SelectItem>
+                            <SelectItem value="ready_for_pickup">Ready for Pickup</SelectItem>
+                            <SelectItem value="out_for_delivery">Out for Delivery</SelectItem>
+                            <SelectItem value="delivered">Delivered</SelectItem>
                             <SelectItem value="cancelled">Cancelled</SelectItem>
                           </SelectContent>
                         </Select>
