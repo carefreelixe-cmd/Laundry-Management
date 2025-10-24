@@ -1485,10 +1485,7 @@ function LandingPage() {
               >
                 Contact
               </a>
-              <div className='space-x-3'>
-                <Button onClick={() => navigate('/signup')} variant="outline" className="border-2 border-teal-500 text-teal-500 hover:bg-teal-50 rounded-full px-4 py-2 xl:px-6 text-sm xl:text-base" data-testid="nav-signup-btn">Sign Up</Button>
-                <Button onClick={() => navigate('/login')} className="bg-teal-500 hover:bg-teal-600 text-white py-2 rounded-full px-4 xl:px-6 text-sm xl:text-base" data-testid="nav-login-btn">Login</Button>
-              </div>
+              <Button onClick={() => navigate('/login')} className="bg-teal-500 hover:bg-teal-600 text-white py-2 rounded-full px-4 xl:px-6 text-sm xl:text-base" data-testid="nav-login-btn">Login</Button>
             </div>
             <div className="lg:hidden flex items-center gap-2">
               <Button onClick={() => setMobileMenuOpen(!mobileMenuOpen)} variant="ghost" size="sm" className="p-2" data-testid="mobile-menu-btn">
@@ -1547,7 +1544,6 @@ function LandingPage() {
                 >
                   Contact
                 </a>
-                <Button onClick={() => { navigate('/signup'); setMobileMenuOpen(false); }} variant="outline" className="border-2 border-teal-500 text-teal-500 hover:bg-teal-50 rounded-full w-full">Sign Up</Button>
                 <Button onClick={() => { navigate('/login'); setMobileMenuOpen(false); }} className="bg-teal-500 hover:bg-teal-600 text-white rounded-full w-full">Login</Button>
               </div>
             </div>

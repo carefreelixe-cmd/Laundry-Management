@@ -8,7 +8,6 @@ import { SocketProvider } from './contexts/SocketContext';
 // Pages
 import LandingPage from './pages/LandingPage';
 import LoginPage from './pages/LoginPage';
-import SignupPage from './pages/SignupPage';
 import ForgotPasswordPage from './pages/ForgotPasswordPage';
 import OwnerDashboard from './pages/OwnerDashboard';
 import AdminDashboard from './pages/AdminDashboard';
@@ -101,7 +100,7 @@ function App() {
             <Routes>
               <Route path="/" element={<LandingPage />} />
               <Route path="/login" element={user ? <Navigate to={`/dashboard/${user.role}`} /> : <LoginPage />} />
-              <Route path="/signup" element={user ? <Navigate to={`/dashboard/${user.role}`} /> : <SignupPage />} />
+              <Route path="/signup" element={<Navigate to="/login" />} />
               <Route path="/forgot-password" element={user ? <Navigate to={`/dashboard/${user.role}`} /> : <ForgotPasswordPage />} />
               <Route
                 path="/dashboard/owner"
