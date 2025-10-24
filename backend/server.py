@@ -89,6 +89,119 @@ def require_role(allowed_roles: List[str]):
         return current_user
     return role_checker
 
+async def auto_create_next_recurring_order(order: dict):
+    """Auto-create the next occurrence of a recurring order"""
+    if not order.get('is_recurring'):
+        return None
+    
+    # Get frequency template if using one
+    frequency_data = None
+    if order.get('frequency_template_id'):
+        template = await db.frequency_templates.find_one({"id": order['frequency_template_id']})
+        if template:
+            frequency_data = {
+                'frequency_type': template['frequency_type'],
+                'frequency_value': template['frequency_value']
+            }
+    elif order.get('recurrence_pattern'):
+        frequency_data = order['recurrence_pattern']
+    
+    if not frequency_data:
+        logging.warning(f"No frequency data found for recurring order {order['id']}")
+        return None
+    
+    # Calculate next delivery date
+    current_delivery_date = datetime.fromisoformat(order['delivery_date']).date()
+    frequency_type = frequency_data['frequency_type']
+    frequency_value = frequency_data.get('frequency_value', 1)
+    
+    if frequency_type == 'daily':
+        next_delivery_date = current_delivery_date + timedelta(days=frequency_value)
+    elif frequency_type == 'weekly':
+        next_delivery_date = current_delivery_date + timedelta(weeks=frequency_value)
+    elif frequency_type == 'monthly':
+        next_delivery_date = current_delivery_date + timedelta(days=30 * frequency_value)
+    else:
+        next_delivery_date = current_delivery_date + timedelta(days=1)
+    
+    # Calculate next pickup date (2 days before delivery by default)
+    next_pickup_date = next_delivery_date - timedelta(days=2)
+    
+    # Create new order
+    new_order = {
+        'id': str(uuid.uuid4()),
+        'order_number': f"ORD-{datetime.now(timezone.utc).strftime('%Y%m%d')}-{str(uuid.uuid4())[:8].upper()}",
+        'customer_id': order['customer_id'],
+        'customer_name': order['customer_name'],
+        'customer_email': order['customer_email'],
+        'items': order['items'],
+        'pickup_date': next_pickup_date.isoformat(),
+        'delivery_date': next_delivery_date.isoformat(),
+        'pickup_address': order['pickup_address'],
+        'delivery_address': order['delivery_address'],
+        'special_instructions': order.get('special_instructions', ''),
+        'total_amount': order['total_amount'],
+        'status': 'scheduled',
+        'is_recurring': True,
+        'frequency_template_id': order.get('frequency_template_id'),
+        'recurrence_pattern': order.get('recurrence_pattern'),
+        'parent_order_id': order['id'],
+        'created_at': datetime.now(timezone.utc).isoformat(),
+        'updated_at': datetime.now(timezone.utc).isoformat(),
+        'is_locked': False
+    }
+    
+    # Calculate next_occurrence_date for the new order
+    if frequency_type == 'daily':
+        next_next_date = next_delivery_date + timedelta(days=frequency_value)
+    elif frequency_type == 'weekly':
+        next_next_date = next_delivery_date + timedelta(weeks=frequency_value)
+    elif frequency_type == 'monthly':
+        next_next_date = next_delivery_date + timedelta(days=30 * frequency_value)
+    else:
+        next_next_date = next_delivery_date + timedelta(days=1)
+    
+    new_order['next_occurrence_date'] = next_next_date.isoformat()
+    
+    # Insert new order
+    await db.orders.insert_one(new_order)
+    
+    logging.info(f"Auto-created next recurring order {new_order['order_number']} for customer {order['customer_id']}")
+    
+    # Send notification to customer
+    customer = await db.users.find_one({"id": order['customer_id']})
+    if customer:
+        await create_notification(
+            order['customer_id'],
+            "Next Recurring Order Created",
+            f"Your next recurring order {new_order['order_number']} has been automatically created for delivery on {next_delivery_date.strftime('%Y-%m-%d')}",
+            "order"
+        )
+        
+        # Send email notification
+        send_email(
+            to_email=customer['email'],
+            subject="Next Recurring Order Created",
+            body=f"""
+            <html>
+            <body>
+                <h2>Next Recurring Order Created</h2>
+                <p>Dear {customer.get('full_name', 'Customer')},</p>
+                <p>Your next recurring order has been automatically created:</p>
+                <ul>
+                    <li><strong>Order Number:</strong> {new_order['order_number']}</li>
+                    <li><strong>Pickup Date:</strong> {next_pickup_date.strftime('%Y-%m-%d')}</li>
+                    <li><strong>Delivery Date:</strong> {next_delivery_date.strftime('%Y-%m-%d')}</li>
+                    <li><strong>Total Amount:</strong> ${new_order['total_amount']:.2f}</li>
+                </ul>
+                <p>You can view and manage your order in your dashboard.</p>
+            </body>
+            </html>
+            """
+        )
+    
+    return new_order
+
 def send_email(to_email: str, subject: str, body: str):
     try:
         gmail_user = os.environ.get('GMAIL_USER')
@@ -227,6 +340,10 @@ class Order(OrderBase):
     picked_up_at: Optional[datetime] = None
     delivered_at: Optional[datetime] = None
     delivery_notes: Optional[str] = None
+    pending_modifications: Optional[dict] = None  # Stores proposed changes awaiting customer approval
+    modification_status: Optional[str] = None  # "pending_approval", "approved", "rejected"
+    modified_by: Optional[str] = None  # ID of user who proposed the modification
+    modification_requested_at: Optional[datetime] = None
 
 class OrderUpdate(BaseModel):
     status: Optional[str] = None
@@ -745,6 +862,10 @@ async def update_delivery_status(
     
     await db.orders.update_one({"id": order_id}, {"$set": update_data})
     
+    # Auto-create next recurring order if delivered
+    if status == "delivered" and order.get('is_recurring'):
+        await auto_create_next_recurring_order(order)
+    
     # Get customer details for email notification
     customer = await db.users.find_one({"id": order['customer_id']})
     
@@ -1153,6 +1274,7 @@ async def update_order(order_id: str, update: OrderUpdate, current_user: dict = 
     
     # Check if status is being changed
     status_changed = 'status' in update_data and update_data['status'] != order_doc.get('status')
+    new_status = update_data.get('status')
     
     # Recalculate next_occurrence_date if this is a recurring order and delivery_date changed
     if update_data.get('is_recurring') and update_data.get('recurrence_pattern'):
@@ -1181,6 +1303,10 @@ async def update_order(order_id: str, update: OrderUpdate, current_user: dict = 
     updated_order['updated_at'] = datetime.fromisoformat(updated_order['updated_at'])
     if updated_order.get('locked_at'):
         updated_order['locked_at'] = datetime.fromisoformat(updated_order['locked_at']) if isinstance(updated_order['locked_at'], str) else updated_order['locked_at']
+    
+    # Auto-create next recurring order if status changed to delivered or completed
+    if status_changed and new_status in ['delivered', 'completed'] and order_doc.get('is_recurring'):
+        await auto_create_next_recurring_order(order_doc)
     
     # Get customer details
     customer = await db.users.find_one({"id": order_doc['customer_id']})
@@ -1283,6 +1409,164 @@ async def cancel_order(order_id: str, current_user: dict = Depends(get_current_u
         )
     
     return {"message": "Order cancelled successfully"}
+
+@api_router.put("/orders/{order_id}/propose-modification")
+async def propose_order_modification(
+    order_id: str,
+    modifications: dict = Body(...),
+    current_user: dict = Depends(require_role(["owner", "admin"]))
+):
+    """Propose modifications to a recurring order that require customer approval"""
+    order = await db.orders.find_one({"id": order_id})
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+    
+    if not order.get('is_recurring'):
+        raise HTTPException(status_code=400, detail="Only recurring orders require modification approval")
+    
+    # Store the proposed modifications
+    update_data = {
+        "pending_modifications": modifications,
+        "modification_status": "pending_approval",
+        "modified_by": current_user['id'],
+        "modification_requested_at": datetime.now(timezone.utc).isoformat(),
+        "updated_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    await db.orders.update_one({"id": order_id}, {"$set": update_data})
+    
+    # Get customer details
+    customer = await db.users.find_one({"id": order['customer_id']})
+    
+    # Send notification to customer
+    if customer:
+        await create_notification(
+            order['customer_id'],
+            "Order Modification Pending Approval",
+            f"Changes have been proposed for your recurring order {order['order_number']}. Please review and approve or reject the changes.",
+            "order"
+        )
+        
+        # Send email notification
+        send_email(
+            to_email=customer['email'],
+            subject=f"Approval Needed: Changes to Order {order['order_number']}",
+            body=f"""
+            <html>
+            <body>
+                <h2>Order Modification Pending Your Approval</h2>
+                <p>Dear {customer.get('full_name', 'Customer')},</p>
+                <p>Changes have been proposed for your recurring order <strong>{order['order_number']}</strong>.</p>
+                <p>Please log in to your dashboard to review and approve or reject these changes.</p>
+                <p><strong>Note:</strong> The current order will continue as scheduled until you approve the changes.</p>
+            </body>
+            </html>
+            """
+        )
+    
+    return {"message": "Modification proposed successfully. Customer approval required."}
+
+@api_router.put("/orders/{order_id}/approve-modification")
+async def approve_order_modification(
+    order_id: str,
+    current_user: dict = Depends(get_current_user)
+):
+    """Customer approves proposed modifications to their recurring order"""
+    order = await db.orders.find_one({"id": order_id})
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+    
+    # Only the customer can approve
+    if order['customer_id'] != current_user['id']:
+        raise HTTPException(status_code=403, detail="Only the customer can approve modifications")
+    
+    if order.get('modification_status') != 'pending_approval':
+        raise HTTPException(status_code=400, detail="No pending modifications to approve")
+    
+    # Apply the pending modifications
+    modifications = order.get('pending_modifications', {})
+    update_data = {
+        **modifications,
+        "modification_status": "approved",
+        "pending_modifications": None,
+        "updated_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    # Recalculate total if items changed
+    if 'items' in modifications:
+        total = sum(item['price'] * item['quantity'] for item in modifications['items'])
+        update_data['total_amount'] = total
+    
+    await db.orders.update_one({"id": order_id}, {"$set": update_data})
+    
+    # Notify the admin/owner who proposed the change
+    if order.get('modified_by'):
+        modifier = await db.users.find_one({"id": order['modified_by']})
+        if modifier:
+            await create_notification(
+                order['modified_by'],
+                "Modification Approved",
+                f"Customer has approved your proposed changes to order {order['order_number']}",
+                "order"
+            )
+    
+    # Send confirmation to customer
+    await create_notification(
+        order['customer_id'],
+        "Modification Approved",
+        f"You have approved the changes to your recurring order {order['order_number']}",
+        "order"
+    )
+    
+    return {"message": "Modifications approved and applied successfully"}
+
+@api_router.put("/orders/{order_id}/reject-modification")
+async def reject_order_modification(
+    order_id: str,
+    reason: Optional[str] = Body(None, embed=True),
+    current_user: dict = Depends(get_current_user)
+):
+    """Customer rejects proposed modifications to their recurring order"""
+    order = await db.orders.find_one({"id": order_id})
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+    
+    # Only the customer can reject
+    if order['customer_id'] != current_user['id']:
+        raise HTTPException(status_code=403, detail="Only the customer can reject modifications")
+    
+    if order.get('modification_status') != 'pending_approval':
+        raise HTTPException(status_code=400, detail="No pending modifications to reject")
+    
+    # Clear the pending modifications
+    update_data = {
+        "modification_status": "rejected",
+        "pending_modifications": None,
+        "updated_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    await db.orders.update_one({"id": order_id}, {"$set": update_data})
+    
+    # Notify the admin/owner who proposed the change
+    if order.get('modified_by'):
+        modifier = await db.users.find_one({"id": order['modified_by']})
+        if modifier:
+            await create_notification(
+                order['modified_by'],
+                "Modification Rejected",
+                f"Customer has rejected your proposed changes to order {order['order_number']}{'. Reason: ' + reason if reason else ''}",
+                "order"
+            )
+    
+    # Send confirmation to customer
+    await create_notification(
+        order['customer_id'],
+        "Modification Rejected",
+        f"You have rejected the changes to your recurring order {order['order_number']}. The order will continue as originally scheduled.",
+        "order"
+    )
+    
+    return {"message": "Modifications rejected successfully"}
 
 @api_router.put("/orders/{order_id}/assign-driver")
 async def assign_driver_to_order(
