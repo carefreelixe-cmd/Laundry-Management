@@ -24,6 +24,22 @@ function AdminDashboard() {
   const [loading, setLoading] = useState(true);
   const [selectedOrderForTracking, setSelectedOrderForTracking] = useState(null);
   
+  // SKU management
+  const [showSkuDialog, setShowSkuDialog] = useState(false);
+  const [editingSku, setEditingSku] = useState(null);
+  const [skuForm, setSkuForm] = useState({ name: '', category: '', price: '', unit: '', description: '' });
+  const [creatingSku, setCreatingSku] = useState(false);
+  const [deletingSkuId, setDeletingSkuId] = useState(null);
+  
+  // Customer Pricing
+  const [selectedCustomer, setSelectedCustomer] = useState(null);
+  const [customerPricing, setCustomerPricing] = useState([]);
+  const [skusWithPricing, setSkusWithPricing] = useState([]);
+  const [showPricingDialog, setShowPricingDialog] = useState(false);
+  const [pricingForm, setPricingForm] = useState({ sku_id: '', custom_price: '' });
+  const [creatingPricing, setCreatingPricing] = useState(false);
+  const [deletingPricingId, setDeletingPricingId] = useState(null);
+  
   // Loading states for operations
   const [creatingOrder, setCreatingOrder] = useState(false);
   const [editingOrderId, setEditingOrderId] = useState(null);
@@ -88,6 +104,16 @@ function AdminDashboard() {
       } else if (activeTab === 'delivery-tracking') {
         const ordersRes = await axios.get(`${API}/orders`);
         setOrders(ordersRes.data);
+      } else if (activeTab === 'skus') {
+        const skusRes = await axios.get(`${API}/skus`);
+        setSkus(skusRes.data);
+      } else if (activeTab === 'pricing') {
+        const [customersRes, skusRes] = await Promise.all([
+          axios.get(`${API}/users`),
+          axios.get(`${API}/skus`)
+        ]);
+        setCustomers(customersRes.data.filter(u => u.role === 'customer'));
+        setSkus(skusRes.data);
       }
     } catch (error) {
       console.error('Failed to fetch data', error);
@@ -293,6 +319,132 @@ function AdminDashboard() {
     setShowPasswordDialog(true);
   };
 
+  // SKU Management Functions
+  const handleCreateSku = async (e) => {
+    e.preventDefault();
+    if (creatingSku) return;
+    
+    try {
+      setCreatingSku(true);
+      if (editingSku) {
+        await axios.put(`${API}/skus/${editingSku.id}`, skuForm);
+        toast.success('SKU updated successfully');
+      } else {
+        await axios.post(`${API}/skus`, skuForm);
+        toast.success('SKU created successfully');
+      }
+      setShowSkuDialog(false);
+      setEditingSku(null);
+      setSkuForm({ name: '', category: '', price: '', unit: '', description: '' });
+      fetchData();
+    } catch (error) {
+      console.error('Failed to save SKU', error);
+      toast.error(error.response?.data?.detail || `Failed to ${editingSku ? 'update' : 'create'} SKU`);
+    } finally {
+      setCreatingSku(false);
+    }
+  };
+
+  const handleEditSku = (sku) => {
+    setEditingSku(sku);
+    setSkuForm({
+      name: sku.name,
+      category: sku.category,
+      price: sku.price.toString(),
+      unit: sku.unit,
+      description: sku.description || ''
+    });
+    setShowSkuDialog(true);
+  };
+
+  const handleDeleteSku = async (skuId) => {
+    if (!window.confirm('Are you sure you want to delete this SKU?')) return;
+    if (deletingSkuId) return;
+    
+    try {
+      setDeletingSkuId(skuId);
+      await axios.delete(`${API}/skus/${skuId}`);
+      toast.success('SKU deleted successfully');
+      fetchData();
+    } catch (error) {
+      console.error('Failed to delete SKU', error);
+      toast.error(error.response?.data?.detail || 'Failed to delete SKU');
+    } finally {
+      setDeletingSkuId(null);
+    }
+  };
+
+  // Customer Pricing Functions
+  const handleSelectCustomer = async (customerId) => {
+    if (!customerId) {
+      setSelectedCustomer(null);
+      setCustomerPricing([]);
+      setSkusWithPricing([]);
+      return;
+    }
+    
+    try {
+      const customer = customers.find(c => c.id === customerId);
+      setSelectedCustomer(customer);
+      
+      const pricingRes = await axios.get(`${API}/customer-pricing/${customerId}`);
+      setCustomerPricing(pricingRes.data);
+      
+      const skusWithCustomPrices = skus.map(sku => {
+        const customPrice = pricingRes.data.find(p => p.sku_id === sku.id);
+        return {
+          ...sku,
+          custom_price: customPrice ? customPrice.custom_price : null,
+          pricing_id: customPrice ? customPrice.id : null
+        };
+      });
+      setSkusWithPricing(skusWithCustomPrices);
+    } catch (error) {
+      console.error('Failed to fetch customer pricing', error);
+      toast.error('Failed to load customer pricing');
+    }
+  };
+
+  const handleCreatePricing = async (e) => {
+    e.preventDefault();
+    if (creatingPricing || !selectedCustomer) return;
+    
+    try {
+      setCreatingPricing(true);
+      await axios.post(`${API}/customer-pricing`, {
+        customer_id: selectedCustomer.id,
+        sku_id: pricingForm.sku_id,
+        custom_price: parseFloat(pricingForm.custom_price)
+      });
+      toast.success('Custom pricing added successfully');
+      setShowPricingDialog(false);
+      setPricingForm({ sku_id: '', custom_price: '' });
+      handleSelectCustomer(selectedCustomer.id);
+    } catch (error) {
+      console.error('Failed to create pricing', error);
+      toast.error(error.response?.data?.detail || 'Failed to add custom pricing');
+    } finally {
+      setCreatingPricing(false);
+    }
+  };
+
+  const handleDeletePricing = async (pricingId) => {
+    if (!window.confirm('Are you sure you want to remove this custom pricing?')) return;
+    if (deletingPricingId || !selectedCustomer) return;
+    
+    try {
+      setDeletingPricingId(pricingId);
+      await axios.delete(`${API}/customer-pricing/${pricingId}`);
+      toast.success('Custom pricing removed successfully');
+      handleSelectCustomer(selectedCustomer.id);
+    } catch (error) {
+      console.error('Failed to delete pricing', error);
+      toast.error(error.response?.data?.detail || 'Failed to remove custom pricing');
+    } finally {
+      setDeletingPricingId(null);
+    }
+  };
+
   if (loading) {
     return (
       <DashboardLayout>
@@ -342,6 +494,28 @@ function AdminDashboard() {
             data-testid="delivery-tracking-tab"
           >
             Delivery Tracking
+          </button>
+          <button
+            onClick={() => setActiveTab('skus')}
+            className={`pb-3 px-1 font-medium transition-colors ${
+              activeTab === 'skus'
+                ? 'text-teal-600 border-b-2 border-teal-600'
+                : 'text-gray-500 hover:text-gray-700'
+            }`}
+            data-testid="skus-tab"
+          >
+            SKUs
+          </button>
+          <button
+            onClick={() => setActiveTab('pricing')}
+            className={`pb-3 px-1 font-medium transition-colors ${
+              activeTab === 'pricing'
+                ? 'text-teal-600 border-b-2 border-teal-600'
+                : 'text-gray-500 hover:text-gray-700'
+            }`}
+            data-testid="pricing-tab"
+          >
+            Pricing
           </button>
           <button
             onClick={() => setActiveTab('users')}
@@ -1176,6 +1350,255 @@ function AdminDashboard() {
                 </form>
               </DialogContent>
             </Dialog>
+          </div>
+        )}
+
+        {/* SKUs Tab */}
+        {activeTab === 'skus' && (
+          <div>
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-2xl font-bold text-gray-900">SKU Management</h2>
+              <Dialog open={showSkuDialog} onOpenChange={(open) => {
+                setShowSkuDialog(open);
+                if (!open) {
+                  setEditingSku(null);
+                  setSkuForm({ name: '', category: '', price: '', unit: '', description: '' });
+                }
+              }}>
+                <DialogTrigger asChild>
+                  <Button className="bg-teal-500 hover:bg-teal-600" data-testid="create-sku-btn">
+                    <Plus className="w-4 h-4 mr-2" />
+                    Create SKU
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>{editingSku ? 'Edit SKU' : 'Create New SKU'}</DialogTitle>
+                  </DialogHeader>
+                  <form onSubmit={handleCreateSku} className="space-y-4">
+                    <div>
+                      <Label>Name</Label>
+                      <Input value={skuForm.name} onChange={(e) => setSkuForm({ ...skuForm, name: e.target.value })} required data-testid="sku-name-input" />
+                    </div>
+                    <div>
+                      <Label>Category</Label>
+                      <Input value={skuForm.category} onChange={(e) => setSkuForm({ ...skuForm, category: e.target.value })} required data-testid="sku-category-input" />
+                    </div>
+                    <div>
+                      <Label>Price</Label>
+                      <Input type="number" step="0.01" min="0" value={skuForm.price} onChange={(e) => setSkuForm({ ...skuForm, price: e.target.value })} required data-testid="sku-price-input" />
+                    </div>
+                    <div>
+                      <Label>Unit</Label>
+                      <Input value={skuForm.unit} onChange={(e) => setSkuForm({ ...skuForm, unit: e.target.value })} required placeholder="e.g., kg, item, piece" data-testid="sku-unit-input" />
+                    </div>
+                    <div>
+                      <Label>Description</Label>
+                      <Input value={skuForm.description} onChange={(e) => setSkuForm({ ...skuForm, description: e.target.value })} data-testid="sku-description-input" />
+                    </div>
+                    <Button type="submit" className="w-full bg-teal-500 hover:bg-teal-600" disabled={creatingSku} data-testid="sku-submit-btn">
+                      {creatingSku ? (
+                        <>
+                          <Clock className="w-4 h-4 mr-2 animate-spin" />
+                          {editingSku ? 'Updating...' : 'Creating...'}
+                        </>
+                      ) : (
+                        editingSku ? 'Update SKU' : 'Create SKU'
+                      )}
+                    </Button>
+                  </form>
+                </DialogContent>
+              </Dialog>
+            </div>
+
+            <div className="grid gap-4" data-testid="skus-list">
+              {skus.map((sku) => (
+                <Card key={sku.id} className="card-hover">
+                  <CardContent className="p-6">
+                    <div className="flex justify-between items-start">
+                      <div className="flex-1">
+                        <h3 className="text-xl font-bold text-gray-900 mb-2">{sku.name}</h3>
+                        <div className="grid grid-cols-2 gap-4 text-sm">
+                          <div>
+                            <span className="text-gray-600">Category:</span>
+                            <span className="ml-2 font-medium text-gray-900">{sku.category}</span>
+                          </div>
+                          <div>
+                            <span className="text-gray-600">Unit:</span>
+                            <span className="ml-2 font-medium text-gray-900">{sku.unit}</span>
+                          </div>
+                          <div>
+                            <span className="text-gray-600">Price:</span>
+                            <span className="ml-2 font-bold text-teal-600">${sku.price}</span>
+                          </div>
+                        </div>
+                        {sku.description && (
+                          <p className="text-sm text-gray-600 mt-3">{sku.description}</p>
+                        )}
+                      </div>
+                      <div className="flex gap-2">
+                        <Button variant="outline" size="sm" onClick={() => handleEditSku(sku)} className="border-teal-300 text-teal-600 hover:bg-teal-50">
+                          <Edit className="w-4 h-4 mr-1" />
+                          Edit
+                        </Button>
+                        <Button variant="outline" size="sm" onClick={() => handleDeleteSku(sku.id)} disabled={deletingSkuId === sku.id} className="border-red-300 text-red-600 hover:bg-red-50">
+                          {deletingSkuId === sku.id ? (
+                            <>
+                              <Clock className="w-4 h-4 mr-1 animate-spin" />
+                              Deleting...
+                            </>
+                          ) : (
+                            <>
+                              <Trash2 className="w-4 h-4 mr-1" />
+                              Delete
+                            </>
+                          )}
+                        </Button>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+              {skus.length === 0 && (
+                <Card>
+                  <CardContent className="p-12 text-center">
+                    <Package className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                    <p className="text-gray-600">No SKUs found</p>
+                  </CardContent>
+                </Card>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Pricing Tab */}
+        {activeTab === 'pricing' && (
+          <div>
+            <div className="mb-6">
+              <h2 className="text-2xl font-bold text-gray-900 mb-4">Customer Pricing</h2>
+              <div className="max-w-md">
+                <Label>Select Customer</Label>
+                <Select value={selectedCustomer?.id || ''} onValueChange={handleSelectCustomer}>
+                  <SelectTrigger data-testid="pricing-customer-select">
+                    <SelectValue placeholder="Choose a customer" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {customers.map(customer => (
+                      <SelectItem key={customer.id} value={customer.id}>
+                        {customer.full_name} ({customer.email})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {selectedCustomer && (
+              <>
+                <div className="bg-teal-50 border border-teal-200 rounded-lg p-4 mb-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="font-semibold text-gray-900">{selectedCustomer.full_name}</h3>
+                      <p className="text-sm text-gray-600">{selectedCustomer.email}</p>
+                    </div>
+                    <Dialog open={showPricingDialog} onOpenChange={setShowPricingDialog}>
+                      <DialogTrigger asChild>
+                        <Button className="bg-teal-500 hover:bg-teal-600" size="sm" data-testid="add-pricing-btn">
+                          <Plus className="w-4 h-4 mr-2" />
+                          Add Custom Pricing
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent>
+                        <DialogHeader>
+                          <DialogTitle>Add Custom Pricing</DialogTitle>
+                        </DialogHeader>
+                        <form onSubmit={handleCreatePricing} className="space-y-4">
+                          <div>
+                            <Label>Select SKU</Label>
+                            <Select value={pricingForm.sku_id} onValueChange={(value) => setPricingForm({ ...pricingForm, sku_id: value })} required>
+                              <SelectTrigger data-testid="pricing-sku-select">
+                                <SelectValue placeholder="Choose SKU" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {skus.filter(sku => !skusWithPricing.find(s => s.id === sku.id && s.custom_price)).map(sku => (
+                                  <SelectItem key={sku.id} value={sku.id}>
+                                    {sku.name} (Default: ${sku.price})
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div>
+                            <Label>Custom Price</Label>
+                            <Input type="number" step="0.01" min="0" value={pricingForm.custom_price} onChange={(e) => setPricingForm({ ...pricingForm, custom_price: e.target.value })} required data-testid="pricing-price-input" />
+                          </div>
+                          <Button type="submit" className="w-full bg-teal-500 hover:bg-teal-600" disabled={creatingPricing} data-testid="pricing-submit-btn">
+                            {creatingPricing ? (
+                              <>
+                                <Clock className="w-4 h-4 mr-2 animate-spin" />
+                                Adding...
+                              </>
+                            ) : (
+                              'Add Pricing'
+                            )}
+                          </Button>
+                        </form>
+                      </DialogContent>
+                    </Dialog>
+                  </div>
+                </div>
+
+                <div className="space-y-3" data-testid="pricing-list">
+                  {skusWithPricing.map((sku) => (
+                    <Card key={sku.id} className="card-hover">
+                      <CardContent className="p-4">
+                        <div className="flex justify-between items-center">
+                          <div className="flex-1">
+                            <h4 className="font-semibold text-gray-900">{sku.name}</h4>
+                            <div className="flex items-center gap-4 mt-2 text-sm">
+                              <div>
+                                <span className="text-gray-600">Default Price:</span>
+                                <span className="ml-2 font-medium text-gray-900">${sku.price}</span>
+                              </div>
+                              {sku.custom_price && (
+                                <div>
+                                  <span className="text-gray-600">Custom Price:</span>
+                                  <span className="ml-2 font-bold text-teal-600">${sku.custom_price}</span>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                          {sku.custom_price && (
+                            <Button variant="outline" size="sm" onClick={() => handleDeletePricing(sku.pricing_id)} disabled={deletingPricingId === sku.pricing_id} className="border-red-300 text-red-600 hover:bg-red-50">
+                              {deletingPricingId === sku.pricing_id ? (
+                                <>
+                                  <Clock className="w-4 h-4 mr-1 animate-spin" />
+                                  Removing...
+                                </>
+                              ) : (
+                                <>
+                                  <X className="w-4 h-4 mr-1" />
+                                  Remove
+                                </>
+                              )}
+                            </Button>
+                          )}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              </>
+            )}
+
+            {!selectedCustomer && (
+              <Card>
+                <CardContent className="p-12 text-center">
+                  <DollarSign className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                  <p className="text-gray-600">Select a customer to manage pricing</p>
+                </CardContent>
+              </Card>
+            )}
           </div>
         )}
       </div>
