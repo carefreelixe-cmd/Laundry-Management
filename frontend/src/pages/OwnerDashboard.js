@@ -84,6 +84,18 @@ function OwnerDashboard() {
   const [orderDateFilter, setOrderDateFilter] = useState('all');
   const [orderTypeFilter, setOrderTypeFilter] = useState('all');
 
+  // Users Filter & Sort
+  const [userSearchQuery, setUserSearchQuery] = useState('');
+  const [userSortBy, setUserSortBy] = useState('created_at');
+  const [userSortOrder, setUserSortOrder] = useState('desc');
+  const [userRoleFilter, setUserRoleFilter] = useState([]);
+
+  // SKUs Filter & Sort
+  const [skuSearchQuery, setSkuSearchQuery] = useState('');
+  const [skuSortBy, setSkuSortBy] = useState('name');
+  const [skuSortOrder, setSkuSortOrder] = useState('asc');
+  const [skuCategoryFilter, setSkuCategoryFilter] = useState([]);
+
   // Password reset
   const [showPasswordDialog, setShowPasswordDialog] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
@@ -478,6 +490,142 @@ function OwnerDashboard() {
     setOrderTypeFilter('all');
     setOrderSortBy('created_at');
     setOrderSortOrder('desc');
+  };
+
+  // Users Filter & Sort Functions
+  const getFilteredAndSortedUsers = () => {
+    let filtered = [...users];
+
+    // Search filter (name, email)
+    if (userSearchQuery.trim()) {
+      const query = userSearchQuery.toLowerCase();
+      filtered = filtered.filter(user =>
+        user.full_name?.toLowerCase().includes(query) ||
+        user.email?.toLowerCase().includes(query)
+      );
+    }
+
+    // Role filter
+    if (userRoleFilter.length > 0) {
+      filtered = filtered.filter(user => userRoleFilter.includes(user.role));
+    }
+
+    // Sort
+    filtered.sort((a, b) => {
+      let aVal, bVal;
+
+      switch(userSortBy) {
+        case 'full_name':
+          aVal = a.full_name || '';
+          bVal = b.full_name || '';
+          break;
+        case 'email':
+          aVal = a.email || '';
+          bVal = b.email || '';
+          break;
+        case 'role':
+          aVal = a.role || '';
+          bVal = b.role || '';
+          break;
+        case 'created_at':
+        default:
+          aVal = new Date(a.created_at || 0);
+          bVal = new Date(b.created_at || 0);
+          break;
+      }
+
+      if (userSortBy === 'created_at') {
+        return userSortOrder === 'asc' ? aVal - bVal : bVal - aVal;
+      } else {
+        const comparison = aVal.toString().localeCompare(bVal.toString());
+        return userSortOrder === 'asc' ? comparison : -comparison;
+      }
+    });
+
+    return filtered;
+  };
+
+  const toggleUserRoleFilter = (role) => {
+    setUserRoleFilter(prev =>
+      prev.includes(role) ? prev.filter(r => r !== role) : [...prev, role]
+    );
+  };
+
+  const clearUserFilters = () => {
+    setUserSearchQuery('');
+    setUserRoleFilter([]);
+    setUserSortBy('created_at');
+    setUserSortOrder('desc');
+  };
+
+  // SKUs Filter & Sort Functions
+  const getFilteredAndSortedSkus = () => {
+    let filtered = [...skus];
+
+    // Search filter (name, description)
+    if (skuSearchQuery.trim()) {
+      const query = skuSearchQuery.toLowerCase();
+      filtered = filtered.filter(sku =>
+        sku.name?.toLowerCase().includes(query) ||
+        sku.description?.toLowerCase().includes(query)
+      );
+    }
+
+    // Category filter
+    if (skuCategoryFilter.length > 0) {
+      filtered = filtered.filter(sku => skuCategoryFilter.includes(sku.category));
+    }
+
+    // Sort
+    filtered.sort((a, b) => {
+      let aVal, bVal;
+
+      switch(skuSortBy) {
+        case 'name':
+          aVal = a.name || '';
+          bVal = b.name || '';
+          break;
+        case 'category':
+          aVal = a.category || '';
+          bVal = b.category || '';
+          break;
+        case 'price':
+          aVal = a.price || 0;
+          bVal = b.price || 0;
+          break;
+        default:
+          aVal = a.name || '';
+          bVal = b.name || '';
+          break;
+      }
+
+      if (skuSortBy === 'price') {
+        return skuSortOrder === 'asc' ? aVal - bVal : bVal - aVal;
+      } else {
+        const comparison = aVal.toString().localeCompare(bVal.toString());
+        return skuSortOrder === 'asc' ? comparison : -comparison;
+      }
+    });
+
+    return filtered;
+  };
+
+  const toggleSkuCategoryFilter = (category) => {
+    setSkuCategoryFilter(prev =>
+      prev.includes(category) ? prev.filter(c => c !== category) : [...prev, category]
+    );
+  };
+
+  const clearSkuFilters = () => {
+    setSkuSearchQuery('');
+    setSkuCategoryFilter([]);
+    setSkuSortBy('name');
+    setSkuSortOrder('asc');
+  };
+
+  const getUniqueCategories = () => {
+    const categories = [...new Set(skus.map(sku => sku.category).filter(Boolean))];
+    return categories.sort();
   };
 
   const fetchDrivers = async () => {
@@ -928,6 +1076,76 @@ function OwnerDashboard() {
               </Dialog>
             </div>
 
+            {/* Filter & Sort Controls */}
+            <Card className="mb-4">
+              <CardContent className="p-4">
+                <div className="space-y-4">
+                  {/* Search and Sort Row */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                      <Input
+                        placeholder="Search by name or email..."
+                        value={userSearchQuery}
+                        onChange={(e) => setUserSearchQuery(e.target.value)}
+                        className="pl-10"
+                      />
+                    </div>
+                    <Select value={userSortBy} onValueChange={setUserSortBy}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Sort by..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="full_name">Name</SelectItem>
+                        <SelectItem value="email">Email</SelectItem>
+                        <SelectItem value="role">Role</SelectItem>
+                        <SelectItem value="created_at">Created Date</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <Button
+                      variant="outline"
+                      onClick={() => setUserSortOrder(userSortOrder === 'asc' ? 'desc' : 'asc')}
+                      className="w-full"
+                    >
+                      <ArrowUpDown className="w-4 h-4 mr-2" />
+                      {userSortOrder === 'asc' ? '↑ Ascending' : '↓ Descending'}
+                    </Button>
+                  </div>
+
+                  {/* Role Filter Row */}
+                  <div>
+                    <Label className="text-sm font-medium mb-2 block">Filter by Role</Label>
+                    <div className="flex flex-wrap gap-2">
+                      {['owner', 'admin', 'customer', 'driver'].map(role => (
+                        <Button
+                          key={role}
+                          variant={userRoleFilter.includes(role) ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => toggleUserRoleFilter(role)}
+                          className="capitalize"
+                        >
+                          {role}
+                        </Button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Results Counter and Clear Filters */}
+                  <div className="flex justify-between items-center pt-2 border-t">
+                    <p className="text-sm text-gray-600">
+                      Showing <span className="font-semibold">{getFilteredAndSortedUsers().length}</span> of <span className="font-semibold">{users.length}</span> users
+                    </p>
+                    {(userSearchQuery || userRoleFilter.length > 0 || userSortBy !== 'created_at' || userSortOrder !== 'desc') && (
+                      <Button variant="ghost" size="sm" onClick={clearUserFilters}>
+                        <X className="w-4 h-4 mr-1" />
+                        Clear Filters
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
             <Card>
               <CardContent className="p-0">
                 <div className="overflow-x-auto">
@@ -943,7 +1161,7 @@ function OwnerDashboard() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-200" data-testid="users-table">
-                      {users.map((user) => (
+                      {getFilteredAndSortedUsers().map((user) => (
                         <tr key={user.id} className={`hover:bg-gray-50 ${!user.is_active ? 'opacity-50 bg-gray-100' : ''}`}>
                           <td className="px-6 py-4 text-sm text-gray-900">{user.full_name}</td>
                           <td className="px-6 py-4 text-sm text-gray-600">{user.email}</td>
@@ -1003,6 +1221,15 @@ function OwnerDashboard() {
                 </div>
               </CardContent>
             </Card>
+
+            {getFilteredAndSortedUsers().length === 0 && users.length > 0 && (
+              <Card className="mt-4">
+                <CardContent className="p-12 text-center">
+                  <Users className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                  <p className="text-gray-600">No users found matching your filters</p>
+                </CardContent>
+              </Card>
+            )}
 
             {/* Password Reset Dialog */}
             <Dialog open={showPasswordDialog} onOpenChange={setShowPasswordDialog}>
@@ -1120,8 +1347,78 @@ function OwnerDashboard() {
               </Dialog>
             </div>
 
+            {/* Filter & Sort Controls */}
+            <Card className="mb-6">
+              <CardContent className="p-4">
+                <div className="space-y-4">
+                  {/* Search and Sort Row */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                      <Input
+                        placeholder="Search by name or description..."
+                        value={skuSearchQuery}
+                        onChange={(e) => setSkuSearchQuery(e.target.value)}
+                        className="pl-10"
+                      />
+                    </div>
+                    <Select value={skuSortBy} onValueChange={setSkuSortBy}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Sort by..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="name">Name</SelectItem>
+                        <SelectItem value="category">Category</SelectItem>
+                        <SelectItem value="price">Price</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <Button
+                      variant="outline"
+                      onClick={() => setSkuSortOrder(skuSortOrder === 'asc' ? 'desc' : 'asc')}
+                      className="w-full"
+                    >
+                      <ArrowUpDown className="w-4 h-4 mr-2" />
+                      {skuSortOrder === 'asc' ? '↑ Ascending' : '↓ Descending'}
+                    </Button>
+                  </div>
+
+                  {/* Category Filter Row */}
+                  {getUniqueCategories().length > 0 && (
+                    <div>
+                      <Label className="text-sm font-medium mb-2 block">Filter by Category</Label>
+                      <div className="flex flex-wrap gap-2">
+                        {getUniqueCategories().map(category => (
+                          <Button
+                            key={category}
+                            variant={skuCategoryFilter.includes(category) ? "default" : "outline"}
+                            size="sm"
+                            onClick={() => toggleSkuCategoryFilter(category)}
+                          >
+                            {category}
+                          </Button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Results Counter and Clear Filters */}
+                  <div className="flex justify-between items-center pt-2 border-t">
+                    <p className="text-sm text-gray-600">
+                      Showing <span className="font-semibold">{getFilteredAndSortedSkus().length}</span> of <span className="font-semibold">{skus.length}</span> SKUs
+                    </p>
+                    {(skuSearchQuery || skuCategoryFilter.length > 0 || skuSortBy !== 'name' || skuSortOrder !== 'asc') && (
+                      <Button variant="ghost" size="sm" onClick={clearSkuFilters}>
+                        <X className="w-4 h-4 mr-1" />
+                        Clear Filters
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {skus.map((sku) => (
+              {getFilteredAndSortedSkus().map((sku) => (
                 <Card key={sku.id} className="card-hover">
                   <CardHeader>
                     <CardTitle className="flex justify-between items-start">
@@ -1162,6 +1459,24 @@ function OwnerDashboard() {
                 </Card>
               ))}
             </div>
+
+            {getFilteredAndSortedSkus().length === 0 && skus.length > 0 && (
+              <Card>
+                <CardContent className="p-12 text-center">
+                  <Package className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                  <p className="text-gray-600">No SKUs found matching your filters</p>
+                </CardContent>
+              </Card>
+            )}
+
+            {skus.length === 0 && (
+              <Card>
+                <CardContent className="p-12 text-center">
+                  <Package className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                  <p className="text-gray-600">No SKUs found</p>
+                </CardContent>
+              </Card>
+            )}
           </div>
         )}
 

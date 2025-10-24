@@ -53,6 +53,18 @@ function AdminDashboard() {
   const [selectedUser, setSelectedUser] = useState(null);
   const [newPassword, setNewPassword] = useState('');
   
+  // Users Filter & Sort
+  const [userSearchQuery, setUserSearchQuery] = useState('');
+  const [userSortBy, setUserSortBy] = useState('created_at');
+  const [userSortOrder, setUserSortOrder] = useState('desc');
+  const [userRoleFilter, setUserRoleFilter] = useState([]);
+  
+  // SKUs Filter & Sort
+  const [skuSearchQuery, setSkuSearchQuery] = useState('');
+  const [skuSortBy, setSkuSortBy] = useState('name');
+  const [skuSortOrder, setSkuSortOrder] = useState('asc');
+  const [skuCategoryFilter, setSkuCategoryFilter] = useState([]);
+  
   // Order form
   const [showOrderDialog, setShowOrderDialog] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
@@ -443,6 +455,131 @@ function AdminDashboard() {
     } finally {
       setDeletingPricingId(null);
     }
+  };
+
+  // Filter and Sort Functions
+  const getFilteredAndSortedUsers = () => {
+    let filtered = [...customers];
+    
+    // Search filter
+    if (userSearchQuery) {
+      filtered = filtered.filter(user => 
+        user.full_name.toLowerCase().includes(userSearchQuery.toLowerCase()) ||
+        user.email.toLowerCase().includes(userSearchQuery.toLowerCase())
+      );
+    }
+    
+    // Role filter
+    if (userRoleFilter.length > 0) {
+      filtered = filtered.filter(user => userRoleFilter.includes(user.role));
+    }
+    
+    // Sort
+    filtered.sort((a, b) => {
+      let aVal, bVal;
+      
+      switch(userSortBy) {
+        case 'name':
+          aVal = a.full_name.toLowerCase();
+          bVal = b.full_name.toLowerCase();
+          break;
+        case 'email':
+          aVal = a.email.toLowerCase();
+          bVal = b.email.toLowerCase();
+          break;
+        case 'role':
+          aVal = a.role;
+          bVal = b.role;
+          break;
+        case 'created_at':
+          aVal = new Date(a.created_at);
+          bVal = new Date(b.created_at);
+          break;
+        default:
+          return 0;
+      }
+      
+      if (aVal < bVal) return userSortOrder === 'asc' ? -1 : 1;
+      if (aVal > bVal) return userSortOrder === 'asc' ? 1 : -1;
+      return 0;
+    });
+    
+    return filtered;
+  };
+
+  const getFilteredAndSortedSkus = () => {
+    let filtered = [...skus];
+    
+    // Search filter
+    if (skuSearchQuery) {
+      filtered = filtered.filter(sku => 
+        sku.name.toLowerCase().includes(skuSearchQuery.toLowerCase()) ||
+        (sku.description && sku.description.toLowerCase().includes(skuSearchQuery.toLowerCase()))
+      );
+    }
+    
+    // Category filter
+    if (skuCategoryFilter.length > 0) {
+      filtered = filtered.filter(sku => skuCategoryFilter.includes(sku.category));
+    }
+    
+    // Sort
+    filtered.sort((a, b) => {
+      let aVal, bVal;
+      
+      switch(skuSortBy) {
+        case 'name':
+          aVal = a.name.toLowerCase();
+          bVal = b.name.toLowerCase();
+          break;
+        case 'category':
+          aVal = a.category.toLowerCase();
+          bVal = b.category.toLowerCase();
+          break;
+        case 'price':
+          aVal = a.price;
+          bVal = b.price;
+          break;
+        default:
+          return 0;
+      }
+      
+      if (aVal < bVal) return skuSortOrder === 'asc' ? -1 : 1;
+      if (aVal > bVal) return skuSortOrder === 'asc' ? 1 : -1;
+      return 0;
+    });
+    
+    return filtered;
+  };
+
+  const clearUserFilters = () => {
+    setUserSearchQuery('');
+    setUserSortBy('created_at');
+    setUserSortOrder('desc');
+    setUserRoleFilter([]);
+  };
+
+  const clearSkuFilters = () => {
+    setSkuSearchQuery('');
+    setSkuSortBy('name');
+    setSkuSortOrder('asc');
+    setSkuCategoryFilter([]);
+  };
+
+  const toggleUserRoleFilter = (role) => {
+    setUserRoleFilter(prev => 
+      prev.includes(role) ? prev.filter(r => r !== role) : [...prev, role]
+    );
+  };
+
+  const toggleSkuCategoryFilter = (category) => {
+    setSkuCategoryFilter(prev => 
+      prev.includes(category) ? prev.filter(c => c !== category) : [...prev, category]
+    );
+  };
+
+  const getUniqueCategories = () => {
+    return [...new Set(skus.map(sku => sku.category))].sort();
   };
 
   if (loading) {
@@ -1219,8 +1356,100 @@ function AdminDashboard() {
               <h2 className="text-2xl font-bold text-gray-900">User Management</h2>
             </div>
             
+            {/* Search and Filter Controls */}
+            <Card>
+              <CardContent className="p-4">
+                <div className="space-y-4">
+                  {/* Search and Sort Row */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="md:col-span-2">
+                      <Label className="text-sm font-medium mb-2 flex items-center gap-2">
+                        <Search className="w-4 h-4" />
+                        Search Users
+                      </Label>
+                      <Input
+                        placeholder="Search by name or email..."
+                        value={userSearchQuery}
+                        onChange={(e) => setUserSearchQuery(e.target.value)}
+                        className="w-full"
+                        data-testid="user-search-input"
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-sm font-medium mb-2 flex items-center gap-2">
+                        <ArrowUpDown className="w-4 h-4" />
+                        Sort By
+                      </Label>
+                      <div className="flex gap-2">
+                        <Select value={userSortBy} onValueChange={setUserSortBy}>
+                          <SelectTrigger data-testid="user-sort-select">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="name">Name</SelectItem>
+                            <SelectItem value="email">Email</SelectItem>
+                            <SelectItem value="role">Role</SelectItem>
+                            <SelectItem value="created_at">Created Date</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setUserSortOrder(userSortOrder === 'asc' ? 'desc' : 'asc')}
+                          className="px-3"
+                          data-testid="user-sort-order-btn"
+                        >
+                          {userSortOrder === 'asc' ? '↑' : '↓'}
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Filter Row */}
+                  <div>
+                    <Label className="text-sm font-medium mb-2 flex items-center gap-2">
+                      <Filter className="w-4 h-4" />
+                      Filter by Role
+                    </Label>
+                    <div className="flex flex-wrap gap-2">
+                      {['owner', 'admin', 'customer', 'driver'].map((role) => (
+                        <Button
+                          key={role}
+                          variant={userRoleFilter.includes(role) ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => toggleUserRoleFilter(role)}
+                          className={userRoleFilter.includes(role) ? 'bg-teal-500 hover:bg-teal-600' : ''}
+                          data-testid={`user-role-filter-${role}`}
+                        >
+                          {role.charAt(0).toUpperCase() + role.slice(1)}
+                        </Button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Results and Clear */}
+                  <div className="flex justify-between items-center pt-2 border-t">
+                    <p className="text-sm text-gray-600">
+                      Showing {getFilteredAndSortedUsers().length} of {customers.length} users
+                    </p>
+                    {(userSearchQuery || userRoleFilter.length > 0 || userSortBy !== 'created_at' || userSortOrder !== 'desc') && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={clearUserFilters}
+                        data-testid="clear-user-filters-btn"
+                      >
+                        <X className="w-4 h-4 mr-2" />
+                        Clear Filters
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            
             <div className="grid gap-4">
-              {customers.map((customer) => (
+              {getFilteredAndSortedUsers().map((customer) => (
                 <Card key={customer.id} className="card-hover">
                   <CardContent className="p-6">
                     <div className="flex justify-between items-start">
@@ -1284,6 +1513,15 @@ function AdminDashboard() {
                   </CardContent>
                 </Card>
               ))}
+              
+              {getFilteredAndSortedUsers().length === 0 && (
+                <Card>
+                  <CardContent className="p-12 text-center">
+                    <Users className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                    <p className="text-gray-600">No users found matching your filters</p>
+                  </CardContent>
+                </Card>
+              )}
             </div>
 
             {/* Password Reset Dialog */}
@@ -1411,8 +1649,101 @@ function AdminDashboard() {
               </Dialog>
             </div>
 
+            {/* Search and Filter Controls */}
+            <Card className="mb-6">
+              <CardContent className="p-4">
+                <div className="space-y-4">
+                  {/* Search and Sort Row */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="md:col-span-2">
+                      <Label className="text-sm font-medium mb-2 flex items-center gap-2">
+                        <Search className="w-4 h-4" />
+                        Search SKUs
+                      </Label>
+                      <Input
+                        placeholder="Search by name or description..."
+                        value={skuSearchQuery}
+                        onChange={(e) => setSkuSearchQuery(e.target.value)}
+                        className="w-full"
+                        data-testid="sku-search-input"
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-sm font-medium mb-2 flex items-center gap-2">
+                        <ArrowUpDown className="w-4 h-4" />
+                        Sort By
+                      </Label>
+                      <div className="flex gap-2">
+                        <Select value={skuSortBy} onValueChange={setSkuSortBy}>
+                          <SelectTrigger data-testid="sku-sort-select">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="name">Name</SelectItem>
+                            <SelectItem value="category">Category</SelectItem>
+                            <SelectItem value="price">Price</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setSkuSortOrder(skuSortOrder === 'asc' ? 'desc' : 'asc')}
+                          className="px-3"
+                          data-testid="sku-sort-order-btn"
+                        >
+                          {skuSortOrder === 'asc' ? '↑' : '↓'}
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Filter Row */}
+                  {getUniqueCategories().length > 0 && (
+                    <div>
+                      <Label className="text-sm font-medium mb-2 flex items-center gap-2">
+                        <Filter className="w-4 h-4" />
+                        Filter by Category
+                      </Label>
+                      <div className="flex flex-wrap gap-2">
+                        {getUniqueCategories().map((category) => (
+                          <Button
+                            key={category}
+                            variant={skuCategoryFilter.includes(category) ? "default" : "outline"}
+                            size="sm"
+                            onClick={() => toggleSkuCategoryFilter(category)}
+                            className={skuCategoryFilter.includes(category) ? 'bg-teal-500 hover:bg-teal-600' : ''}
+                            data-testid={`sku-category-filter-${category}`}
+                          >
+                            {category}
+                          </Button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Results and Clear */}
+                  <div className="flex justify-between items-center pt-2 border-t">
+                    <p className="text-sm text-gray-600">
+                      Showing {getFilteredAndSortedSkus().length} of {skus.length} SKUs
+                    </p>
+                    {(skuSearchQuery || skuCategoryFilter.length > 0 || skuSortBy !== 'name' || skuSortOrder !== 'asc') && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={clearSkuFilters}
+                        data-testid="clear-sku-filters-btn"
+                      >
+                        <X className="w-4 h-4 mr-2" />
+                        Clear Filters
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
             <div className="grid gap-4" data-testid="skus-list">
-              {skus.map((sku) => (
+              {getFilteredAndSortedSkus().map((sku) => (
                 <Card key={sku.id} className="card-hover">
                   <CardContent className="p-6">
                     <div className="flex justify-between items-start">
@@ -1459,6 +1790,16 @@ function AdminDashboard() {
                   </CardContent>
                 </Card>
               ))}
+              
+              {getFilteredAndSortedSkus().length === 0 && skus.length > 0 && (
+                <Card>
+                  <CardContent className="p-12 text-center">
+                    <Package className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                    <p className="text-gray-600">No SKUs found matching your filters</p>
+                  </CardContent>
+                </Card>
+              )}
+              
               {skus.length === 0 && (
                 <Card>
                   <CardContent className="p-12 text-center">
