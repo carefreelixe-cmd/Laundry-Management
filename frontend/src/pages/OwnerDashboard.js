@@ -73,6 +73,9 @@ function OwnerDashboard() {
   const [selectedOrderForTracking, setSelectedOrderForTracking] = useState(null);
   const [customerSkus, setCustomerSkus] = useState([]);
 
+  // Addresses
+  const [businessPickupAddress, setBusinessPickupAddress] = useState('');
+
   // Orders Filter & Sort
   const [orderSearchQuery, setOrderSearchQuery] = useState('');
   const [orderSortBy, setOrderSortBy] = useState('created_at');
@@ -89,7 +92,17 @@ function OwnerDashboard() {
 
   useEffect(() => {
     fetchData();
+    fetchAddresses();
   }, []);
+
+  const fetchAddresses = async () => {
+    try {
+      const res = await axios.get(`${API}/config/addresses`);
+      setBusinessPickupAddress(res.data.business_pickup_address);
+    } catch (error) {
+      console.error('Failed to fetch addresses', error);
+    }
+  };
 
   useEffect(() => {
     if (activeTab === 'users') {
@@ -1467,7 +1480,15 @@ function OwnerDashboard() {
                   <form onSubmit={editingOrder ? handleUpdateOrder : handleCreateOrder} className="space-y-4">
                     <div>
                       <Label>Select Customer</Label>
-                      <Select value={orderForm.customer_id} onValueChange={(value) => setOrderForm({ ...orderForm, customer_id: value })}>
+                      <Select value={orderForm.customer_id} onValueChange={(value) => {
+                        const selectedCustomer = customers.find(c => c.id === value);
+                        setOrderForm({ 
+                          ...orderForm, 
+                          customer_id: value,
+                          pickup_address: businessPickupAddress,
+                          delivery_address: selectedCustomer?.address || ''
+                        });
+                      }}>
                         <SelectTrigger>
                           <SelectValue placeholder="Choose customer" />
                         </SelectTrigger>
@@ -1554,6 +1575,7 @@ function OwnerDashboard() {
                         placeholder="Enter pickup address"
                         required
                       />
+                      <p className="text-xs text-gray-500 mt-1">📍 Business pickup address (auto-filled when customer selected)</p>
                     </div>
 
                     <div>
@@ -1564,6 +1586,7 @@ function OwnerDashboard() {
                         placeholder="Enter delivery address"
                         required
                       />
+                      <p className="text-xs text-gray-500 mt-1">🏠 Customer's saved address (auto-filled when customer selected, can be changed)</p>
                     </div>
 
                     <div>

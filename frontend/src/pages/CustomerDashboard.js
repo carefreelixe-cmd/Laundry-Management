@@ -33,6 +33,10 @@ function CustomerDashboard() {
   const [orderDateFilter, setOrderDateFilter] = useState('all');
   const [orderTypeFilter, setOrderTypeFilter] = useState('all');
   
+  // Addresses
+  const [businessPickupAddress, setBusinessPickupAddress] = useState('');
+  const [customerDeliveryAddress, setCustomerDeliveryAddress] = useState('');
+  
   // Order form
   const [showOrderDialog, setShowOrderDialog] = useState(false);
   const [editingOrderId, setEditingOrderId] = useState(null);
@@ -60,7 +64,20 @@ function CustomerDashboard() {
 
   useEffect(() => {
     fetchData();
+    fetchAddresses();
   }, [activeTab]);
+
+  const fetchAddresses = async () => {
+    try {
+      const res = await axios.get(`${API}/config/addresses`);
+      setBusinessPickupAddress(res.data.business_pickup_address);
+      setCustomerDeliveryAddress(res.data.customer_delivery_address || user.address || '');
+    } catch (error) {
+      console.error('Failed to fetch addresses', error);
+      // Fallback to user address from context
+      setCustomerDeliveryAddress(user.address || '');
+    }
+  };
 
   const fetchData = async () => {
     try {
@@ -579,6 +596,13 @@ function CustomerDashboard() {
                     frequency_template_id: ''
                   });
                   setOrderItems([{ sku_id: '', sku_name: '', quantity: 1, price: 0 }]);
+                } else if (!editingOrderId) {
+                  // Auto-populate addresses when creating a new order
+                  setOrderForm(prev => ({
+                    ...prev,
+                    pickup_address: businessPickupAddress,
+                    delivery_address: customerDeliveryAddress
+                  }));
                 }
               }}>
                 <DialogTrigger asChild>
@@ -644,11 +668,13 @@ function CustomerDashboard() {
                     <div>
                       <Label>Pickup Address</Label>
                       <Input value={orderForm.pickup_address} onChange={(e) => setOrderForm({ ...orderForm, pickup_address: e.target.value })} required data-testid="customer-pickup-address" />
+                      <p className="text-xs text-gray-500 mt-1">📍 Business pickup address (auto-filled)</p>
                     </div>
 
                     <div>
                       <Label>Delivery Address</Label>
                       <Input value={orderForm.delivery_address} onChange={(e) => setOrderForm({ ...orderForm, delivery_address: e.target.value })} required data-testid="customer-delivery-address" />
+                      <p className="text-xs text-gray-500 mt-1">🏠 Your saved delivery address (auto-filled, can be changed)</p>
                     </div>
 
                     <div>

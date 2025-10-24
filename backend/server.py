@@ -36,6 +36,7 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 security = HTTPBearer()
 SECRET_KEY = os.environ.get('SECRET_KEY', 'your-secret-key-change-in-production')
 ALGORITHM = "HS256"
+BUSINESS_PICKUP_ADDRESS = os.environ.get('BUSINESS_PICKUP_ADDRESS', '123 Main Street, Sydney NSW 2000, Australia')
 
 # Create the main app
 app = FastAPI()
@@ -580,6 +581,14 @@ async def get_me(current_user: dict = Depends(get_current_user)):
         raise HTTPException(status_code=404, detail="User not found")
     user_doc['created_at'] = datetime.fromisoformat(user_doc['created_at']) if isinstance(user_doc['created_at'], str) else user_doc['created_at']
     return User(**user_doc)
+
+@api_router.get("/config/addresses")
+async def get_addresses(current_user: dict = Depends(get_current_user)):
+    """Get configured addresses for orders"""
+    return {
+        "business_pickup_address": BUSINESS_PICKUP_ADDRESS,
+        "customer_delivery_address": current_user.get('address', '')
+    }
 
 # User Management Routes
 @api_router.get("/users", response_model=List[User])
