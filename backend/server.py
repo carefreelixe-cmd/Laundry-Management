@@ -1088,9 +1088,10 @@ async def update_order(order_id: str, update: OrderUpdate, current_user: dict = 
     if not order_doc:
         raise HTTPException(status_code=404, detail="Order not found")
     
-    # Check if order is locked
-    if order_doc.get('is_locked', False):
-        raise HTTPException(status_code=400, detail="Cannot modify order - it has been locked after 8 hours from creation")
+    # Check if order is locked - only applies to customers, not owner/admin
+    if current_user['role'] == 'customer':
+        if order_doc.get('is_locked', False):
+            raise HTTPException(status_code=400, detail="Cannot modify order - it has been locked 8 hours before delivery. Contact us for changes.")
     
     # Customer can only modify their own orders
     if current_user['role'] == 'customer':
@@ -1634,35 +1635,55 @@ async def join_room(sid, data):
 
 # Scheduled Tasks
 async def lock_orders_job():
-    """Lock orders that are 8 hours after creation and not yet locked"""
+    """Lock orders that are 8 hours before delivery date (only for customers)"""
     try:
         current_time = datetime.now(timezone.utc)
-        lock_threshold = current_time - timedelta(hours=8)
+        lock_threshold = current_time + timedelta(hours=8)
         
-        # Find orders that need to be locked (created more than 8 hours ago)
+        # Find orders that need to be locked (delivery date is within 8 hours)
         orders_to_lock = await db.orders.find({
             "is_locked": {"$ne": True},
-            "created_at": {"$lte": lock_threshold.isoformat()},
+            "delivery_date": {"$exists": True},
             "status": {"$nin": ["ready_for_pickup", "delivered", "cancelled"]}
         }).to_list(length=None)
         
+        locked_count = 0
         for order in orders_to_lock:
-            # Lock the order
-            await db.orders.update_one(
-                {"id": order["id"]},
-                {
-                    "$set": {
-                        "is_locked": True,
-                        "locked_at": current_time.isoformat()
-                    }
-                }
-            )
+            try:
+                # Parse delivery date (could be date or datetime string)
+                delivery_date_str = order.get('delivery_date', '')
+                if not delivery_date_str:
+                    continue
+                
+                # Try parsing as datetime first, then as date
+                try:
+                    delivery_datetime = datetime.fromisoformat(delivery_date_str.replace('Z', '+00:00'))
+                except:
+                    # If it's just a date string (YYYY-MM-DD), assume midnight
+                    delivery_date = datetime.strptime(delivery_date_str, '%Y-%m-%d')
+                    delivery_datetime = delivery_date.replace(tzinfo=timezone.utc)
+                
+                # Lock if current time is 8 hours or less before delivery
+                if current_time >= (delivery_datetime - timedelta(hours=8)):
+                    await db.orders.update_one(
+                        {"id": order["id"]},
+                        {
+                            "$set": {
+                                "is_locked": True,
+                                "locked_at": current_time.isoformat()
+                            }
+                        }
+                    )
+                    
+                    # Send notifications
+                    await notify_order_locked(order)
+                    locked_count += 1
+            except Exception as e:
+                logging.error(f"Error locking order {order.get('id')}: {str(e)}")
+                continue
             
-            # Send notifications
-            await notify_order_locked(order)
-            
-        if orders_to_lock:
-            logging.info(f"Locked {len(orders_to_lock)} orders")
+        if locked_count > 0:
+            logging.info(f"Locked {locked_count} orders (8 hours before delivery)")
     except Exception as e:
         logging.error(f"Error in lock_orders_job: {str(e)}")
 
@@ -1697,7 +1718,7 @@ async def notify_order_locked(order):
         # Get customer
         customer = await db.users.find_one({"id": order["customer_id"]})
         
-        notification_message = f"Order #{order['order_number']} has been automatically locked 8 hours after creation. You can no longer modify or cancel this order."
+        notification_message = f"Order #{order['order_number']} has been automatically locked as delivery is scheduled within 8 hours. Contact us if you need to make changes."
         
         # Notify customer
         if customer:

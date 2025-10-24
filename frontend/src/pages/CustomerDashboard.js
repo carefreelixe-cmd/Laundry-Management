@@ -290,22 +290,31 @@ function CustomerDashboard() {
     }
   };
 
-  const canModifyOrder = (createdAt) => {
-    if (!createdAt) return false;
+  const canModifyOrder = (deliveryDate, isLocked) => {
+    // If order is already locked by backend, respect that
+    if (isLocked) return false;
     
-    const created = new Date(createdAt);
-    const now = new Date();
+    if (!deliveryDate) return true; // No delivery date, allow modification
     
-    // Check if date is valid
-    if (isNaN(created.getTime())) {
-      console.error('Invalid created_at date:', createdAt);
-      return false;
+    try {
+      const delivery = new Date(deliveryDate);
+      const now = new Date();
+      
+      // Check if date is valid
+      if (isNaN(delivery.getTime())) {
+        console.error('Invalid delivery_date:', deliveryDate);
+        return true; // Allow modification if date is invalid
+      }
+      
+      const hoursUntilDelivery = (delivery - now) / (1000 * 60 * 60);
+      console.log('Hours until delivery:', hoursUntilDelivery, 'Can edit:', hoursUntilDelivery > 8);
+      
+      // Allow modification if delivery is more than 8 hours away
+      return hoursUntilDelivery > 8;
+    } catch (error) {
+      console.error('Error checking order modification eligibility:', error);
+      return true; // Allow modification if there's an error
     }
-    
-    const hoursSinceCreation = (now - created) / (1000 * 60 * 60);
-    console.log('Hours since creation:', hoursSinceCreation, 'Can edit:', hoursSinceCreation < 8);
-    
-    return hoursSinceCreation < 8;
   };
 
   const formatFrequency = (template) => {
@@ -542,7 +551,7 @@ function CustomerDashboard() {
                           checked={orderForm.is_recurring}
                           onCheckedChange={(checked) => setOrderForm({ ...orderForm, is_recurring: checked })}
                           data-testid="customer-recurring-switch"
-                          disabled={editingOrderId && !canModifyOrder(orders.find(o => o.id === editingOrderId)?.created_at)}
+                          disabled={editingOrderId && !canModifyOrder(orders.find(o => o.id === editingOrderId)?.delivery_date, orders.find(o => o.id === editingOrderId)?.is_locked)}
                         />
                         <Label className="flex items-center gap-2 cursor-pointer">
                           <Repeat className="w-4 h-4 text-teal-600" />
@@ -556,7 +565,7 @@ function CustomerDashboard() {
                           <Select 
                             value={orderForm.frequency_template_id} 
                             onValueChange={(value) => setOrderForm({ ...orderForm, frequency_template_id: value })}
-                            disabled={editingOrderId && !canModifyOrder(orders.find(o => o.id === editingOrderId)?.created_at)}
+                            disabled={editingOrderId && !canModifyOrder(orders.find(o => o.id === editingOrderId)?.delivery_date, orders.find(o => o.id === editingOrderId)?.is_locked)}
                           >
                             <SelectTrigger data-testid="customer-frequency-template-select">
                               <SelectValue placeholder="Choose recurring frequency" />
@@ -626,7 +635,7 @@ function CustomerDashboard() {
                           </p>
                         )}
                       </div>
-                      {order.status !== 'ready_for_pickup' && order.status !== 'delivered' && order.status !== 'cancelled' && canModifyOrder(order.created_at) && (
+                      {order.status !== 'ready_for_pickup' && order.status !== 'delivered' && order.status !== 'cancelled' && canModifyOrder(order.delivery_date, order.is_locked) && (
                         <div className="flex gap-2">
                           <Button
                             variant="outline"
@@ -713,9 +722,9 @@ function CustomerDashboard() {
                       </div>
                     )}
 
-                    {order.status !== 'ready_for_pickup' && order.status !== 'delivered' && order.status !== 'cancelled' && !canModifyOrder(order.created_at) && (
+                    {order.status !== 'ready_for_pickup' && order.status !== 'delivered' && order.status !== 'cancelled' && !canModifyOrder(order.delivery_date, order.is_locked) && (
                       <div className="mt-4 p-3 bg-yellow-50 rounded-lg">
-                        <p className="text-sm text-yellow-800">⚠️ This order cannot be modified (locked after 8 hours from creation)</p>
+                        <p className="text-sm text-yellow-800">⚠️ This order cannot be modified (locked 8 hours before delivery)</p>
                       </div>
                     )}
                   </CardContent>

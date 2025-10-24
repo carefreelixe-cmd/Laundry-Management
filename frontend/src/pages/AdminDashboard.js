@@ -547,9 +547,9 @@ function AdminDashboard() {
                             </span>
                           )}
                           {order.is_locked ? (
-                            <span className="px-3 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-800 flex items-center gap-1">
+                            <span className="px-3 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800 flex items-center gap-1">
                               <Lock className="w-3 h-3" />
-                              Locked
+                              Locked for Customer
                             </span>
                           ) : (
                             <span className="px-3 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800 flex items-center gap-1">
@@ -606,15 +606,15 @@ function AdminDashboard() {
                           </SelectContent>
                         </Select>
                         
-                        {!order.is_locked && (
-                          <div className="flex gap-2 mt-3">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleEditOrder(order)}
-                              disabled={editingOrderId === order.id}
-                              className="flex-1 border-teal-300 text-teal-600 hover:bg-teal-50 hover:text-teal-700"
-                            >
+                        <div className="flex gap-2 mt-3">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleEditOrder(order)}
+                            disabled={editingOrderId === order.id}
+                            className="flex-1 border-teal-300 text-teal-600 hover:bg-teal-50 hover:text-teal-700"
+                            title="Admin can always edit orders"
+                          >
                               {editingOrderId === order.id ? (
                                 <>
                                   <Clock className="w-4 h-4 mr-1 animate-spin" />
@@ -644,7 +644,6 @@ function AdminDashboard() {
                               )}
                             </Button>
                           </div>
-                        )}
                       </div>
                     </div>
                   </CardContent>
