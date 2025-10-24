@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Switch } from '@/components/ui/switch';
-import { Package, AlertCircle, Plus, MapPin, Calendar, Lock, Unlock, Repeat, Edit, Truck, Clock, CheckCircle, AlertTriangle, Search, Filter, ArrowUpDown } from 'lucide-react';
+import { Package, AlertCircle, Plus, MapPin, Calendar, Lock, Unlock, Repeat, Edit, Truck, Clock, CheckCircle, AlertTriangle, Search, Filter, ArrowUpDown, X, CheckCircle2, XCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import axios from 'axios';
 
@@ -24,6 +24,8 @@ function CustomerDashboard() {
   const [submitting, setSubmitting] = useState(false);
   const [cancellingOrderId, setCancellingOrderId] = useState(null);
   const [selectedOrderForTracking, setSelectedOrderForTracking] = useState(null);
+  const [approvingModificationId, setApprovingModificationId] = useState(null);
+  const [rejectingModificationId, setRejectingModificationId] = useState(null);
   
   // Filter & Sort
   const [orderSearchQuery, setOrderSearchQuery] = useState('');
@@ -405,6 +407,39 @@ function CustomerDashboard() {
     }
   };
 
+  const handleApproveModification = async (orderId) => {
+    if (approvingModificationId) return; // Prevent duplicate submissions
+    
+    setApprovingModificationId(orderId);
+    try {
+      await axios.put(`${API}/orders/${orderId}/approve-modification`);
+      toast.success('Modifications approved successfully!');
+      fetchData();
+    } catch (error) {
+      console.error('Failed to approve modification:', error);
+      toast.error(error.response?.data?.detail || 'Failed to approve modification');
+    } finally {
+      setApprovingModificationId(null);
+    }
+  };
+
+  const handleRejectModification = async (orderId) => {
+    if (!window.confirm('Are you sure you want to reject these modifications? The order will continue as originally scheduled.')) return;
+    if (rejectingModificationId) return; // Prevent duplicate submissions
+    
+    setRejectingModificationId(orderId);
+    try {
+      await axios.put(`${API}/orders/${orderId}/reject-modification`);
+      toast.success('Modifications rejected successfully!');
+      fetchData();
+    } catch (error) {
+      console.error('Failed to reject modification:', error);
+      toast.error(error.response?.data?.detail || 'Failed to reject modification');
+    } finally {
+      setRejectingModificationId(null);
+    }
+  };
+
   const getStatusBadgeClass = (status) => {
     switch(status) {
       case 'pending': return 'badge-pending';
@@ -562,6 +597,17 @@ function CustomerDashboard() {
             data-testid="customer-cases-tab"
           >
             My Cases
+          </button>
+          <button
+            onClick={() => setActiveTab('calendar')}
+            className={`pb-3 px-1 font-medium transition-colors ${
+              activeTab === 'calendar'
+                ? 'text-teal-600 border-b-2 border-teal-600'
+                : 'text-gray-500 hover:text-gray-700'
+            }`}
+            data-testid="customer-calendar-tab"
+          >
+            📅 Recurring Schedule
           </button>
           <button
             onClick={() => setActiveTab('delivery-tracking')}
@@ -860,6 +906,97 @@ function CustomerDashboard() {
               {getFilteredAndSortedOrders().map((order) => (
                 <Card key={order.id} className="card-hover">
                   <CardContent className="p-6">
+                    {/* Pending Modifications Alert */}
+                    {order.modification_status === 'pending_approval' && order.pending_modifications && (
+                      <div className="mb-6 p-4 bg-yellow-50 border-2 border-yellow-400 rounded-lg">
+                        <div className="flex items-start gap-3 mb-3">
+                          <AlertTriangle className="w-6 h-6 text-yellow-600 flex-shrink-0 mt-1" />
+                          <div className="flex-1">
+                            <h4 className="font-bold text-yellow-900 text-lg mb-2">
+                              Modification Approval Required
+                            </h4>
+                            <p className="text-sm text-yellow-800 mb-3">
+                              The admin/owner has proposed changes to this recurring order. Please review and approve or reject the changes below.
+                            </p>
+                            
+                            {/* Show what's being modified */}
+                            <div className="bg-white rounded p-3 mb-3 space-y-2">
+                              <p className="text-sm font-semibold text-gray-700">Proposed Changes:</p>
+                              
+                              {order.pending_modifications.items && (
+                                <div>
+                                  <p className="text-xs text-gray-600 font-medium">Items:</p>
+                                  <ul className="text-xs text-gray-700 space-y-1 ml-4">
+                                    {order.pending_modifications.items.map((item, idx) => (
+                                      <li key={idx}>• {item.sku_name} - Qty: {item.quantity} @ ${item.price.toFixed(2)}</li>
+                                    ))}
+                                  </ul>
+                                </div>
+                              )}
+                              
+                              {order.pending_modifications.pickup_date && (
+                                <p className="text-xs text-gray-700">
+                                  <span className="font-medium">Pickup Date:</span> {new Date(order.pending_modifications.pickup_date).toLocaleString()}
+                                </p>
+                              )}
+                              
+                              {order.pending_modifications.delivery_date && (
+                                <p className="text-xs text-gray-700">
+                                  <span className="font-medium">Delivery Date:</span> {new Date(order.pending_modifications.delivery_date).toLocaleString()}
+                                </p>
+                              )}
+                              
+                              {order.pending_modifications.special_instructions && (
+                                <p className="text-xs text-gray-700">
+                                  <span className="font-medium">Instructions:</span> {order.pending_modifications.special_instructions}
+                                </p>
+                              )}
+                            </div>
+                            
+                            {/* Approve/Reject Buttons */}
+                            <div className="flex gap-3">
+                              <Button
+                                size="sm"
+                                className="bg-green-600 hover:bg-green-700"
+                                onClick={() => handleApproveModification(order.id)}
+                                disabled={approvingModificationId === order.id || rejectingModificationId === order.id}
+                              >
+                                {approvingModificationId === order.id ? (
+                                  <>
+                                    <Clock className="w-4 h-4 mr-1 animate-spin" />
+                                    Approving...
+                                  </>
+                                ) : (
+                                  <>
+                                    <CheckCircle2 className="w-4 h-4 mr-1" />
+                                    Approve Changes
+                                  </>
+                                )}
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="destructive"
+                                onClick={() => handleRejectModification(order.id)}
+                                disabled={approvingModificationId === order.id || rejectingModificationId === order.id}
+                              >
+                                {rejectingModificationId === order.id ? (
+                                  <>
+                                    <Clock className="w-4 h-4 mr-1 animate-spin" />
+                                    Rejecting...
+                                  </>
+                                ) : (
+                                  <>
+                                    <XCircle className="w-4 h-4 mr-1" />
+                                    Reject Changes
+                                  </>
+                                )}
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                    
                     <div className="flex justify-between items-start mb-4">
                       <div>
                         <div className="flex items-center gap-3 mb-2 flex-wrap">
@@ -1365,6 +1502,148 @@ function CustomerDashboard() {
                 )}
               </div>
             </div>
+          </div>
+        )}
+
+        {/* Recurring Orders Calendar Tab */}
+        {activeTab === 'calendar' && (
+          <div>
+            <div className="mb-6">
+              <h2 className="text-2xl font-bold text-gray-900">Recurring Orders Schedule</h2>
+              <p className="text-gray-600 mt-1">View your upcoming recurring order deliveries</p>
+            </div>
+
+            {orders.filter(o => o.is_recurring).length === 0 ? (
+              <Card>
+                <CardContent className="p-12 text-center">
+                  <Calendar className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                  <h3 className="text-xl font-semibold text-gray-900 mb-2">No Recurring Orders</h3>
+                  <p className="text-gray-600 mb-4">You don't have any recurring orders set up yet.</p>
+                  <Button onClick={() => setActiveTab('orders')} className="bg-teal-500 hover:bg-teal-600">
+                    Create Recurring Order
+                  </Button>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="space-y-4">
+                {orders.filter(o => o.is_recurring).map((order) => {
+                  const deliveryDate = new Date(order.delivery_date);
+                  const nextOccurrence = order.next_occurrence_date ? new Date(order.next_occurrence_date) : null;
+                  const template = frequencyTemplates.find(t => t.id === order.frequency_template_id);
+                  
+                  return (
+                    <Card key={order.id} className="overflow-hidden">
+                      <div className="bg-gradient-to-r from-teal-500 to-teal-600 p-4">
+                        <div className="flex justify-between items-start">
+                          <div className="text-white">
+                            <h3 className="text-xl font-bold mb-1">{order.order_number}</h3>
+                            <p className="text-teal-100 text-sm">
+                              {template ? template.name : 'Custom Frequency'}
+                            </p>
+                          </div>
+                          <span className={`px-3 py-1 text-xs font-semibold rounded-full ${getStatusBadgeClass(order.status)}`}>
+                            {order.status}
+                          </span>
+                        </div>
+                      </div>
+                      
+                      <CardContent className="p-6">
+                        {/* Timeline View */}
+                        <div className="space-y-6">
+                          {/* Current Delivery */}
+                          <div className="flex items-start gap-4">
+                            <div className="flex-shrink-0">
+                              <div className="w-12 h-12 bg-teal-100 rounded-full flex items-center justify-center">
+                                <CheckCircle className="w-6 h-6 text-teal-600" />
+                              </div>
+                            </div>
+                            <div className="flex-1">
+                              <div className="flex items-center justify-between mb-2">
+                                <h4 className="font-semibold text-gray-900">Current Delivery</h4>
+                                <span className="text-sm text-gray-500">
+                                  {deliveryDate.toLocaleDateString()} at {deliveryDate.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                                </span>
+                              </div>
+                              <div className="grid grid-cols-2 gap-4 text-sm">
+                                <div>
+                                  <p className="text-gray-600">Pickup</p>
+                                  <p className="font-medium text-gray-900">{new Date(order.pickup_date).toLocaleString()}</p>
+                                  <p className="text-xs text-gray-500 mt-1">{order.pickup_address}</p>
+                                </div>
+                                <div>
+                                  <p className="text-gray-600">Delivery</p>
+                                  <p className="font-medium text-gray-900">{new Date(order.delivery_date).toLocaleString()}</p>
+                                  <p className="text-xs text-gray-500 mt-1">{order.delivery_address}</p>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Connector Line */}
+                          {nextOccurrence && (
+                            <div className="ml-6 border-l-2 border-dashed border-gray-300 h-8"></div>
+                          )}
+
+                          {/* Next Occurrence */}
+                          {nextOccurrence && (
+                            <div className="flex items-start gap-4">
+                              <div className="flex-shrink-0">
+                                <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center">
+                                  <Calendar className="w-6 h-6 text-purple-600" />
+                                </div>
+                              </div>
+                              <div className="flex-1">
+                                <div className="flex items-center justify-between mb-2">
+                                  <h4 className="font-semibold text-gray-900">Next Scheduled Occurrence</h4>
+                                  <span className="text-sm text-purple-600 font-medium">
+                                    {nextOccurrence.toLocaleDateString()}
+                                  </span>
+                                </div>
+                                <p className="text-sm text-gray-600">
+                                  This order will automatically repeat on {nextOccurrence.toLocaleDateString()}
+                                </p>
+                                <div className="mt-3 p-3 bg-purple-50 rounded-lg">
+                                  <p className="text-xs text-purple-800">
+                                    📅 <strong>Frequency:</strong> {template ? `${template.frequency_type} (every ${template.frequency_value} ${template.frequency_type === 'daily' ? 'day(s)' : template.frequency_type === 'weekly' ? 'week(s)' : 'month(s)'})` : 'Custom'}
+                                  </p>
+                                </div>
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Order Items */}
+                          <div className="pt-4 border-t">
+                            <h4 className="font-semibold text-gray-900 mb-3">Order Items</h4>
+                            <ul className="space-y-2">
+                              {order.items.map((item, idx) => (
+                                <li key={idx} className="flex justify-between text-sm">
+                                  <span className="text-gray-700">
+                                    {item.sku_name} × {item.quantity}
+                                  </span>
+                                  <span className="text-gray-900 font-medium">${(item.price * item.quantity * 1.1).toFixed(2)}</span>
+                                </li>
+                              ))}
+                            </ul>
+                            <div className="flex justify-between items-center pt-3 mt-3 border-t">
+                              <span className="font-semibold text-gray-900">Total (Inc GST)</span>
+                              <span className="text-xl font-bold text-teal-600">${order.total_amount?.toFixed(2)}</span>
+                            </div>
+                          </div>
+
+                          {/* Special Instructions */}
+                          {order.special_instructions && (
+                            <div className="pt-4 border-t">
+                              <h4 className="font-semibold text-gray-900 mb-2">Special Instructions</h4>
+                              <p className="text-sm text-gray-700 bg-gray-50 p-3 rounded">{order.special_instructions}</p>
+                            </div>
+                          )}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
+            )}
           </div>
         )}
       </div>

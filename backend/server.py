@@ -16,7 +16,7 @@ import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from utils.email_service import send_otp_email, send_welcome_email, send_email, send_order_status_email
-from utils.sms_service import send_sms_otp, send_welcome_sms
+from utils.sms_service import send_sms_otp, send_welcome_sms, send_sms
 from utils.otp_service import generate_otp, is_otp_expired
 import socketio
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
@@ -199,6 +199,21 @@ async def auto_create_next_recurring_order(order: dict):
             </html>
             """
         )
+        
+        # Send SMS notification
+        if customer.get('phone'):
+            send_sms(
+                phone_number=customer['phone'],
+                message_body=f"""Infinite Laundry Solutions
+
+Your next recurring order {new_order['order_number']} has been automatically created!
+
+Pickup: {next_pickup_date.strftime('%Y-%m-%d')}
+Delivery: {next_delivery_date.strftime('%Y-%m-%d')}
+Total: ${new_order['total_amount']:.2f}
+
+View details in your dashboard."""
+            )
     
     return new_order
 
@@ -1463,8 +1478,22 @@ async def propose_order_modification(
             </html>
             """
         )
+        
+        # Send SMS notification
+        if customer.get('phone'):
+            send_sms(
+                phone_number=customer['phone'],
+                message_body=f"""Infinite Laundry Solutions
+
+Approval Needed: Changes have been proposed for your recurring order {order['order_number']}.
+
+Please log in to your dashboard to review and approve/reject the changes.
+
+The current order will continue as scheduled until you approve."""
+            )
     
     return {"message": "Modification proposed successfully. Customer approval required."}
+
 
 @api_router.put("/orders/{order_id}/approve-modification")
 async def approve_order_modification(
