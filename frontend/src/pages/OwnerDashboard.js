@@ -99,6 +99,12 @@ function OwnerDashboard() {
   const [skuSortOrder, setSkuSortOrder] = useState('asc');
   const [skuCategoryFilter, setSkuCategoryFilter] = useState([]);
 
+  // Delivery Tracking Filter
+  const [deliveryTrackingStatusFilter, setDeliveryTrackingStatusFilter] = useState([]);
+  const [deliveryTrackingDriverFilter, setDeliveryTrackingDriverFilter] = useState('');
+  const [deliveryTrackingDateFrom, setDeliveryTrackingDateFrom] = useState('');
+  const [deliveryTrackingDateTo, setDeliveryTrackingDateTo] = useState('');
+
   // Password reset
   const [showPasswordDialog, setShowPasswordDialog] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
@@ -656,6 +662,64 @@ function OwnerDashboard() {
     setSkuCategoryFilter([]);
     setSkuSortBy('name');
     setSkuSortOrder('asc');
+  };
+
+  // Delivery Tracking Filter Functions
+  const getFilteredDeliveryOrders = () => {
+    let filtered = orders.filter(o => o.driver_id);
+
+    // Delivery Status filter
+    if (deliveryTrackingStatusFilter.length > 0) {
+      filtered = filtered.filter(order => {
+        const status = order.delivery_status || 'assigned';
+        return deliveryTrackingStatusFilter.includes(status);
+      });
+    }
+
+    // Driver filter
+    if (deliveryTrackingDriverFilter.trim()) {
+      const query = deliveryTrackingDriverFilter.toLowerCase();
+      filtered = filtered.filter(order =>
+        order.driver_name?.toLowerCase().includes(query)
+      );
+    }
+
+    // Date range filter (by delivery date)
+    if (deliveryTrackingDateFrom || deliveryTrackingDateTo) {
+      filtered = filtered.filter(order => {
+        const deliveryDate = new Date(order.delivery_date);
+        
+        if (deliveryTrackingDateFrom && deliveryTrackingDateTo) {
+          const fromDate = new Date(deliveryTrackingDateFrom);
+          const toDate = new Date(deliveryTrackingDateTo);
+          toDate.setHours(23, 59, 59, 999);
+          return deliveryDate >= fromDate && deliveryDate <= toDate;
+        } else if (deliveryTrackingDateFrom) {
+          const fromDate = new Date(deliveryTrackingDateFrom);
+          return deliveryDate >= fromDate;
+        } else if (deliveryTrackingDateTo) {
+          const toDate = new Date(deliveryTrackingDateTo);
+          toDate.setHours(23, 59, 59, 999);
+          return deliveryDate <= toDate;
+        }
+        return true;
+      });
+    }
+
+    return filtered;
+  };
+
+  const toggleDeliveryTrackingStatusFilter = (status) => {
+    setDeliveryTrackingStatusFilter(prev =>
+      prev.includes(status) ? prev.filter(s => s !== status) : [...prev, status]
+    );
+  };
+
+  const clearDeliveryTrackingFilters = () => {
+    setDeliveryTrackingStatusFilter([]);
+    setDeliveryTrackingDriverFilter('');
+    setDeliveryTrackingDateFrom('');
+    setDeliveryTrackingDateTo('');
   };
 
   const getUniqueCategories = () => {
@@ -2385,6 +2449,83 @@ function OwnerDashboard() {
               <p className="text-gray-600 mt-1">Track delivery progress and view detailed timeline</p>
             </div>
 
+            {/* Filters */}
+            <Card className="mb-6">
+              <CardContent className="p-4">
+                <div className="space-y-4">
+                  {/* Driver Search and Date Range */}
+                  <div className="flex flex-wrap items-center gap-3">
+                    <div className="relative flex-1 min-w-[200px]">
+                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                      <Input
+                        type="text"
+                        placeholder="Search by driver name..."
+                        value={deliveryTrackingDriverFilter}
+                        onChange={(e) => setDeliveryTrackingDriverFilter(e.target.value)}
+                        className="pl-10"
+                      />
+                    </div>
+                    
+                    <div className="flex items-center gap-2">
+                      <Label className="text-sm whitespace-nowrap">From:</Label>
+                      <Input
+                        type="date"
+                        value={deliveryTrackingDateFrom}
+                        onChange={(e) => setDeliveryTrackingDateFrom(e.target.value)}
+                        className="w-[150px]"
+                      />
+                    </div>
+                    
+                    <div className="flex items-center gap-2">
+                      <Label className="text-sm whitespace-nowrap">To:</Label>
+                      <Input
+                        type="date"
+                        value={deliveryTrackingDateTo}
+                        onChange={(e) => setDeliveryTrackingDateTo(e.target.value)}
+                        className="w-[150px]"
+                      />
+                    </div>
+
+                    {(deliveryTrackingStatusFilter.length > 0 || deliveryTrackingDriverFilter || deliveryTrackingDateFrom || deliveryTrackingDateTo) && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={clearDeliveryTrackingFilters}
+                        className="whitespace-nowrap"
+                      >
+                        <X className="w-4 h-4 mr-1" />
+                        Clear
+                      </Button>
+                    )}
+                  </div>
+
+                  {/* Delivery Status Filter Chips */}
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <Truck className="w-4 h-4 text-gray-500" />
+                    <Label className="text-sm font-medium">Delivery Status:</Label>
+                    {['assigned', 'picked_up', 'out_for_delivery', 'delivered'].map(status => (
+                      <button
+                        key={status}
+                        onClick={() => toggleDeliveryTrackingStatusFilter(status)}
+                        className={`px-3 py-1 text-xs rounded-full border transition-colors ${
+                          deliveryTrackingStatusFilter.includes(status)
+                            ? 'bg-blue-500 text-white border-blue-500'
+                            : 'bg-white text-gray-700 border-gray-300 hover:border-blue-500'
+                        }`}
+                      >
+                        {status.replace(/_/g, ' ')}
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Results Count */}
+                  <div className="text-sm text-gray-600">
+                    Showing <span className="font-semibold">{getFilteredDeliveryOrders().length}</span> of <span className="font-semibold">{orders.filter(o => o.driver_id).length}</span> deliveries
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               {/* Orders List */}
               <Card className="lg:col-span-1">
@@ -2392,14 +2533,14 @@ function OwnerDashboard() {
                   <CardTitle>Orders with Delivery</CardTitle>
                 </CardHeader>
                 <CardContent className="max-h-[600px] overflow-y-auto">
-                  {orders.filter(o => o.driver_id).length === 0 ? (
+                  {getFilteredDeliveryOrders().length === 0 ? (
                     <div className="text-center py-8 text-gray-500">
                       <Truck className="h-12 w-12 mx-auto mb-2 opacity-50" />
-                      <p>No orders with assigned drivers</p>
+                      <p>{orders.filter(o => o.driver_id).length === 0 ? 'No orders with assigned drivers' : 'No deliveries match your filters'}</p>
                     </div>
                   ) : (
                     <div className="space-y-2">
-                      {orders.filter(o => o.driver_id).map((order) => (
+                      {getFilteredDeliveryOrders().map((order) => (
                         <div
                           key={order.id}
                           onClick={() => setSelectedOrderForTracking(order)}
