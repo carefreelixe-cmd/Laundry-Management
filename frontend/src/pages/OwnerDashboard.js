@@ -4,6 +4,7 @@ import DashboardLayout from '../components/DashboardLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
@@ -47,6 +48,13 @@ function OwnerDashboard() {
     frequency_value: '1',
     description: ''
   });
+
+  // Case Management
+  const [cases, setCases] = useState([]);
+  const [selectedCase, setSelectedCase] = useState(null);
+  const [showCaseDialog, setShowCaseDialog] = useState(false);
+  const [caseUpdate, setCaseUpdate] = useState({ status: '', resolution: '', priority: '' });
+  const [updatingCaseId, setUpdatingCaseId] = useState(null);
 
   // Orders and Drivers
   const [orders, setOrders] = useState([]);
@@ -132,6 +140,8 @@ function OwnerDashboard() {
       fetchCustomers();
     } else if (activeTab === 'frequency-templates') {
       fetchFrequencyTemplates();
+    } else if (activeTab === 'cases') {
+      fetchCases();
     } else if (activeTab === 'orders') {
       fetchOrders();
       fetchDrivers();
@@ -205,6 +215,16 @@ function OwnerDashboard() {
     }
   };
 
+  const fetchCases = async () => {
+    try {
+      const res = await axios.get(`${API}/cases`);
+      setCases(res.data);
+    } catch (error) {
+      console.error('Failed to fetch cases', error);
+      toast.error('Failed to fetch cases');
+    }
+  };
+
   const fetchCustomerSkus = async (customerId) => {
     try {
       const res = await axios.get(`${API}/skus-with-pricing/${customerId}`);
@@ -270,6 +290,26 @@ function OwnerDashboard() {
     setSelectedUser(user);
     setNewPassword('');
     setShowPasswordDialog(true);
+  };
+
+  const handleUpdateCase = async (e) => {
+    e.preventDefault();
+    if (updatingCaseId) return; // Prevent duplicate submissions
+    
+    try {
+      setUpdatingCaseId(selectedCase.id);
+      await axios.put(`${API}/cases/${selectedCase.id}`, caseUpdate);
+      toast.success('Case updated successfully');
+      setShowCaseDialog(false);
+      setSelectedCase(null);
+      setCaseUpdate({ status: '', resolution: '', priority: '' });
+      fetchCases();
+    } catch (error) {
+      console.error('Failed to update case', error);
+      toast.error('Failed to update case');
+    } finally {
+      setUpdatingCaseId(null);
+    }
   };
 
   const handleCreateOrUpdateSku = async (e) => {
@@ -1095,6 +1135,17 @@ function OwnerDashboard() {
             Frequency Templates
           </button>
           <button
+            onClick={() => setActiveTab('cases')}
+            className={`pb-3 px-1 font-medium transition-colors ${
+              activeTab === 'cases'
+                ? 'text-teal-600 border-b-2 border-teal-600'
+                : 'text-gray-500 hover:text-gray-700'
+            }`}
+            data-testid="cases-tab"
+          >
+            Case Management
+          </button>
+          <button
             onClick={() => setActiveTab('orders')}
             className={`pb-3 px-1 font-medium transition-colors ${
               activeTab === 'orders'
@@ -1838,6 +1889,132 @@ function OwnerDashboard() {
                 </Card>
               ))}
             </div>
+          </div>
+        )}
+
+        {/* Case Management Tab */}
+        {activeTab === 'cases' && (
+          <div>
+            <h2 className="text-2xl font-bold text-gray-900 mb-6">Case Management</h2>
+            <div className="grid gap-4" data-testid="cases-list">
+              {cases.map((caseItem) => (
+                <Card key={caseItem.id} className="card-hover">
+                  <CardContent className="p-6">
+                    <div className="flex justify-between items-start">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-3 mb-2">
+                          <h3 className="text-xl font-bold text-gray-900">{caseItem.case_number}</h3>
+                          <span className={`px-3 py-1 text-xs font-semibold rounded-full ${
+                            caseItem.status === 'open' ? 'bg-yellow-100 text-yellow-800' :
+                            caseItem.status === 'in_progress' ? 'bg-blue-100 text-blue-800' :
+                            'bg-green-100 text-green-800'
+                          }`}>
+                            {caseItem.status}
+                          </span>
+                          <span className={`px-3 py-1 text-xs font-semibold rounded-full ${
+                            caseItem.priority === 'high' ? 'bg-red-100 text-red-800' :
+                            caseItem.priority === 'medium' ? 'bg-orange-100 text-orange-800' :
+                            'bg-gray-100 text-gray-800'
+                          }`}>
+                            {caseItem.priority}
+                          </span>
+                        </div>
+                        <p className="text-gray-600 mb-2">{caseItem.customer_name} - {caseItem.customer_email}</p>
+                        <p className="font-semibold text-gray-700">{caseItem.subject}</p>
+                        <p className="text-sm text-gray-600 mt-2">{caseItem.description}</p>
+                        {caseItem.resolution && (
+                          <div className="mt-3 p-3 bg-green-50 rounded-lg">
+                            <p className="text-sm font-semibold text-green-800">Resolution:</p>
+                            <p className="text-sm text-green-700">{caseItem.resolution}</p>
+                          </div>
+                        )}
+                      </div>
+                      <Button
+                        onClick={() => {
+                          setSelectedCase(caseItem);
+                          setCaseUpdate({
+                            status: caseItem.status,
+                            resolution: caseItem.resolution || '',
+                            priority: caseItem.priority
+                          });
+                          setShowCaseDialog(true);
+                        }}
+                        className="bg-teal-500 hover:bg-teal-600"
+                        data-testid={`update-case-${caseItem.id}`}
+                      >
+                        <Edit className="w-4 h-4 mr-2" />
+                        Update
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+              {cases.length === 0 && (
+                <Card>
+                  <CardContent className="p-12 text-center">
+                    <AlertCircle className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                    <p className="text-gray-600">No cases found</p>
+                  </CardContent>
+                </Card>
+              )}
+            </div>
+
+            {/* Case Update Dialog */}
+            <Dialog open={showCaseDialog} onOpenChange={setShowCaseDialog}>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Update Case</DialogTitle>
+                </DialogHeader>
+                <form onSubmit={handleUpdateCase} className="space-y-4">
+                  <div>
+                    <Label>Status</Label>
+                    <Select value={caseUpdate.status} onValueChange={(value) => setCaseUpdate({ ...caseUpdate, status: value })}>
+                      <SelectTrigger data-testid="case-status-select">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="open">Open</SelectItem>
+                        <SelectItem value="in_progress">In Progress</SelectItem>
+                        <SelectItem value="resolved">Resolved</SelectItem>
+                        <SelectItem value="closed">Closed</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label>Priority</Label>
+                    <Select value={caseUpdate.priority} onValueChange={(value) => setCaseUpdate({ ...caseUpdate, priority: value })}>
+                      <SelectTrigger data-testid="case-priority-select">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="low">Low</SelectItem>
+                        <SelectItem value="medium">Medium</SelectItem>
+                        <SelectItem value="high">High</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label>Resolution</Label>
+                    <Textarea value={caseUpdate.resolution} onChange={(e) => setCaseUpdate({ ...caseUpdate, resolution: e.target.value })} rows={4} data-testid="case-resolution-input" />
+                  </div>
+                  <Button 
+                    type="submit" 
+                    className="w-full bg-teal-500 hover:bg-teal-600" 
+                    disabled={updatingCaseId !== null}
+                    data-testid="case-update-submit-btn"
+                  >
+                    {updatingCaseId ? (
+                      <>
+                        <Clock className="w-4 h-4 mr-2 animate-spin" />
+                        Updating...
+                      </>
+                    ) : (
+                      'Update Case'
+                    )}
+                  </Button>
+                </form>
+              </DialogContent>
+            </Dialog>
           </div>
         )}
 
