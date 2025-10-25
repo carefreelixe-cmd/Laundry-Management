@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { AuthContext } from '../App';
 import DashboardLayout from '../components/DashboardLayout';
+import OrderCalendar from '../components/OrderCalendar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -47,6 +48,7 @@ function AdminDashboard() {
   const [updatingCaseId, setUpdatingCaseId] = useState(null);
   const [updatingStatusOrderId, setUpdatingStatusOrderId] = useState(null);
   const [resettingPasswordUserId, setResettingPasswordUserId] = useState(null);
+  const [togglingUserId, setTogglingUserId] = useState(null);
   
   // Password reset
   const [showPasswordDialog, setShowPasswordDialog] = useState(false);
@@ -73,6 +75,11 @@ function AdminDashboard() {
   const [casePriorityFilter, setCasePriorityFilter] = useState([]);
   const [caseDateFrom, setCaseDateFrom] = useState('');
   const [caseDateTo, setCaseDateTo] = useState('');
+  
+  // Delivery Tracking Filters
+  const [deliveryDateFrom, setDeliveryDateFrom] = useState('');
+  const [deliveryDateTo, setDeliveryDateTo] = useState('');
+  const [deliveryStatusFilter, setDeliveryStatusFilter] = useState([]);
   
   // Order form
   const [showOrderDialog, setShowOrderDialog] = useState(false);
@@ -299,12 +306,16 @@ function AdminDashboard() {
   const handleToggleUserStatus = async (user) => {
     const action = user.is_active ? 'disable' : 'enable';
     if (!window.confirm(`Are you sure you want to ${action} ${user.full_name}'s account?`)) return;
+    
+    setTogglingUserId(user.id);
     try {
       await axios.put(`${API}/admin/users/${user.id}/toggle-status`);
       toast.success(`User account ${action}d successfully`);
       fetchData();
     } catch (error) {
       toast.error(error.response?.data?.detail || `Failed to ${action} user`);
+    } finally {
+      setTogglingUserId(null);
     }
   };
 
@@ -735,6 +746,41 @@ function AdminDashboard() {
     setCaseDateTo('');
   };
 
+  // Delivery tracking filter functions
+  const getFilteredDeliveryOrders = () => {
+    return orders.filter(o => o.driver_id).filter(order => {
+      // Date filtering
+      if (deliveryDateFrom && new Date(order.delivery_date) < new Date(deliveryDateFrom)) {
+        return false;
+      }
+      if (deliveryDateTo && new Date(order.delivery_date) > new Date(deliveryDateTo + ' 23:59:59')) {
+        return false;
+      }
+      
+      // Status filtering
+      if (deliveryStatusFilter.length > 0) {
+        const currentStatus = order.delivery_status || 'assigned';
+        if (!deliveryStatusFilter.includes(currentStatus)) {
+          return false;
+        }
+      }
+      
+      return true;
+    });
+  };
+
+  const toggleDeliveryStatusFilter = (status) => {
+    setDeliveryStatusFilter(prev => 
+      prev.includes(status) ? prev.filter(s => s !== status) : [...prev, status]
+    );
+  };
+
+  const clearDeliveryFilters = () => {
+    setDeliveryDateFrom('');
+    setDeliveryDateTo('');
+    setDeliveryStatusFilter([]);
+  };
+
   if (loading) {
     return (
       <DashboardLayout>
@@ -806,6 +852,17 @@ function AdminDashboard() {
             data-testid="pricing-tab"
           >
             Pricing
+          </button>
+          <button
+            onClick={() => setActiveTab('calendar')}
+            className={`pb-3 px-1 font-medium transition-colors ${
+              activeTab === 'calendar'
+                ? 'text-teal-600 border-b-2 border-teal-600'
+                : 'text-gray-500 hover:text-gray-700'
+            }`}
+            data-testid="calendar-tab"
+          >
+            📅 Calendar
           </button>
           <button
             onClick={() => setActiveTab('users')}
@@ -1413,255 +1470,315 @@ function AdminDashboard() {
           </div>
         )}
 
-        {/* Delivery Tracking Tab */}
+        {/* Delivery Tracking Tab - Professional Full-Width List */}
         {activeTab === 'delivery-tracking' && (
-          <div>
-            <div className="mb-6">
+          <div className="space-y-6">
+            {/* Header */}
+            <div>
               <h2 className="text-2xl font-bold text-gray-900">Delivery Tracking</h2>
               <p className="text-gray-600 mt-1">Track delivery progress and view detailed timeline with driver information</p>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              {/* Orders List */}
-              <Card className="lg:col-span-1">
-                <CardHeader>
-                  <CardTitle>Orders with Delivery</CardTitle>
-                </CardHeader>
-                <CardContent className="max-h-[600px] overflow-y-auto">
-                  {orders.filter(o => o.driver_id).length === 0 ? (
-                    <div className="text-center py-8 text-gray-500">
-                      <Truck className="h-12 w-12 mx-auto mb-2 opacity-50" />
-                      <p>No orders with assigned drivers</p>
-                    </div>
-                  ) : (
-                    <div className="space-y-2">
-                      {orders.filter(o => o.driver_id).map((order) => (
-                        <div
-                          key={order.id}
-                          onClick={() => setSelectedOrderForTracking(order)}
-                          className={`p-3 border rounded-lg cursor-pointer transition-all ${
-                            selectedOrderForTracking?.id === order.id
-                              ? 'border-teal-500 bg-teal-50'
-                              : 'border-gray-200 hover:border-teal-300 hover:bg-gray-50'
+            {/* Filters Card */}
+            <Card>
+              <CardContent className="p-6">
+                <div className="flex items-center gap-2 mb-4">
+                  <Filter className="w-5 h-5 text-gray-600" />
+                  <h3 className="text-lg font-semibold text-gray-900">Filters</h3>
+                  {(deliveryDateFrom || deliveryDateTo || deliveryStatusFilter.length > 0) && (
+                    <Button 
+                      onClick={clearDeliveryFilters}
+                      variant="outline"
+                      size="sm"
+                      className="ml-auto"
+                    >
+                      <X className="w-4 h-4 mr-1" />
+                      Clear Filters
+                    </Button>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                  {/* Date From */}
+                  <div>
+                    <Label className="text-sm font-medium mb-2">Delivery Date From</Label>
+                    <Input
+                      type="date"
+                      value={deliveryDateFrom}
+                      onChange={(e) => setDeliveryDateFrom(e.target.value)}
+                      className="w-full"
+                    />
+                  </div>
+
+                  {/* Date To */}
+                  <div>
+                    <Label className="text-sm font-medium mb-2">Delivery Date To</Label>
+                    <Input
+                      type="date"
+                      value={deliveryDateTo}
+                      onChange={(e) => setDeliveryDateTo(e.target.value)}
+                      className="w-full"
+                    />
+                  </div>
+
+                  {/* Delivery Status Filter */}
+                  <div className="md:col-span-2">
+                    <Label className="text-sm font-medium mb-2">Delivery Status</Label>
+                    <div className="flex flex-wrap gap-2">
+                      {['assigned', 'picked_up', 'out_for_delivery', 'delivered'].map(status => (
+                        <button
+                          key={status}
+                          onClick={() => toggleDeliveryStatusFilter(status)}
+                          className={`px-3 py-1 text-xs font-medium rounded-full transition-colors ${
+                            deliveryStatusFilter.includes(status)
+                              ? 'bg-teal-500 text-white'
+                              : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
                           }`}
                         >
-                          <div className="flex justify-between items-start">
-                            <div>
-                              <p className="font-semibold text-sm">{order.order_number}</p>
-                              <p className="text-xs text-gray-600">{order.customer_name}</p>
-                            </div>
-                            <span className={`px-2 py-1 text-xs rounded-full ${
-                              order.delivery_status === 'delivered' ? 'bg-green-100 text-green-800' :
-                              order.delivery_status === 'out_for_delivery' ? 'bg-orange-100 text-orange-800' :
-                              order.delivery_status === 'picked_up' ? 'bg-yellow-100 text-yellow-800' :
-                              'bg-blue-100 text-blue-800'
-                            }`}>
-                              {order.delivery_status?.replace(/_/g, ' ') || 'assigned'}
-                            </span>
-                          </div>
-                          <div className="mt-2 text-xs text-gray-500">
-                            <p><strong>Driver:</strong> {order.driver_name || 'Not assigned'}</p>
-                          </div>
-                        </div>
+                          {status.replace('_', ' ').toUpperCase()}
+                        </button>
                       ))}
                     </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Orders List */}
+            {getFilteredDeliveryOrders().length > 0 ? (
+              <div className="space-y-4">
+                {getFilteredDeliveryOrders().map((order) => (
+                  <Card key={order.id} className="overflow-hidden hover:shadow-lg transition-shadow">
+                    <div className="flex flex-col md:flex-row">
+                      {/* Left Side - Status Indicator */}
+                      <div className={`md:w-2 ${
+                        order.delivery_status === 'delivered' ? 'bg-green-500' :
+                        order.delivery_status === 'out_for_delivery' ? 'bg-orange-500' :
+                        order.delivery_status === 'picked_up' ? 'bg-yellow-500' :
+                        'bg-blue-500'
+                      }`}></div>
+
+                      <CardContent className="flex-1 p-6">
+                        <div className="flex flex-col lg:flex-row gap-6">
+                          {/* Order Info Column */}
+                          <div className="flex-1">
+                            <div className="flex items-start justify-between mb-4">
+                              <div>
+                                <h3 className="text-xl font-bold text-gray-900 mb-1">
+                                  {order.order_number}
+                                </h3>
+                                <p className="text-sm text-gray-600">
+                                  Customer: <span className="font-semibold">{order.customer_name}</span>
+                                </p>
+                              </div>
+                              <span className={`px-4 py-2 text-sm font-bold rounded-full whitespace-nowrap ${
+                                order.delivery_status === 'delivered' ? 'bg-green-100 text-green-800 border-2 border-green-500' :
+                                order.delivery_status === 'out_for_delivery' ? 'bg-orange-100 text-orange-800 border-2 border-orange-500' :
+                                order.delivery_status === 'picked_up' ? 'bg-yellow-100 text-yellow-800 border-2 border-yellow-500' :
+                                'bg-blue-100 text-blue-800 border-2 border-blue-500'
+                              }`}>
+                                {order.delivery_status?.replace('_', ' ').toUpperCase() || 'ASSIGNED'}
+                              </span>
+                            </div>
+
+                            {/* Driver & Amount Row */}
+                            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+                              <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 bg-teal-100 rounded-full flex items-center justify-center">
+                                  <Truck className="w-5 h-5 text-teal-600" />
+                                </div>
+                                <div>
+                                  <p className="text-xs text-gray-500">Driver</p>
+                                  <p className="font-semibold text-gray-900">{order.driver_name}</p>
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
+                                  <DollarSign className="w-5 h-5 text-green-600" />
+                                </div>
+                                <div>
+                                  <p className="text-xs text-gray-500">Total (Inc GST)</p>
+                                  <p className="font-semibold text-gray-900">${order.total_amount?.toFixed(2)}</p>
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center">
+                                  <Calendar className="w-5 h-5 text-purple-600" />
+                                </div>
+                                <div>
+                                  <p className="text-xs text-gray-500">Created</p>
+                                  <p className="font-semibold text-gray-900">{new Date(order.created_at).toLocaleDateString()}</p>
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                                  <Package className="w-5 h-5 text-blue-600" />
+                                </div>
+                                <div>
+                                  <p className="text-xs text-gray-500">Items</p>
+                                  <p className="font-semibold text-gray-900">{order.items?.length || 0}</p>
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Addresses Grid */}
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-gray-50 rounded-lg">
+                              <div>
+                                <div className="flex items-center gap-2 mb-2">
+                                  <MapPin className="w-4 h-4 text-teal-600" />
+                                  <span className="text-xs font-semibold text-gray-700">PICKUP</span>
+                                </div>
+                                <p className="text-sm text-gray-900 ml-6">{order.pickup_address}</p>
+                                <p className="text-xs text-gray-500 ml-6 mt-1">
+                                  {new Date(order.pickup_date).toLocaleString()}
+                                </p>
+                              </div>
+                              <div>
+                                <div className="flex items-center gap-2 mb-2">
+                                  <MapPin className="w-4 h-4 text-green-600" />
+                                  <span className="text-xs font-semibold text-gray-700">DELIVERY</span>
+                                </div>
+                                <p className="text-sm text-gray-900 ml-6">{order.delivery_address}</p>
+                                <p className="text-xs text-gray-500 ml-6 mt-1">
+                                  {new Date(order.delivery_date).toLocaleString()}
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Timeline Column */}
+                          <div className="lg:w-64 border-l pl-6">
+                            <h4 className="text-sm font-semibold text-gray-900 mb-4">Delivery Progress</h4>
+                            <div className="space-y-4">
+                              {/* Assigned */}
+                              <div className="flex items-start gap-3">
+                                <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
+                                  order.assigned_at ? 'bg-blue-500' : 'bg-gray-300'
+                                }`}>
+                                  <CheckCircle className={`w-4 h-4 ${order.assigned_at ? 'text-white' : 'text-gray-500'}`} />
+                                </div>
+                                <div>
+                                  <p className="text-sm font-medium text-gray-900">Assigned</p>
+                                  <p className="text-xs text-gray-500">
+                                    {order.assigned_at ? new Date(order.assigned_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : '---'}
+                                  </p>
+                                </div>
+                              </div>
+
+                              {/* Picked Up */}
+                              <div className="flex items-start gap-3">
+                                <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
+                                  order.picked_up_at ? 'bg-yellow-500' : 'bg-gray-300'
+                                }`}>
+                                  <Package className={`w-4 h-4 ${order.picked_up_at ? 'text-white' : 'text-gray-500'}`} />
+                                </div>
+                                <div>
+                                  <p className="text-sm font-medium text-gray-900">Picked Up</p>
+                                  <p className="text-xs text-gray-500">
+                                    {order.picked_up_at ? new Date(order.picked_up_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : '---'}
+                                  </p>
+                                </div>
+                              </div>
+
+                              {/* Out for Delivery */}
+                              <div className="flex items-start gap-3">
+                                <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
+                                  order.delivery_status === 'out_for_delivery' || order.delivery_status === 'delivered' ? 'bg-orange-500' : 'bg-gray-300'
+                                }`}>
+                                  <Truck className={`w-4 h-4 ${
+                                    order.delivery_status === 'out_for_delivery' || order.delivery_status === 'delivered' ? 'text-white' : 'text-gray-500'
+                                  }`} />
+                                </div>
+                                <div>
+                                  <p className="text-sm font-medium text-gray-900">Out for Delivery</p>
+                                  <p className="text-xs text-gray-500">
+                                    {order.delivery_status === 'out_for_delivery' || order.delivery_status === 'delivered' ? 'In transit' : '---'}
+                                  </p>
+                                </div>
+                              </div>
+
+                              {/* Delivered */}
+                              <div className="flex items-start gap-3">
+                                <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
+                                  order.delivered_at ? 'bg-green-500' : 'bg-gray-300'
+                                }`}>
+                                  <CheckCircle className={`w-4 h-4 ${order.delivered_at ? 'text-white' : 'text-gray-500'}`} />
+                                </div>
+                                <div>
+                                  <p className="text-sm font-medium text-gray-900">Delivered</p>
+                                  <p className="text-xs text-gray-500">
+                                    {order.delivered_at ? new Date(order.delivered_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : '---'}
+                                  </p>
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Delivery Notes */}
+                            {order.delivery_notes && (
+                              <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                                <p className="text-xs font-semibold text-yellow-800 mb-1">Delivery Notes</p>
+                                <p className="text-xs text-yellow-700">{order.delivery_notes}</p>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Order Items (Expandable Section) */}
+                        {order.items && order.items.length > 0 && (
+                          <div className="mt-6 pt-4 border-t">
+                            <h4 className="text-sm font-semibold text-gray-900 mb-3">Order Items ({order.items.length})</h4>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                              {order.items.map((item, idx) => (
+                                <div key={idx} className="flex justify-between bg-gray-50 p-2 rounded text-sm">
+                                  <span className="text-gray-900">{item.sku_name || item.sku_id}</span>
+                                  <span className="text-gray-600">
+                                    Qty: {item.quantity} {item.price && `× $${item.price.toFixed(2)}`}
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </CardContent>
+                    </div>
+                  </Card>
+                ))}
+              </div>
+            ) : (
+              <Card>
+                <CardContent className="flex flex-col items-center justify-center p-12 text-center">
+                  <Truck className="w-20 h-20 text-gray-400 mb-4" />
+                  <h3 className="text-2xl font-semibold text-gray-900 mb-2">No Deliveries Found</h3>
+                  <p className="text-gray-600 mb-1">
+                    {orders.filter(o => o.driver_id).length === 0 
+                      ? "No orders with assigned drivers at the moment"
+                      : "No deliveries match your filter criteria"}
+                  </p>
+                  <p className="text-sm text-gray-500">Orders with assigned drivers will appear here for tracking</p>
+                  {(deliveryDateFrom || deliveryDateTo || deliveryStatusFilter.length > 0) && (
+                    <Button 
+                      onClick={clearDeliveryFilters}
+                      variant="outline"
+                      className="mt-4"
+                    >
+                      <X className="w-4 h-4 mr-2" />
+                      Clear All Filters
+                    </Button>
                   )}
                 </CardContent>
               </Card>
+            )}
+          </div>
+        )}
 
-              {/* Delivery Details */}
-              <Card className="lg:col-span-2">
-                <CardHeader>
-                  <CardTitle>Delivery Timeline & Driver Info</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  {!selectedOrderForTracking ? (
-                    <div className="text-center py-16 text-gray-500">
-                      <Package className="h-16 w-16 mx-auto mb-4 opacity-50" />
-                      <p>Select an order to view delivery details</p>
-                    </div>
-                  ) : (
-                    <div className="space-y-6">
-                      {/* Order Info */}
-                      <div className="bg-gray-50 p-4 rounded-lg">
-                        <div className="grid grid-cols-2 gap-4">
-                          <div>
-                            <p className="text-xs text-gray-600">Order Number</p>
-                            <p className="font-semibold">{selectedOrderForTracking.order_number}</p>
-                          </div>
-                          <div>
-                            <p className="text-xs text-gray-600">Customer</p>
-                            <p className="font-semibold">{selectedOrderForTracking.customer_name}</p>
-                          </div>
-                          <div>
-                            <p className="text-xs text-gray-600">Driver Assigned</p>
-                            <p className="font-semibold text-teal-600">{selectedOrderForTracking.driver_name || 'Not assigned'}</p>
-                          </div>
-                          <div>
-                            <p className="text-xs text-gray-600">Current Status</p>
-                            <span className={`inline-block px-2 py-1 text-xs rounded-full ${
-                              selectedOrderForTracking.delivery_status === 'delivered' ? 'bg-green-100 text-green-800' :
-                              selectedOrderForTracking.delivery_status === 'out_for_delivery' ? 'bg-orange-100 text-orange-800' :
-                              selectedOrderForTracking.delivery_status === 'picked_up' ? 'bg-yellow-100 text-yellow-800' :
-                              'bg-blue-100 text-blue-800'
-                            }`}>
-                              {selectedOrderForTracking.delivery_status?.replace(/_/g, ' ').toUpperCase() || 'ASSIGNED'}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Addresses */}
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="border border-gray-200 p-4 rounded-lg">
-                          <div className="flex items-start gap-2">
-                            <MapPin className="w-5 h-5 text-blue-600 mt-1" />
-                            <div>
-                              <p className="text-xs text-gray-600 mb-1">Pickup Address</p>
-                              <p className="text-sm font-medium">{selectedOrderForTracking.pickup_address}</p>
-                              <p className="text-xs text-gray-500 mt-1">Date: {new Date(selectedOrderForTracking.pickup_date).toLocaleDateString()}</p>
-                            </div>
-                          </div>
-                        </div>
-                        <div className="border border-gray-200 p-4 rounded-lg">
-                          <div className="flex items-start gap-2">
-                            <MapPin className="w-5 h-5 text-green-600 mt-1" />
-                            <div>
-                              <p className="text-xs text-gray-600 mb-1">Delivery Address</p>
-                              <p className="text-sm font-medium">{selectedOrderForTracking.delivery_address}</p>
-                              <p className="text-xs text-gray-500 mt-1">Date: {new Date(selectedOrderForTracking.delivery_date).toLocaleDateString()}</p>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Timeline */}
-                      <div>
-                        <h3 className="font-semibold text-gray-900 mb-4">Delivery Progress</h3>
-                        <div className="space-y-4">
-                          {/* Assigned */}
-                          <div className="flex gap-4">
-                            <div className="flex flex-col items-center">
-                              <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                                selectedOrderForTracking.assigned_at ? 'bg-teal-500 text-white' : 'bg-gray-200 text-gray-400'
-                              }`}>
-                                <Clock className="w-5 h-5" />
-                              </div>
-                              {selectedOrderForTracking.assigned_at && <div className="w-0.5 h-16 bg-teal-500 mt-2"></div>}
-                            </div>
-                            <div className="flex-1 pt-2">
-                              <p className="font-semibold text-gray-900">Assigned to Driver</p>
-                              {selectedOrderForTracking.assigned_at ? (
-                                <>
-                                  <p className="text-sm text-gray-600">
-                                    {new Date(selectedOrderForTracking.assigned_at).toLocaleString()}
-                                  </p>
-                                  <p className="text-sm text-teal-600 mt-1">
-                                    Driver: {selectedOrderForTracking.driver_name}
-                                  </p>
-                                </>
-                              ) : (
-                                <p className="text-sm text-gray-400">Not assigned yet</p>
-                              )}
-                            </div>
-                          </div>
-
-                          {/* Picked Up */}
-                          <div className="flex gap-4">
-                            <div className="flex flex-col items-center">
-                              <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                                selectedOrderForTracking.picked_up_at ? 'bg-yellow-500 text-white' : 'bg-gray-200 text-gray-400'
-                              }`}>
-                                <Package className="w-5 h-5" />
-                              </div>
-                              {selectedOrderForTracking.picked_up_at && <div className="w-0.5 h-16 bg-yellow-500 mt-2"></div>}
-                            </div>
-                            <div className="flex-1 pt-2">
-                              <p className="font-semibold text-gray-900">Picked Up</p>
-                              {selectedOrderForTracking.picked_up_at ? (
-                                <p className="text-sm text-gray-600">
-                                  {new Date(selectedOrderForTracking.picked_up_at).toLocaleString()}
-                                </p>
-                              ) : (
-                                <p className="text-sm text-gray-400">Not picked up yet</p>
-                              )}
-                            </div>
-                          </div>
-
-                          {/* Out for Delivery */}
-                          <div className="flex gap-4">
-                            <div className="flex flex-col items-center">
-                              <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                                selectedOrderForTracking.delivery_status === 'out_for_delivery' || selectedOrderForTracking.delivery_status === 'delivered' ? 'bg-orange-500 text-white' : 'bg-gray-200 text-gray-400'
-                              }`}>
-                                <Truck className="w-5 h-5" />
-                              </div>
-                              {(selectedOrderForTracking.delivery_status === 'out_for_delivery' || selectedOrderForTracking.delivery_status === 'delivered') && <div className="w-0.5 h-16 bg-orange-500 mt-2"></div>}
-                            </div>
-                            <div className="flex-1 pt-2">
-                              <p className="font-semibold text-gray-900">Out for Delivery</p>
-                              {selectedOrderForTracking.delivery_status === 'out_for_delivery' || selectedOrderForTracking.delivery_status === 'delivered' ? (
-                                <p className="text-sm text-gray-600">In transit</p>
-                              ) : (
-                                <p className="text-sm text-gray-400">Not started yet</p>
-                              )}
-                            </div>
-                          </div>
-
-                          {/* Delivered */}
-                          <div className="flex gap-4">
-                            <div className="flex flex-col items-center">
-                              <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                                selectedOrderForTracking.delivered_at ? 'bg-green-500 text-white' : 'bg-gray-200 text-gray-400'
-                              }`}>
-                                <CheckCircle className="w-5 h-5" />
-                              </div>
-                            </div>
-                            <div className="flex-1 pt-2">
-                              <p className="font-semibold text-gray-900">Delivered</p>
-                              {selectedOrderForTracking.delivered_at ? (
-                                <p className="text-sm text-gray-600">
-                                  {new Date(selectedOrderForTracking.delivered_at).toLocaleString()}
-                                </p>
-                              ) : (
-                                <p className="text-sm text-gray-400">Not delivered yet</p>
-                              )}
-                              {selectedOrderForTracking.delivery_notes && (
-                                <p className="text-sm text-gray-600 mt-2 italic bg-gray-50 p-2 rounded">
-                                  Note: {selectedOrderForTracking.delivery_notes}
-                                </p>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Order Items */}
-                      <div className="border-t pt-4">
-                        <h3 className="font-semibold text-gray-900 mb-3">Order Items</h3>
-                        <div className="space-y-2">
-                          {selectedOrderForTracking.items?.map((item, idx) => (
-                            <div key={idx} className="flex justify-between bg-gray-50 p-3 rounded">
-                              <span className="text-sm">{item.sku_name || item.sku_id}</span>
-                              <div className="text-sm text-gray-600">
-                                <span>Qty: {item.quantity}</span>
-                                {item.price && <span className="ml-4 font-medium">${(item.price * item.quantity).toFixed(2)}</span>}
-                              </div>
-                            </div>
-                          ))}
-                          {selectedOrderForTracking.total_amount && (
-                            <div className="flex justify-between pt-2 border-t font-semibold text-teal-600">
-                              <span>Total Amount:</span>
-                              <span>${selectedOrderForTracking.total_amount.toFixed(2)}</span>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
+        {/* Calendar Tab */}
+        {activeTab === 'calendar' && (
+          <div>
+            <div className="mb-6">
+              <h2 className="text-2xl font-bold text-gray-900">Orders Calendar</h2>
+              <p className="text-gray-600 mt-1">View all orders in calendar view</p>
             </div>
+            <OrderCalendar orders={orders} />
           </div>
         )}
 
@@ -1840,8 +1957,14 @@ function AdminDashboard() {
                           size="sm"
                           className={`${customer.is_active !== false ? 'text-red-600 hover:text-red-800' : 'text-green-600 hover:text-green-800'}`}
                           title={customer.is_active !== false ? 'Disable User' : 'Enable User'}
+                          disabled={togglingUserId === customer.id}
                         >
-                          {customer.is_active !== false ? (
+                          {togglingUserId === customer.id ? (
+                            <>
+                              <Clock className="w-4 h-4 mr-1 animate-spin" />
+                              {customer.is_active !== false ? 'Disabling...' : 'Enabling...'}
+                            </>
+                          ) : customer.is_active !== false ? (
                             <><Ban className="w-4 h-4 mr-1" /> Disable</>
                           ) : (
                             <><CheckCircle2 className="w-4 h-4 mr-1" /> Enable</>

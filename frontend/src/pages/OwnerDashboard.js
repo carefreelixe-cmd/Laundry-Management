@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { AuthContext } from '../App';
 import DashboardLayout from '../components/DashboardLayout';
+import OrderCalendar from '../components/OrderCalendar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -127,6 +128,7 @@ function OwnerDashboard() {
   const [selectedUser, setSelectedUser] = useState(null);
   const [newPassword, setNewPassword] = useState('');
   const [resettingPasswordUserId, setResettingPasswordUserId] = useState(null);
+  const [togglingUserId, setTogglingUserId] = useState(null);
 
   useEffect(() => {
     fetchData();
@@ -273,12 +275,16 @@ function OwnerDashboard() {
   const handleToggleUserStatus = async (user) => {
     const action = user.is_active ? 'disable' : 'enable';
     if (!window.confirm(`Are you sure you want to ${action} ${user.full_name}'s account?`)) return;
+    
+    setTogglingUserId(user.id);
     try {
       await axios.put(`${API}/admin/users/${user.id}/toggle-status`);
       toast.success(`User account ${action}d successfully`);
       fetchData();
     } catch (error) {
       toast.error(error.response?.data?.detail || `Failed to ${action} user`);
+    } finally {
+      setTogglingUserId(null);
     }
   };
 
@@ -1308,7 +1314,29 @@ function OwnerDashboard() {
           >
             Delivery Tracking
           </button>
+          <button
+            onClick={() => setActiveTab('calendar')}
+            className={`pb-3 px-1 font-medium transition-colors ${
+              activeTab === 'calendar'
+                ? 'text-teal-600 border-b-2 border-teal-600'
+                : 'text-gray-500 hover:text-gray-700'
+            }`}
+            data-testid="calendar-tab"
+          >
+            📅 Calendar
+          </button>
         </div>
+
+        {/* Calendar Tab */}
+        {activeTab === 'calendar' && (
+          <div>
+            <div className="mb-6">
+              <h2 className="text-2xl font-bold text-gray-900">Orders Calendar</h2>
+              <p className="text-gray-600 mt-1">View all orders in calendar view</p>
+            </div>
+            <OrderCalendar orders={orders} />
+          </div>
+        )}
 
         {/* Users Tab */}
         {activeTab === 'users' && (
@@ -1493,11 +1521,14 @@ function OwnerDashboard() {
                               </button>
                               <button 
                                 onClick={() => handleToggleUserStatus(user)} 
-                                className={`${user.is_active !== false ? 'text-red-600 hover:text-red-800' : 'text-green-600 hover:text-green-800'}`}
+                                className={`${user.is_active !== false ? 'text-red-600 hover:text-red-800' : 'text-green-600 hover:text-green-800'} ${togglingUserId === user.id ? 'opacity-50 cursor-not-allowed' : ''}`}
                                 title={user.is_active !== false ? 'Disable User' : 'Enable User'}
                                 data-testid={`toggle-status-${user.id}`}
+                                disabled={togglingUserId === user.id}
                               >
-                                {user.is_active !== false ? (
+                                {togglingUserId === user.id ? (
+                                  <Clock className="w-4 h-4 animate-spin" />
+                                ) : user.is_active !== false ? (
                                   <Ban className="w-4 h-4" />
                                 ) : (
                                   <CheckCircle2 className="w-4 h-4" />
