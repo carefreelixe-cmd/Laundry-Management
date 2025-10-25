@@ -341,6 +341,28 @@ function AdminDashboard() {
     setShowPasswordDialog(true);
   };
 
+  const handleLockOrder = async (orderId) => {
+    try {
+      await axios.put(`${API}/orders/${orderId}/lock`);
+      toast.success('Order locked successfully');
+      fetchData(); // Refresh orders
+    } catch (error) {
+      console.error('Failed to lock order:', error);
+      toast.error(error.response?.data?.detail || 'Failed to lock order');
+    }
+  };
+
+  const handleUnlockOrder = async (orderId) => {
+    try {
+      await axios.put(`${API}/orders/${orderId}/unlock`);
+      toast.success('Order unlocked successfully');
+      fetchData(); // Refresh orders
+    } catch (error) {
+      console.error('Failed to unlock order:', error);
+      toast.error(error.response?.data?.detail || 'Failed to unlock order');
+    }
+  };
+
   const addOrderItem = () => {
     setOrderItems([...orderItems, { sku_id: '', sku_name: '', quantity: 1, price: 0 }]);
   };
@@ -1085,6 +1107,33 @@ function AdminDashboard() {
                                 'Delete'
                               )}
                             </Button>
+                          </div>
+                          
+                          {/* Lock/Unlock Button */}
+                          <div className="mt-2">
+                            {order.is_locked ? (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleUnlockOrder(order.id)}
+                                className="w-full border-green-300 text-green-600 hover:bg-green-50"
+                                title="Unlock order to allow customer edits"
+                              >
+                                <Unlock className="w-4 h-4 mr-1" />
+                                Unlock Order
+                              </Button>
+                            ) : (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleLockOrder(order.id)}
+                                className="w-full border-yellow-300 text-yellow-600 hover:bg-yellow-50"
+                                title="Lock order to prevent customer edits"
+                              >
+                                <Lock className="w-4 h-4 mr-1" />
+                                Lock Order
+                              </Button>
+                            )}
                           </div>
                       </div>
                     </div>

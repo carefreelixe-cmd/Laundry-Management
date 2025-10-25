@@ -1116,6 +1116,28 @@ function OwnerDashboard() {
     }
   };
 
+  const handleLockOrder = async (orderId) => {
+    try {
+      await axios.put(`${API}/orders/${orderId}/lock`);
+      toast.success('Order locked successfully');
+      fetchOrders();
+    } catch (error) {
+      console.error('Failed to lock order:', error);
+      toast.error(error.response?.data?.detail || 'Failed to lock order');
+    }
+  };
+
+  const handleUnlockOrder = async (orderId) => {
+    try {
+      await axios.put(`${API}/orders/${orderId}/unlock`);
+      toast.success('Order unlocked successfully');
+      fetchOrders();
+    } catch (error) {
+      console.error('Failed to unlock order:', error);
+      toast.error(error.response?.data?.detail || 'Failed to unlock order');
+    }
+  };
+
   const addOrderItem = () => {
     setOrderItems([...orderItems, { sku_id: '', quantity: 1 }]);
   };
@@ -2826,6 +2848,27 @@ function OwnerDashboard() {
                                     <Trash2 className="w-4 h-4" />
                                   )}
                                 </Button>
+                                {order.is_locked ? (
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => handleUnlockOrder(order.id)}
+                                    className="text-green-600 hover:text-green-700 hover:bg-green-50"
+                                    title="Unlock order to allow customer edits"
+                                  >
+                                    <Unlock className="w-4 h-4" />
+                                  </Button>
+                                ) : (
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => handleLockOrder(order.id)}
+                                    className="text-yellow-600 hover:text-yellow-700 hover:bg-yellow-50"
+                                    title="Lock order to prevent customer edits"
+                                  >
+                                    <Lock className="w-4 h-4" />
+                                  </Button>
+                                )}
                               </div>
                             </td>
                           </tr>

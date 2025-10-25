@@ -89,6 +89,47 @@ def require_role(allowed_roles: List[str]):
         return current_user
     return role_checker
 
+async def check_and_lock_order(order: dict) -> dict:
+    """
+    Check if order should be automatically locked (8 hours before delivery).
+    Lock is at 11:59 PM the day before delivery (which is ~8+ hours before next day delivery).
+    Returns the order with updated lock status if needed.
+    """
+    # Skip if already locked or doesn't have delivery_date
+    if order.get('is_locked') or not order.get('delivery_date'):
+        return order
+    
+    # Skip if order is already delivered or cancelled
+    if order.get('status') in ['delivered', 'cancelled']:
+        return order
+    
+    try:
+        # Parse delivery date
+        delivery_date = datetime.fromisoformat(order['delivery_date'])
+        
+        # Calculate lock time: 11:59 PM the day before delivery
+        lock_datetime = delivery_date.replace(hour=0, minute=0, second=0, microsecond=0) - timedelta(hours=0, minutes=1)
+        
+        # Check if current time is past the lock time
+        now = datetime.now(timezone.utc)
+        
+        if now >= lock_datetime:
+            # Lock the order
+            order['is_locked'] = True
+            order['locked_at'] = now.isoformat()
+            
+            # Update in database
+            await db.orders.update_one(
+                {"id": order['id']},
+                {"$set": {"is_locked": True, "locked_at": now.isoformat()}}
+            )
+            
+            logging.info(f"Order {order['id']} automatically locked at {now}")
+    except Exception as e:
+        logging.error(f"Error checking lock status for order {order['id']}: {str(e)}")
+    
+    return order
+
 async def auto_create_next_recurring_order(order: dict):
     """Auto-create the next occurrence of a recurring order"""
     if not order.get('is_recurring'):
@@ -1250,9 +1291,15 @@ async def get_orders(current_user: dict = Depends(get_current_user)):
         query['customer_id'] = current_user['id']
     
     orders = await db.orders.find(query, {"_id": 0}).to_list(1000)
+    
+    # Check and lock orders automatically
     for order in orders:
         order['created_at'] = datetime.fromisoformat(order['created_at']) if isinstance(order['created_at'], str) else order['created_at']
         order['updated_at'] = datetime.fromisoformat(order['updated_at']) if isinstance(order['updated_at'], str) else order['updated_at']
+        
+        # Apply automatic locking logic
+        order = await check_and_lock_order(order)
+    
     return sorted(orders, key=lambda x: x['created_at'], reverse=True)
 
 @api_router.get("/orders/{order_id}", response_model=Order)
@@ -1266,6 +1313,10 @@ async def get_order(order_id: str, current_user: dict = Depends(get_current_user
     
     order_doc['created_at'] = datetime.fromisoformat(order_doc['created_at']) if isinstance(order_doc['created_at'], str) else order_doc['created_at']
     order_doc['updated_at'] = datetime.fromisoformat(order_doc['updated_at']) if isinstance(order_doc['updated_at'], str) else order_doc['updated_at']
+    
+    # Apply automatic locking logic
+    order_doc = await check_and_lock_order(order_doc)
+    
     return Order(**order_doc)
 
 @api_router.put("/orders/{order_id}", response_model=Order)
@@ -1424,6 +1475,95 @@ async def cancel_order(order_id: str, current_user: dict = Depends(get_current_u
         )
     
     return {"message": "Order cancelled successfully"}
+
+@api_router.put("/orders/{order_id}/lock")
+async def lock_order(
+    order_id: str,
+    current_user: dict = Depends(require_role(["owner", "admin"]))
+):
+    """Manually lock an order - only owner/admin can do this"""
+    order_doc = await db.orders.find_one({"id": order_id})
+    if not order_doc:
+        raise HTTPException(status_code=404, detail="Order not found")
+    
+    # Check if already locked
+    if order_doc.get('is_locked'):
+        return {"message": "Order is already locked"}
+    
+    # Lock the order
+    now = datetime.now(timezone.utc)
+    update_data = {
+        "is_locked": True,
+        "locked_at": now.isoformat(),
+        "locked_by": current_user['id'],
+        "lock_type": "manual",  # manual vs automatic
+        "updated_at": now.isoformat()
+    }
+    
+    await db.orders.update_one({"id": order_id}, {"$set": update_data})
+    
+    # Get customer and notify
+    customer = await db.users.find_one({"id": order_doc['customer_id']})
+    if customer:
+        await send_notification(
+            user_id=customer['id'],
+            email=customer['email'],
+            title="Order Locked",
+            message=f"Order #{order_doc['order_number']} has been locked. Please contact us if you need to make changes.",
+            notif_type="order_locked"
+        )
+    
+    logging.info(f"Order {order_id} manually locked by {current_user['role']} {current_user['id']}")
+    
+    return {
+        "message": "Order locked successfully",
+        "order_id": order_id,
+        "locked_at": now.isoformat()
+    }
+
+@api_router.put("/orders/{order_id}/unlock")
+async def unlock_order(
+    order_id: str,
+    current_user: dict = Depends(require_role(["owner", "admin"]))
+):
+    """Manually unlock an order - only owner/admin can do this"""
+    order_doc = await db.orders.find_one({"id": order_id})
+    if not order_doc:
+        raise HTTPException(status_code=404, detail="Order not found")
+    
+    # Check if not locked
+    if not order_doc.get('is_locked'):
+        return {"message": "Order is not locked"}
+    
+    # Unlock the order
+    now = datetime.now(timezone.utc)
+    update_data = {
+        "is_locked": False,
+        "unlocked_at": now.isoformat(),
+        "unlocked_by": current_user['id'],
+        "updated_at": now.isoformat()
+    }
+    
+    await db.orders.update_one({"id": order_id}, {"$set": update_data})
+    
+    # Get customer and notify
+    customer = await db.users.find_one({"id": order_doc['customer_id']})
+    if customer:
+        await send_notification(
+            user_id=customer['id'],
+            email=customer['email'],
+            title="Order Unlocked",
+            message=f"Order #{order_doc['order_number']} has been unlocked. You can now make changes to this order.",
+            notif_type="order_unlocked"
+        )
+    
+    logging.info(f"Order {order_id} manually unlocked by {current_user['role']} {current_user['id']}")
+    
+    return {
+        "message": "Order unlocked successfully",
+        "order_id": order_id,
+        "unlocked_at": now.isoformat()
+    }
 
 @api_router.put("/orders/{order_id}/propose-modification")
 async def propose_order_modification(
