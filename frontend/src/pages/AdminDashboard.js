@@ -65,6 +65,15 @@ function AdminDashboard() {
   const [skuSortOrder, setSkuSortOrder] = useState('asc');
   const [skuCategoryFilter, setSkuCategoryFilter] = useState([]);
   
+  // Cases Filter & Sort
+  const [caseSearchQuery, setCaseSearchQuery] = useState('');
+  const [caseSortBy, setCaseSortBy] = useState('created_at');
+  const [caseSortOrder, setCaseSortOrder] = useState('desc');
+  const [caseStatusFilter, setCaseStatusFilter] = useState([]);
+  const [casePriorityFilter, setCasePriorityFilter] = useState([]);
+  const [caseDateFrom, setCaseDateFrom] = useState('');
+  const [caseDateTo, setCaseDateTo] = useState('');
+  
   // Order form
   const [showOrderDialog, setShowOrderDialog] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
@@ -343,39 +352,6 @@ function AdminDashboard() {
     }
   };
 
-  const handlePasswordReset = async (e) => {
-    e.preventDefault();
-    if (!newPassword || newPassword.length < 6) {
-      toast.error('Password must be at least 6 characters long');
-      return;
-    }
-    if (!window.confirm(`Are you sure you want to reset the password for ${selectedUser?.full_name}?`)) {
-      return;
-    }
-    
-    setResettingPasswordUserId(selectedUser.id);
-    try {
-      await axios.put(`${API}/admin/reset-password/${selectedUser.id}`, {
-        new_password: newPassword
-      });
-      toast.success('Password reset successfully');
-      setShowPasswordDialog(false);
-      setSelectedUser(null);
-      setNewPassword('');
-    } catch (error) {
-      console.error('Failed to reset password:', error);
-      toast.error(error.response?.data?.detail || 'Failed to reset password');
-    } finally {
-      setResettingPasswordUserId(null);
-    }
-  };
-
-  const openPasswordResetDialog = (user) => {
-    setSelectedUser(user);
-    setNewPassword('');
-    setShowPasswordDialog(true);
-  };
-
   // SKU Management Functions
   const handleCreateSku = async (e) => {
     e.preventDefault();
@@ -625,6 +601,102 @@ function AdminDashboard() {
 
   const getUniqueCategories = () => {
     return [...new Set(skus.map(sku => sku.category))].sort();
+  };
+
+  // Case Filter & Sort Functions
+  const getFilteredAndSortedCases = () => {
+    let filtered = [...cases];
+    
+    // Search filter
+    if (caseSearchQuery) {
+      const query = caseSearchQuery.toLowerCase();
+      filtered = filtered.filter(c =>
+        c.case_number?.toLowerCase().includes(query) ||
+        c.customer_name?.toLowerCase().includes(query) ||
+        c.customer_email?.toLowerCase().includes(query) ||
+        c.subject?.toLowerCase().includes(query)
+      );
+    }
+    
+    // Status filter
+    if (caseStatusFilter.length > 0) {
+      filtered = filtered.filter(c => caseStatusFilter.includes(c.status));
+    }
+    
+    // Priority filter
+    if (casePriorityFilter.length > 0) {
+      filtered = filtered.filter(c => casePriorityFilter.includes(c.priority));
+    }
+    
+    // Date range filter
+    if (caseDateFrom || caseDateTo) {
+      filtered = filtered.filter(c => {
+        const caseDate = new Date(c.created_at);
+        const fromDate = caseDateFrom ? new Date(caseDateFrom) : null;
+        const toDate = caseDateTo ? new Date(caseDateTo + 'T23:59:59.999') : null;
+        
+        if (fromDate && caseDate < fromDate) return false;
+        if (toDate && caseDate > toDate) return false;
+        return true;
+      });
+    }
+    
+    // Sorting
+    filtered.sort((a, b) => {
+      let aVal, bVal;
+      
+      switch (caseSortBy) {
+        case 'case_number':
+          aVal = a.case_number || '';
+          bVal = b.case_number || '';
+          break;
+        case 'customer_name':
+          aVal = a.customer_name || '';
+          bVal = b.customer_name || '';
+          break;
+        case 'status':
+          aVal = a.status || '';
+          bVal = b.status || '';
+          break;
+        case 'priority':
+          const priorityOrder = { low: 1, medium: 2, high: 3, urgent: 4 };
+          aVal = priorityOrder[a.priority] || 0;
+          bVal = priorityOrder[b.priority] || 0;
+          break;
+        case 'created_at':
+        default:
+          aVal = new Date(a.created_at);
+          bVal = new Date(b.created_at);
+      }
+      
+      if (aVal < bVal) return caseSortOrder === 'asc' ? -1 : 1;
+      if (aVal > bVal) return caseSortOrder === 'asc' ? 1 : -1;
+      return 0;
+    });
+    
+    return filtered;
+  };
+
+  const toggleCaseStatusFilter = (status) => {
+    setCaseStatusFilter(prev => 
+      prev.includes(status) ? prev.filter(s => s !== status) : [...prev, status]
+    );
+  };
+
+  const toggleCasePriorityFilter = (priority) => {
+    setCasePriorityFilter(prev => 
+      prev.includes(priority) ? prev.filter(p => p !== priority) : [...prev, priority]
+    );
+  };
+
+  const clearCaseFilters = () => {
+    setCaseSearchQuery('');
+    setCaseSortBy('created_at');
+    setCaseSortOrder('desc');
+    setCaseStatusFilter([]);
+    setCasePriorityFilter([]);
+    setCaseDateFrom('');
+    setCaseDateTo('');
   };
 
   if (loading) {
@@ -1021,8 +1093,142 @@ function AdminDashboard() {
         {activeTab === 'cases' && (
           <div>
             <h2 className="text-2xl font-bold text-gray-900 mb-6">Case Management</h2>
+            
+            {/* Search and Filter Controls */}
+            <Card className="mb-6">
+              <CardContent className="p-4">
+                <div className="space-y-4">
+                  {/* Search and Sort Row */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="md:col-span-2">
+                      <Label className="text-sm font-medium mb-2 flex items-center gap-2">
+                        <Search className="w-4 h-4" />
+                        Search Cases
+                      </Label>
+                      <Input
+                        placeholder="Search by case number, customer, or subject..."
+                        value={caseSearchQuery}
+                        onChange={(e) => setCaseSearchQuery(e.target.value)}
+                        className="w-full"
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-sm font-medium mb-2 flex items-center gap-2">
+                        <ArrowUpDown className="w-4 h-4" />
+                        Sort By
+                      </Label>
+                      <div className="flex gap-2">
+                        <Select value={caseSortBy} onValueChange={setCaseSortBy}>
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="created_at">Created Date</SelectItem>
+                            <SelectItem value="case_number">Case Number</SelectItem>
+                            <SelectItem value="customer_name">Customer</SelectItem>
+                            <SelectItem value="status">Status</SelectItem>
+                            <SelectItem value="priority">Priority</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setCaseSortOrder(caseSortOrder === 'asc' ? 'desc' : 'asc')}
+                          className="px-3"
+                        >
+                          {caseSortOrder === 'asc' ? '↑' : '↓'}
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Status Filter */}
+                  <div>
+                    <Label className="text-sm font-medium mb-2 flex items-center gap-2">
+                      <Filter className="w-4 h-4" />
+                      Filter by Status
+                    </Label>
+                    <div className="flex flex-wrap gap-2">
+                      {['open', 'in_progress', 'resolved', 'closed'].map((status) => (
+                        <Button
+                          key={status}
+                          variant={caseStatusFilter.includes(status) ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => toggleCaseStatusFilter(status)}
+                          className={caseStatusFilter.includes(status) ? 'bg-blue-500 hover:bg-blue-600' : ''}
+                        >
+                          {status.replace('_', ' ')}
+                        </Button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Priority Filter */}
+                  <div>
+                    <Label className="text-sm font-medium mb-2">Filter by Priority</Label>
+                    <div className="flex flex-wrap gap-2">
+                      {['low', 'medium', 'high', 'urgent'].map((priority) => (
+                        <Button
+                          key={priority}
+                          variant={casePriorityFilter.includes(priority) ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => toggleCasePriorityFilter(priority)}
+                          className={casePriorityFilter.includes(priority) ? 'bg-orange-500 hover:bg-orange-600' : ''}
+                        >
+                          {priority}
+                        </Button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Date Range Filter */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <Label className="text-sm font-medium mb-2 flex items-center gap-2">
+                        <Calendar className="w-4 h-4" />
+                        From Date
+                      </Label>
+                      <Input
+                        type="date"
+                        value={caseDateFrom}
+                        onChange={(e) => setCaseDateFrom(e.target.value)}
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-sm font-medium mb-2 flex items-center gap-2">
+                        <Calendar className="w-4 h-4" />
+                        To Date
+                      </Label>
+                      <Input
+                        type="date"
+                        value={caseDateTo}
+                        onChange={(e) => setCaseDateTo(e.target.value)}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Results and Clear */}
+                  <div className="flex justify-between items-center pt-2 border-t">
+                    <p className="text-sm text-gray-600">
+                      Showing {getFilteredAndSortedCases().length} of {cases.length} cases
+                    </p>
+                    {(caseSearchQuery || caseStatusFilter.length > 0 || casePriorityFilter.length > 0 || caseDateFrom || caseDateTo || caseSortBy !== 'created_at' || caseSortOrder !== 'desc') && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={clearCaseFilters}
+                      >
+                        <X className="w-4 h-4 mr-2" />
+                        Clear Filters
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            
             <div className="grid gap-4" data-testid="cases-list">
-              {cases.map((caseItem) => (
+              {getFilteredAndSortedCases().map((caseItem) => (
                 <Card key={caseItem.id} className="card-hover">
                   <CardContent className="p-6">
                     <div className="flex justify-between items-start">
@@ -1074,11 +1280,13 @@ function AdminDashboard() {
                   </CardContent>
                 </Card>
               ))}
-              {cases.length === 0 && (
+              {getFilteredAndSortedCases().length === 0 && (
                 <Card>
                   <CardContent className="p-12 text-center">
                     <AlertCircle className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                    <p className="text-gray-600">No cases found</p>
+                    <p className="text-gray-600">
+                      {cases.length === 0 ? 'No cases found' : 'No cases match your filters'}
+                    </p>
                   </CardContent>
                 </Card>
               )}
