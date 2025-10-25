@@ -2562,12 +2562,17 @@ function OwnerDashboard() {
                             const totalIncGST = subtotalExGST + gstAmount;
                             
                             return (
-                              <div className="border-t pt-3 mt-3">
-                                <div className="flex justify-between items-center">
-                                  <div>
-                                    <span className="text-lg font-bold text-gray-900">Total</span>
-                                    <p className="text-xs text-gray-500">Includes 10% GST</p>
-                                  </div>
+                              <div className="border-t pt-3 mt-3 space-y-2">
+                                <div className="flex justify-between text-sm">
+                                  <span className="text-gray-600">Base Amount:</span>
+                                  <span className="text-gray-900 font-medium">${subtotalExGST.toFixed(2)}</span>
+                                </div>
+                                <div className="flex justify-between text-sm">
+                                  <span className="text-gray-600">GST (10%):</span>
+                                  <span className="text-gray-900 font-medium">${gstAmount.toFixed(2)}</span>
+                                </div>
+                                <div className="flex justify-between items-center pt-2 border-t">
+                                  <span className="text-lg font-bold text-gray-900">Total Amount</span>
                                   <span className="text-2xl font-bold text-teal-600">${totalIncGST.toFixed(2)}</span>
                                 </div>
                               </div>

@@ -50,6 +50,13 @@ function AdminDashboard() {
   const [resettingPasswordUserId, setResettingPasswordUserId] = useState(null);
   const [togglingUserId, setTogglingUserId] = useState(null);
   
+  // Calculate GST (10%)
+  const calculateGST = (amount) => {
+    const basePrice = amount / 1.10;
+    const gst = amount - basePrice;
+    return { basePrice, gst, total: amount };
+  };
+  
   // Password reset
   const [showPasswordDialog, setShowPasswordDialog] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
@@ -1395,7 +1402,17 @@ function AdminDashboard() {
 
                           {/* Total */}
                           <td className="px-6 py-4">
-                            <span className="text-lg font-bold text-teal-600">${order.total_amount.toFixed(2)}</span>
+                            <div className="space-y-1">
+                              <div className="text-xs text-gray-600">
+                                Base: ${calculateGST(order.total_amount).basePrice.toFixed(2)}
+                              </div>
+                              <div className="text-xs text-gray-600">
+                                GST: ${calculateGST(order.total_amount).gst.toFixed(2)}
+                              </div>
+                              <div className="text-lg font-bold text-teal-600">
+                                ${order.total_amount.toFixed(2)}
+                              </div>
+                            </div>
                           </td>
 
                           {/* Status Selector */}
@@ -1940,8 +1957,10 @@ function AdminDashboard() {
                                   <DollarSign className="w-5 h-5 text-green-600" />
                                 </div>
                                 <div>
-                                  <p className="text-xs text-gray-500">Total (Inc GST)</p>
-                                  <p className="font-semibold text-gray-900">${order.total_amount?.toFixed(2)}</p>
+                                  <p className="text-xs text-gray-500">Base Amount</p>
+                                  <p className="font-semibold text-gray-900">${calculateGST(order.total_amount).basePrice.toFixed(2)}</p>
+                                  <p className="text-xs text-gray-500">GST: ${calculateGST(order.total_amount).gst.toFixed(2)}</p>
+                                  <p className="text-xs font-bold text-teal-600">Total: ${order.total_amount?.toFixed(2)}</p>
                                 </div>
                               </div>
                               <div className="flex items-center gap-3">

@@ -28,6 +28,13 @@ function CustomerDashboard() {
   const [approvingModificationId, setApprovingModificationId] = useState(null);
   const [rejectingModificationId, setRejectingModificationId] = useState(null);
   
+  // Calculate GST (10%)
+  const calculateGST = (amount) => {
+    const basePrice = amount / 1.10;
+    const gst = amount - basePrice;
+    return { basePrice, gst, total: amount };
+  };
+  
   // Filter & Sort
   const [orderSearchQuery, setOrderSearchQuery] = useState('');
   const [orderSortBy, setOrderSortBy] = useState('created_at');
@@ -1234,10 +1241,19 @@ function CustomerDashboard() {
                                     </div>
                                   )}
                                 </div>
-                                <div className="flex items-baseline gap-2 pt-2 border-t">
-                                  <DollarSign className="w-4 h-4 text-teal-600" />
-                                  <span className="text-xl font-bold text-teal-600">${order.total_amount.toFixed(2)}</span>
-                                  <span className="text-xs text-gray-500">incl. GST</span>
+                                <div className="pt-2 border-t space-y-1">
+                                  <div className="flex items-center justify-between text-xs text-gray-600">
+                                    <span>Base Amount:</span>
+                                    <span>${calculateGST(order.total_amount).basePrice.toFixed(2)}</span>
+                                  </div>
+                                  <div className="flex items-center justify-between text-xs text-gray-600">
+                                    <span>GST (10%):</span>
+                                    <span>${calculateGST(order.total_amount).gst.toFixed(2)}</span>
+                                  </div>
+                                  <div className="flex items-baseline gap-2 pt-1 border-t">
+                                    <DollarSign className="w-4 h-4 text-teal-600" />
+                                    <span className="text-xl font-bold text-teal-600">${order.total_amount.toFixed(2)}</span>
+                                  </div>
                                 </div>
                               </div>
                             </td>
@@ -1750,8 +1766,10 @@ function CustomerDashboard() {
                                   <DollarSign className="w-5 h-5 text-green-600" />
                                 </div>
                                 <div>
-                                  <p className="text-xs text-gray-500">Total (Inc GST)</p>
-                                  <p className="font-semibold text-gray-900">${order.total_amount?.toFixed(2)}</p>
+                                  <p className="text-xs text-gray-500">Base Amount</p>
+                                  <p className="font-semibold text-gray-900">${calculateGST(order.total_amount).basePrice.toFixed(2)}</p>
+                                  <p className="text-xs text-gray-500">GST: ${calculateGST(order.total_amount).gst.toFixed(2)}</p>
+                                  <p className="text-xs font-bold text-teal-600">Total: ${order.total_amount?.toFixed(2)}</p>
                                 </div>
                               </div>
                               <div className="flex items-center gap-3">

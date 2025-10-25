@@ -3,7 +3,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Package, Repeat, Clock, MapPin, DollarSign } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Package, Repeat, Clock, MapPin, DollarSign, Filter, X } from 'lucide-react';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, isToday, parseISO, addMonths, subMonths } from 'date-fns';
 
 const OrderCalendar = ({ orders = [] }) => {
@@ -11,6 +12,25 @@ const OrderCalendar = ({ orders = [] }) => {
   const [selectedDate, setSelectedDate] = useState(null);
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [showOrderDialog, setShowOrderDialog] = useState(false);
+  
+  // Filter states
+  const [orderTypeFilter, setOrderTypeFilter] = useState('all'); // 'all', 'recurring', 'one-time'
+  const [statusFilter, setStatusFilter] = useState('all'); // 'all', 'pending', 'processing', etc.
+  const [dateTypeFilter, setDateTypeFilter] = useState('all'); // 'all', 'pickup', 'delivery'
+
+  // Apply filters to orders
+  const filteredOrders = useMemo(() => {
+    return orders.filter(order => {
+      // Order type filter
+      if (orderTypeFilter === 'recurring' && !order.is_recurring) return false;
+      if (orderTypeFilter === 'one-time' && order.is_recurring) return false;
+      
+      // Status filter
+      if (statusFilter !== 'all' && order.status !== statusFilter) return false;
+      
+      return true;
+    });
+  }, [orders, orderTypeFilter, statusFilter]);
 
   // Get days in current month
   const monthStart = startOfMonth(currentDate);
@@ -21,16 +41,16 @@ const OrderCalendar = ({ orders = [] }) => {
   const ordersByDate = useMemo(() => {
     const grouped = {};
     
-    orders.forEach(order => {
-      // Add pickup date
-      if (order.pickup_date) {
+    filteredOrders.forEach(order => {
+      // Add pickup date (only if dateTypeFilter allows it)
+      if (order.pickup_date && (dateTypeFilter === 'all' || dateTypeFilter === 'pickup')) {
         const pickupDate = format(parseISO(order.pickup_date), 'yyyy-MM-dd');
         if (!grouped[pickupDate]) grouped[pickupDate] = { pickup: [], delivery: [] };
         grouped[pickupDate].pickup.push(order);
       }
       
-      // Add delivery date
-      if (order.delivery_date) {
+      // Add delivery date (only if dateTypeFilter allows it)
+      if (order.delivery_date && (dateTypeFilter === 'all' || dateTypeFilter === 'delivery')) {
         const deliveryDate = format(parseISO(order.delivery_date), 'yyyy-MM-dd');
         if (!grouped[deliveryDate]) grouped[deliveryDate] = { pickup: [], delivery: [] };
         grouped[deliveryDate].delivery.push(order);
@@ -38,7 +58,7 @@ const OrderCalendar = ({ orders = [] }) => {
     });
     
     return grouped;
-  }, [orders]);
+  }, [filteredOrders, dateTypeFilter]);
 
   // Get orders for a specific date
   const getOrdersForDate = (date) => {
@@ -109,6 +129,91 @@ const OrderCalendar = ({ orders = [] }) => {
           </div>
         </CardHeader>
         <CardContent>
+          {/* Filters Section */}
+          <div className="mb-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
+            <div className="flex items-center gap-2 mb-3">
+              <Filter className="w-4 h-4 text-teal-600" />
+              <h3 className="font-semibold text-gray-900">Calendar Filters</h3>
+              {(orderTypeFilter !== 'all' || statusFilter !== 'all' || dateTypeFilter !== 'all') && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    setOrderTypeFilter('all');
+                    setStatusFilter('all');
+                    setDateTypeFilter('all');
+                  }}
+                  className="ml-auto text-xs"
+                >
+                  <X className="w-3 h-3 mr-1" />
+                  Clear Filters
+                </Button>
+              )}
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {/* Order Type Filter */}
+              <div>
+                <label className="text-xs font-medium text-gray-700 mb-1 block">Order Type</label>
+                <Select value={orderTypeFilter} onValueChange={setOrderTypeFilter}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Orders</SelectItem>
+                    <SelectItem value="recurring">Recurring Only</SelectItem>
+                    <SelectItem value="one-time">One-Time Only</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Status Filter */}
+              <div>
+                <label className="text-xs font-medium text-gray-700 mb-1 block">Order Status</label>
+                <Select value={statusFilter} onValueChange={setStatusFilter}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Statuses</SelectItem>
+                    <SelectItem value="pending">Pending</SelectItem>
+                    <SelectItem value="scheduled">Scheduled</SelectItem>
+                    <SelectItem value="processing">Processing</SelectItem>
+                    <SelectItem value="in_progress">In Progress</SelectItem>
+                    <SelectItem value="ready_for_pickup">Ready for Pickup</SelectItem>
+                    <SelectItem value="out_for_delivery">Out for Delivery</SelectItem>
+                    <SelectItem value="delivered">Delivered</SelectItem>
+                    <SelectItem value="completed">Completed</SelectItem>
+                    <SelectItem value="cancelled">Cancelled</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Date Type Filter */}
+              <div>
+                <label className="text-xs font-medium text-gray-700 mb-1 block">Show Dates</label>
+                <Select value={dateTypeFilter} onValueChange={setDateTypeFilter}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Pickup & Delivery</SelectItem>
+                    <SelectItem value="pickup">Pickup Only</SelectItem>
+                    <SelectItem value="delivery">Delivery Only</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {/* Filter Results Summary */}
+            <div className="mt-3 pt-3 border-t border-gray-300">
+              <p className="text-xs text-gray-600">
+                Showing <span className="font-semibold text-teal-600">{filteredOrders.length}</span> of{' '}
+                <span className="font-semibold">{orders.length}</span> orders
+              </p>
+            </div>
+          </div>
+
           {/* Legend */}
           <div className="flex flex-wrap gap-4 mb-4 p-3 bg-gray-50 rounded-lg">
             <div className="flex items-center gap-2">
@@ -296,7 +401,7 @@ const OrderCalendar = ({ orders = [] }) => {
 
       {/* Order Details Dialog */}
       <Dialog open={showOrderDialog} onOpenChange={setShowOrderDialog}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Order Details</DialogTitle>
           </DialogHeader>
@@ -306,9 +411,12 @@ const OrderCalendar = ({ orders = [] }) => {
               <div className="flex items-center justify-between">
                 <div>
                   <h3 className="text-2xl font-bold text-gray-900">{selectedOrder.order_number}</h3>
-                  <p className="text-gray-600">{selectedOrder.customer_name}</p>
+                  <p className="text-gray-600">Customer: {selectedOrder.customer_name}</p>
+                  {selectedOrder.customer_email && (
+                    <p className="text-sm text-gray-500">Email: {selectedOrder.customer_email}</p>
+                  )}
                 </div>
-                <div className="flex gap-2">
+                <div className="flex flex-col gap-2 items-end">
                   <Badge className={getStatusBadgeClass(selectedOrder.status)}>
                     {selectedOrder.status?.replace('_', ' ').toUpperCase()}
                   </Badge>
@@ -318,35 +426,80 @@ const OrderCalendar = ({ orders = [] }) => {
                       Recurring
                     </Badge>
                   )}
+                  {selectedOrder.is_locked && (
+                    <Badge className="bg-yellow-100 text-yellow-800">
+                      🔒 Locked
+                    </Badge>
+                  )}
                 </div>
               </div>
 
-              {/* Order Details Grid */}
-              <div className="grid grid-cols-2 gap-4">
-                <div className="p-4 bg-blue-50 rounded-lg">
+              {/* Driver & Delivery Status Info */}
+              {(selectedOrder.driver_name || selectedOrder.delivery_status) && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-teal-50 rounded-lg border border-teal-200">
+                  {selectedOrder.driver_name && (
+                    <div>
+                      <p className="text-xs text-teal-700 font-medium mb-1">Assigned Driver</p>
+                      <p className="text-lg font-semibold text-teal-900">{selectedOrder.driver_name}</p>
+                      {selectedOrder.assigned_at && (
+                        <p className="text-xs text-teal-600 mt-1">
+                          Assigned: {format(parseISO(selectedOrder.assigned_at), 'MMM dd, yyyy h:mm a')}
+                        </p>
+                      )}
+                    </div>
+                  )}
+                  {selectedOrder.delivery_status && (
+                    <div>
+                      <p className="text-xs text-teal-700 font-medium mb-1">Delivery Status</p>
+                      <Badge className={`text-sm ${
+                        selectedOrder.delivery_status === 'delivered' ? 'bg-green-100 text-green-800' :
+                        selectedOrder.delivery_status === 'out_for_delivery' ? 'bg-orange-100 text-orange-800' :
+                        selectedOrder.delivery_status === 'picked_up' ? 'bg-yellow-100 text-yellow-800' :
+                        'bg-blue-100 text-blue-800'
+                      }`}>
+                        {selectedOrder.delivery_status?.replace(/_/g, ' ').toUpperCase()}
+                      </Badge>
+                      {selectedOrder.picked_up_at && (
+                        <p className="text-xs text-teal-600 mt-1">
+                          Picked up: {format(parseISO(selectedOrder.picked_up_at), 'MMM dd, yyyy h:mm a')}
+                        </p>
+                      )}
+                      {selectedOrder.delivered_at && (
+                        <p className="text-xs text-teal-600 mt-1">
+                          Delivered: {format(parseISO(selectedOrder.delivered_at), 'MMM dd, yyyy h:mm a')}
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Order Dates & Addresses */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
                   <div className="flex items-center gap-2 text-blue-800 mb-2">
                     <Clock className="w-4 h-4" />
                     <span className="font-semibold">Pickup</span>
                   </div>
-                  <p className="text-sm text-blue-900">
+                  <p className="text-sm text-blue-900 font-medium">
                     {format(parseISO(selectedOrder.pickup_date), 'MMM dd, yyyy h:mm a')}
                   </p>
                   <div className="flex items-start gap-2 mt-2">
-                    <MapPin className="w-4 h-4 text-blue-600 mt-0.5" />
+                    <MapPin className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" />
                     <p className="text-sm text-blue-800">{selectedOrder.pickup_address}</p>
                   </div>
                 </div>
 
-                <div className="p-4 bg-green-50 rounded-lg">
+                <div className="p-4 bg-green-50 rounded-lg border border-green-200">
                   <div className="flex items-center gap-2 text-green-800 mb-2">
                     <Clock className="w-4 h-4" />
                     <span className="font-semibold">Delivery</span>
                   </div>
-                  <p className="text-sm text-green-900">
+                  <p className="text-sm text-green-900 font-medium">
                     {format(parseISO(selectedOrder.delivery_date), 'MMM dd, yyyy h:mm a')}
                   </p>
                   <div className="flex items-start gap-2 mt-2">
-                    <MapPin className="w-4 h-4 text-green-600 mt-0.5" />
+                    <MapPin className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
                     <p className="text-sm text-green-800">{selectedOrder.delivery_address}</p>
                   </div>
                 </div>
@@ -354,13 +507,16 @@ const OrderCalendar = ({ orders = [] }) => {
 
               {/* Order Items */}
               <div>
-                <h4 className="font-semibold text-gray-900 mb-2">Order Items</h4>
+                <h4 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                  <Package className="w-5 h-5 text-teal-600" />
+                  Order Items
+                </h4>
                 <div className="border rounded-lg divide-y">
                   {selectedOrder.items?.map((item, idx) => (
-                    <div key={idx} className="p-3 flex justify-between items-center">
+                    <div key={idx} className="p-3 flex justify-between items-center hover:bg-gray-50">
                       <div>
                         <p className="font-medium text-gray-900">{item.sku_name}</p>
-                        <p className="text-sm text-gray-600">Quantity: {item.quantity}</p>
+                        <p className="text-sm text-gray-600">Quantity: {item.quantity} × ${item.price?.toFixed(2)}</p>
                       </div>
                       <p className="font-semibold text-gray-900">
                         ${(item.price * item.quantity).toFixed(2)}
@@ -370,24 +526,74 @@ const OrderCalendar = ({ orders = [] }) => {
                 </div>
               </div>
 
-              {/* Total */}
-              <div className="flex justify-between items-center p-4 bg-teal-50 rounded-lg">
-                <div className="flex items-center gap-2">
-                  <DollarSign className="w-5 h-5 text-teal-600" />
-                  <span className="font-semibold text-gray-900">Total Amount</span>
+              {/* Total with GST Breakdown */}
+              <div className="p-4 bg-teal-50 rounded-lg border border-teal-200 space-y-2">
+                <div className="flex justify-between text-sm text-gray-700">
+                  <span>Base Amount:</span>
+                  <span className="font-medium">${(selectedOrder.total_amount / 1.10).toFixed(2)}</span>
                 </div>
-                <span className="text-2xl font-bold text-teal-600">
-                  ${selectedOrder.total_amount?.toFixed(2)}
-                </span>
+                <div className="flex justify-between text-sm text-gray-700">
+                  <span>GST (10%):</span>
+                  <span className="font-medium">${(selectedOrder.total_amount - selectedOrder.total_amount / 1.10).toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between items-center pt-2 border-t border-teal-300">
+                  <div className="flex items-center gap-2">
+                    <DollarSign className="w-5 h-5 text-teal-600" />
+                    <span className="font-semibold text-gray-900">Total Amount</span>
+                  </div>
+                  <span className="text-2xl font-bold text-teal-600">
+                    ${selectedOrder.total_amount?.toFixed(2)}
+                  </span>
+                </div>
+              </div>
+
+              {/* Order Metadata */}
+              <div className="grid grid-cols-2 gap-4 p-4 bg-gray-50 rounded-lg">
+                <div>
+                  <p className="text-xs text-gray-600 mb-1">Order Created</p>
+                  <p className="text-sm font-medium text-gray-900">
+                    {selectedOrder.created_at ? format(parseISO(selectedOrder.created_at), 'MMM dd, yyyy h:mm a') : 'N/A'}
+                  </p>
+                </div>
+                {selectedOrder.updated_at && (
+                  <div>
+                    <p className="text-xs text-gray-600 mb-1">Last Updated</p>
+                    <p className="text-sm font-medium text-gray-900">
+                      {format(parseISO(selectedOrder.updated_at), 'MMM dd, yyyy h:mm a')}
+                    </p>
+                  </div>
+                )}
+                {selectedOrder.is_recurring && selectedOrder.next_occurrence_date && (
+                  <div className="col-span-2">
+                    <p className="text-xs text-purple-600 mb-1">Next Occurrence</p>
+                    <p className="text-sm font-medium text-purple-900">
+                      {format(parseISO(selectedOrder.next_occurrence_date), 'MMM dd, yyyy')}
+                    </p>
+                  </div>
+                )}
               </div>
 
               {/* Special Instructions */}
               {selectedOrder.special_instructions && (
                 <div>
                   <h4 className="font-semibold text-gray-900 mb-2">Special Instructions</h4>
-                  <p className="text-sm text-gray-600 p-3 bg-gray-50 rounded-lg">
+                  <p className="text-sm text-gray-700 p-3 bg-amber-50 rounded-lg border border-amber-200">
                     {selectedOrder.special_instructions}
                   </p>
+                </div>
+              )}
+
+              {/* Modification Request Info */}
+              {selectedOrder.modification_requested && (
+                <div className="p-4 bg-orange-50 rounded-lg border border-orange-200">
+                  <h4 className="font-semibold text-orange-900 mb-2 flex items-center gap-2">
+                    <span className="text-xl">⚠️</span>
+                    Modification Requested
+                  </h4>
+                  {selectedOrder.modification_details && (
+                    <p className="text-sm text-orange-800">{selectedOrder.modification_details}</p>
+                  )}
+                  <p className="text-xs text-orange-600 mt-2">Status: {selectedOrder.modification_status || 'Pending'}</p>
                 </div>
               )}
             </div>
