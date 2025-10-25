@@ -36,6 +36,14 @@ function CustomerDashboard() {
   const [orderDateFilter, setOrderDateFilter] = useState('all');
   const [orderTypeFilter, setOrderTypeFilter] = useState('all');
   
+  // Case Filters
+  const [caseSearchQuery, setCaseSearchQuery] = useState('');
+  const [caseSortBy, setCaseSortBy] = useState('created_at');
+  const [caseSortOrder, setCaseSortOrder] = useState('desc');
+  const [caseStatusFilter, setCaseStatusFilter] = useState([]);
+  const [casePriorityFilter, setCasePriorityFilter] = useState([]);
+  const [caseTypeFilter, setCaseTypeFilter] = useState('all');
+  
   // Delivery Tracking Filters
   const [deliveryDateFrom, setDeliveryDateFrom] = useState('');
   const [deliveryDateTo, setDeliveryDateTo] = useState('');
@@ -236,6 +244,95 @@ function CustomerDashboard() {
     setOrderTypeFilter('all');
     setOrderSortBy('created_at');
     setOrderSortOrder('desc');
+  };
+
+  // Case Filter Functions
+  const getFilteredAndSortedCases = () => {
+    let filtered = [...cases];
+
+    // Search filter
+    if (caseSearchQuery.trim()) {
+      const query = caseSearchQuery.toLowerCase();
+      filtered = filtered.filter(caseItem =>
+        caseItem.case_number?.toLowerCase().includes(query) ||
+        caseItem.subject?.toLowerCase().includes(query) ||
+        caseItem.description?.toLowerCase().includes(query)
+      );
+    }
+
+    // Status filter
+    if (caseStatusFilter.length > 0) {
+      filtered = filtered.filter(caseItem => caseStatusFilter.includes(caseItem.status));
+    }
+
+    // Priority filter
+    if (casePriorityFilter.length > 0) {
+      filtered = filtered.filter(caseItem => casePriorityFilter.includes(caseItem.priority));
+    }
+
+    // Type filter
+    if (caseTypeFilter !== 'all') {
+      filtered = filtered.filter(caseItem => caseItem.type === caseTypeFilter);
+    }
+
+    // Sort
+    filtered.sort((a, b) => {
+      let aVal, bVal;
+
+      switch(caseSortBy) {
+        case 'case_number':
+          aVal = a.case_number || '';
+          bVal = b.case_number || '';
+          break;
+        case 'subject':
+          aVal = a.subject || '';
+          bVal = b.subject || '';
+          break;
+        case 'status':
+          aVal = a.status || '';
+          bVal = b.status || '';
+          break;
+        case 'priority':
+          aVal = a.priority || '';
+          bVal = b.priority || '';
+          break;
+        case 'created_at':
+        default:
+          aVal = new Date(a.created_at || 0);
+          bVal = new Date(b.created_at || 0);
+          break;
+      }
+
+      if (caseSortBy === 'created_at') {
+        return caseSortOrder === 'asc' ? aVal - bVal : bVal - aVal;
+      } else {
+        const comparison = aVal.toString().localeCompare(bVal.toString());
+        return caseSortOrder === 'asc' ? comparison : -comparison;
+      }
+    });
+
+    return filtered;
+  };
+
+  const toggleCaseStatusFilter = (status) => {
+    setCaseStatusFilter(prev =>
+      prev.includes(status) ? prev.filter(s => s !== status) : [...prev, status]
+    );
+  };
+
+  const toggleCasePriorityFilter = (priority) => {
+    setCasePriorityFilter(prev =>
+      prev.includes(priority) ? prev.filter(p => p !== priority) : [...prev, priority]
+    );
+  };
+
+  const clearAllCaseFilters = () => {
+    setCaseSearchQuery('');
+    setCaseStatusFilter([]);
+    setCasePriorityFilter([]);
+    setCaseTypeFilter('all');
+    setCaseSortBy('created_at');
+    setCaseSortOrder('desc');
   };
 
   // Delivery Tracking Filter Function
@@ -956,237 +1053,282 @@ function CustomerDashboard() {
               </CardContent>
             </Card>
 
-            {getFilteredAndSortedOrders().length === 0 ? (
-              <Card>
-                <CardContent className="py-12 text-center text-gray-500">
-                  <Package className="h-12 w-12 mx-auto mb-2 opacity-50" />
-                  <p>{orderSearchQuery || orderStatusFilter.length > 0 || orderDateFilter !== 'all' || orderTypeFilter !== 'all' 
-                    ? 'No orders match your filters' 
-                    : 'No orders yet. Create your first order!'}</p>
-                </CardContent>
-              </Card>
-            ) : (
-              <div className="grid gap-4" data-testid="customer-orders-list">
-              {getFilteredAndSortedOrders().map((order) => (
-                <Card key={order.id} className="card-hover">
-                  <CardContent className="p-6">
-                    {/* Pending Modifications Alert */}
-                    {order.modification_status === 'pending_approval' && order.pending_modifications && (
-                      <div className="mb-6 p-4 bg-yellow-50 border-2 border-yellow-400 rounded-lg">
-                        <div className="flex items-start gap-3 mb-3">
-                          <AlertTriangle className="w-6 h-6 text-yellow-600 flex-shrink-0 mt-1" />
-                          <div className="flex-1">
-                            <h4 className="font-bold text-yellow-900 text-lg mb-2">
-                              Modification Approval Required
-                            </h4>
-                            <p className="text-sm text-yellow-800 mb-3">
-                              The admin/owner has proposed changes to this recurring order. Please review and approve or reject the changes below.
-                            </p>
-                            
-                            {/* Show what's being modified */}
-                            <div className="bg-white rounded p-3 mb-3 space-y-2">
-                              <p className="text-sm font-semibold text-gray-700">Proposed Changes:</p>
-                              
-                              {order.pending_modifications.items && (
-                                <div>
-                                  <p className="text-xs text-gray-600 font-medium">Items:</p>
-                                  <ul className="text-xs text-gray-700 space-y-1 ml-4">
-                                    {order.pending_modifications.items.map((item, idx) => (
-                                      <li key={idx}>• {item.sku_name} - Qty: {item.quantity} @ ${item.price.toFixed(2)}</li>
-                                    ))}
-                                  </ul>
-                                </div>
-                              )}
-                              
-                              {order.pending_modifications.pickup_date && (
-                                <p className="text-xs text-gray-700">
-                                  <span className="font-medium">Pickup Date:</span> {new Date(order.pending_modifications.pickup_date).toLocaleString()}
-                                </p>
-                              )}
-                              
-                              {order.pending_modifications.delivery_date && (
-                                <p className="text-xs text-gray-700">
-                                  <span className="font-medium">Delivery Date:</span> {new Date(order.pending_modifications.delivery_date).toLocaleString()}
-                                </p>
-                              )}
-                              
-                              {order.pending_modifications.special_instructions && (
-                                <p className="text-xs text-gray-700">
-                                  <span className="font-medium">Instructions:</span> {order.pending_modifications.special_instructions}
-                                </p>
-                              )}
-                            </div>
-                            
-                            {/* Approve/Reject Buttons */}
-                            <div className="flex gap-3">
-                              <Button
-                                size="sm"
-                                className="bg-green-600 hover:bg-green-700"
-                                onClick={() => handleApproveModification(order.id)}
-                                disabled={approvingModificationId === order.id || rejectingModificationId === order.id}
-                              >
-                                {approvingModificationId === order.id ? (
-                                  <>
-                                    <Clock className="w-4 h-4 mr-1 animate-spin" />
-                                    Approving...
-                                  </>
-                                ) : (
-                                  <>
-                                    <CheckCircle2 className="w-4 h-4 mr-1" />
-                                    Approve Changes
-                                  </>
-                                )}
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="destructive"
-                                onClick={() => handleRejectModification(order.id)}
-                                disabled={approvingModificationId === order.id || rejectingModificationId === order.id}
-                              >
-                                {rejectingModificationId === order.id ? (
-                                  <>
-                                    <Clock className="w-4 h-4 mr-1 animate-spin" />
-                                    Rejecting...
-                                  </>
-                                ) : (
-                                  <>
-                                    <XCircle className="w-4 h-4 mr-1" />
-                                    Reject Changes
-                                  </>
-                                )}
-                              </Button>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                    
-                    <div className="flex justify-between items-start mb-4">
-                      <div>
-                        <div className="flex items-center gap-3 mb-2 flex-wrap">
-                          <h3 className="text-xl font-bold text-gray-900">{order.order_number}</h3>
-                          <span className={`px-3 py-1 text-xs font-semibold rounded-full ${getStatusBadgeClass(order.status)}`}>
-                            {getStatusDisplayName(order.status)}
-                          </span>
-                          {order.is_recurring && (
-                            <span className="px-3 py-1 text-xs font-semibold rounded-full bg-purple-100 text-purple-800 flex items-center gap-1">
-                              <Repeat className="w-3 h-3" />
-                              Recurring
-                            </span>
-                          )}
-                          {order.is_locked ? (
-                            <span className="px-3 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-800 flex items-center gap-1">
-                              <Lock className="w-3 h-3" />
-                              Locked
-                            </span>
-                          ) : (
-                            <span className="px-3 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800 flex items-center gap-1">
-                              <Unlock className="w-3 h-3" />
-                              Editable
-                            </span>
-                          )}
-                        </div>
-                        <p className="text-sm text-gray-500">
-                          Created: {new Date(order.created_at).toLocaleDateString()}
-                        </p>
-                        {order.is_recurring && order.next_occurrence_date && (
-                          <p className="text-sm text-purple-600 font-medium">
-                            Next occurrence: {new Date(order.next_occurrence_date).toLocaleDateString()}
+            {/* Orders Table */}
+            <Card>
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b bg-gray-50">
+                      <th className="text-left p-4 font-semibold text-gray-700 text-sm uppercase tracking-wide">Order Details</th>
+                      <th className="text-left p-4 font-semibold text-gray-700 text-sm uppercase tracking-wide">Items & Total</th>
+                      <th className="text-left p-4 font-semibold text-gray-700 text-sm uppercase tracking-wide">Dates & Address</th>
+                      <th className="text-left p-4 font-semibold text-gray-700 text-sm uppercase tracking-wide">Status</th>
+                      <th className="text-center p-4 font-semibold text-gray-700 text-sm uppercase tracking-wide">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {getFilteredAndSortedOrders().length === 0 ? (
+                      <tr>
+                        <td colSpan="5" className="p-12 text-center">
+                          <Package className="h-16 w-16 mx-auto mb-4 text-gray-400" />
+                          <p className="text-gray-600 text-lg font-medium">
+                            {orderSearchQuery || orderStatusFilter.length > 0 || orderDateFilter !== 'all' || orderTypeFilter !== 'all' 
+                              ? 'No orders match your filters' 
+                              : 'No orders yet'}
                           </p>
-                        )}
-                      </div>
-                      {order.status !== 'ready_for_pickup' && order.status !== 'delivered' && order.status !== 'cancelled' && canModifyOrder(order.delivery_date, order.is_locked) && (
-                        <div className="flex gap-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleEditOrder(order)}
-                            data-testid={`edit-order-${order.id}`}
-                          >
-                            <Edit className="w-4 h-4 mr-1" />
-                            Edit Order
-                          </Button>
-                          <Button
-                            variant="destructive"
-                            size="sm"
-                            onClick={() => handleCancelOrder(order.id)}
-                            disabled={cancellingOrderId === order.id}
-                            data-testid={`cancel-order-${order.id}`}
-                          >
-                            {cancellingOrderId === order.id ? (
-                              <>
-                                <Clock className="w-4 h-4 mr-1 animate-spin" />
-                                Cancelling...
-                              </>
-                            ) : (
-                              'Cancel Order'
-                            )}
-                          </Button>
-                        </div>
-                      )}
-                    </div>
+                          <p className="text-gray-500 text-sm mt-2">
+                            {!(orderSearchQuery || orderStatusFilter.length > 0 || orderDateFilter !== 'all' || orderTypeFilter !== 'all') &&
+                              'Create your first order to get started'}
+                          </p>
+                        </td>
+                      </tr>
+                    ) : (
+                      getFilteredAndSortedOrders().map((order) => (
+                        <React.Fragment key={order.id}>
+                          {/* Pending Modifications Alert Row */}
+                          {order.modification_status === 'pending_approval' && order.pending_modifications && (
+                            <tr>
+                              <td colSpan="5" className="p-0">
+                                <div className="m-4 p-4 bg-yellow-50 border-2 border-yellow-400 rounded-lg">
+                                  <div className="flex items-start gap-3">
+                                    <AlertTriangle className="w-6 h-6 text-yellow-600 flex-shrink-0 mt-1" />
+                                    <div className="flex-1">
+                                      <h4 className="font-bold text-yellow-900 text-lg mb-2">
+                                        Modification Approval Required
+                                      </h4>
+                                      <p className="text-sm text-yellow-800 mb-3">
+                                        The admin/owner has proposed changes to this recurring order. Please review and approve or reject the changes below.
+                                      </p>
+                                      
+                                      {/* Show what's being modified */}
+                                      <div className="bg-white rounded p-3 mb-3 space-y-2">
+                                        <p className="text-sm font-semibold text-gray-700">Proposed Changes:</p>
+                                        
+                                        {order.pending_modifications.items && (
+                                          <div>
+                                            <p className="text-xs text-gray-600 font-medium">Items:</p>
+                                            <ul className="text-xs text-gray-700 space-y-1 ml-4">
+                                              {order.pending_modifications.items.map((item, idx) => (
+                                                <li key={idx}>• {item.sku_name} - Qty: {item.quantity} @ ${item.price.toFixed(2)}</li>
+                                              ))}
+                                            </ul>
+                                          </div>
+                                        )}
+                                        
+                                        {order.pending_modifications.pickup_date && (
+                                          <p className="text-xs text-gray-700">
+                                            <span className="font-medium">Pickup Date:</span> {new Date(order.pending_modifications.pickup_date).toLocaleString()}
+                                          </p>
+                                        )}
+                                        
+                                        {order.pending_modifications.delivery_date && (
+                                          <p className="text-xs text-gray-700">
+                                            <span className="font-medium">Delivery Date:</span> {new Date(order.pending_modifications.delivery_date).toLocaleString()}
+                                          </p>
+                                        )}
+                                        
+                                        {order.pending_modifications.special_instructions && (
+                                          <p className="text-xs text-gray-700">
+                                            <span className="font-medium">Instructions:</span> {order.pending_modifications.special_instructions}
+                                          </p>
+                                        )}
+                                      </div>
+                                      
+                                      {/* Approve/Reject Buttons */}
+                                      <div className="flex gap-3">
+                                        <Button
+                                          size="sm"
+                                          className="bg-green-600 hover:bg-green-700"
+                                          onClick={() => handleApproveModification(order.id)}
+                                          disabled={approvingModificationId === order.id || rejectingModificationId === order.id}
+                                        >
+                                          {approvingModificationId === order.id ? (
+                                            <>
+                                              <Clock className="w-4 h-4 mr-1 animate-spin" />
+                                              Approving...
+                                            </>
+                                          ) : (
+                                            <>
+                                              <CheckCircle2 className="w-4 h-4 mr-1" />
+                                              Approve Changes
+                                            </>
+                                          )}
+                                        </Button>
+                                        <Button
+                                          size="sm"
+                                          variant="destructive"
+                                          onClick={() => handleRejectModification(order.id)}
+                                          disabled={approvingModificationId === order.id || rejectingModificationId === order.id}
+                                        >
+                                          {rejectingModificationId === order.id ? (
+                                            <>
+                                              <Clock className="w-4 h-4 mr-1 animate-spin" />
+                                              Rejecting...
+                                            </>
+                                          ) : (
+                                            <>
+                                              <XCircle className="w-4 h-4 mr-1" />
+                                              Reject Changes
+                                            </>
+                                          )}
+                                        </Button>
+                                      </div>
+                                    </div>
+                                  </div>
+                                </div>
+                              </td>
+                            </tr>
+                          )}
+                          
+                          {/* Order Data Row */}
+                          <tr className="border-b hover:bg-gray-50 transition-colors" data-testid="customer-order-row">
+                            {/* Order Details Column */}
+                            <td className="p-4">
+                              <div className="space-y-2">
+                                <div className="font-semibold text-gray-900">{order.order_number}</div>
+                                <div className="flex flex-wrap gap-2">
+                                  <span className={`px-3 py-1 text-xs font-semibold rounded-full ${getStatusBadgeClass(order.status)}`}>
+                                    {getStatusDisplayName(order.status)}
+                                  </span>
+                                  {order.is_recurring && (
+                                    <span className="px-3 py-1 text-xs font-semibold rounded-full bg-purple-100 text-purple-800 flex items-center gap-1">
+                                      <Repeat className="w-3 h-3" />
+                                      Recurring
+                                    </span>
+                                  )}
+                                  {order.is_locked ? (
+                                    <span className="px-3 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-800 flex items-center gap-1">
+                                      <Lock className="w-3 h-3" />
+                                      Locked
+                                    </span>
+                                  ) : (
+                                    <span className="px-3 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800 flex items-center gap-1">
+                                      <Unlock className="w-3 h-3" />
+                                      Editable
+                                    </span>
+                                  )}
+                                </div>
+                                <div className="text-xs text-gray-500">
+                                  Created: {new Date(order.created_at).toLocaleDateString()}
+                                </div>
+                                {order.is_recurring && order.next_occurrence_date && (
+                                  <div className="text-xs text-purple-600 font-medium">
+                                    Next: {new Date(order.next_occurrence_date).toLocaleDateString()}
+                                  </div>
+                                )}
+                              </div>
+                            </td>
 
-                    <div className="grid md:grid-cols-2 gap-4 mb-4">
-                      <div className="flex items-start gap-3">
-                        <div className="w-10 h-10 bg-teal-100 rounded-full flex items-center justify-center flex-shrink-0">
-                          <MapPin className="w-5 h-5 text-teal-600" />
-                        </div>
-                        <div>
-                          <p className="text-sm font-semibold text-gray-700">Pickup</p>
-                          <p className="text-sm text-gray-600">{new Date(order.pickup_date).toLocaleString()}</p>
-                          <p className="text-sm text-gray-600">{order.pickup_address}</p>
-                        </div>
-                      </div>
-                      <div className="flex items-start gap-3">
-                        <div className="w-10 h-10 bg-teal-100 rounded-full flex items-center justify-center flex-shrink-0">
-                          <Calendar className="w-5 h-5 text-teal-600" />
-                        </div>
-                        <div>
-                          <p className="text-sm font-semibold text-gray-700">Delivery</p>
-                          <p className="text-sm text-gray-600">{new Date(order.delivery_date).toLocaleString()}</p>
-                          <p className="text-sm text-gray-600">{order.delivery_address}</p>
-                        </div>
-                      </div>
-                    </div>
+                            {/* Items & Total Column */}
+                            <td className="p-4">
+                              <div className="space-y-2">
+                                <div className="text-sm">
+                                  {order.items.slice(0, 2).map((item, idx) => (
+                                    <div key={idx} className="text-gray-600">
+                                      {item.sku_name} x{item.quantity} - ${(item.price * item.quantity).toFixed(2)}
+                                    </div>
+                                  ))}
+                                  {order.items.length > 2 && (
+                                    <div className="text-xs text-gray-500 italic">
+                                      +{order.items.length - 2} more item{order.items.length - 2 > 1 ? 's' : ''}
+                                    </div>
+                                  )}
+                                </div>
+                                <div className="flex items-baseline gap-2 pt-2 border-t">
+                                  <DollarSign className="w-4 h-4 text-teal-600" />
+                                  <span className="text-xl font-bold text-teal-600">${order.total_amount.toFixed(2)}</span>
+                                  <span className="text-xs text-gray-500">incl. GST</span>
+                                </div>
+                              </div>
+                            </td>
 
-                    <div className="border-t pt-4">
-                      <p className="font-semibold text-gray-700 mb-2">Order Items:</p>
-                      <ul className="space-y-1">
-                        {order.items.map((item, idx) => (
-                          <li key={idx} className="flex justify-between text-sm">
-                            <span className="text-gray-600">{item.sku_name} x{item.quantity}</span>
-                            <span className="text-gray-900 font-medium">${(item.price * item.quantity).toFixed(2)}</span>
-                          </li>
-                        ))}
-                      </ul>
-                      <div className="mt-3 pt-3 border-t">
-                        <div className="flex justify-between items-center">
-                          <div>
-                            <span className="text-lg font-bold text-gray-900">Total</span>
-                            <p className="text-xs text-gray-500">Includes 10% GST</p>
-                          </div>
-                          <span className="text-2xl font-bold text-teal-600">${order.total_amount.toFixed(2)}</span>
-                        </div>
-                      </div>
-                    </div>
+                            {/* Dates & Address Column */}
+                            <td className="p-4">
+                              <div className="space-y-2 text-sm">
+                                <div className="flex items-start gap-2">
+                                  <MapPin className="w-4 h-4 text-teal-600 mt-0.5 flex-shrink-0" />
+                                  <div>
+                                    <div className="font-medium text-gray-700">Pickup</div>
+                                    <div className="text-gray-600">{new Date(order.pickup_date).toLocaleDateString()}</div>
+                                    <div className="text-xs text-gray-500 line-clamp-2">{order.pickup_address}</div>
+                                  </div>
+                                </div>
+                                <div className="flex items-start gap-2 pt-2 border-t">
+                                  <Calendar className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
+                                  <div>
+                                    <div className="font-medium text-gray-700">Delivery</div>
+                                    <div className="text-gray-600">{new Date(order.delivery_date).toLocaleDateString()}</div>
+                                    <div className="text-xs text-gray-500 line-clamp-2">{order.delivery_address}</div>
+                                  </div>
+                                </div>
+                              </div>
+                            </td>
 
-                    {order.special_instructions && (
-                      <div className="mt-4 p-3 bg-gray-50 rounded-lg">
-                        <p className="text-sm font-semibold text-gray-700">Special Instructions:</p>
-                        <p className="text-sm text-gray-600">{order.special_instructions}</p>
-                      </div>
+                            {/* Status Column */}
+                            <td className="p-4">
+                              <div className="space-y-2">
+                                {order.special_instructions && (
+                                  <div className="text-xs text-gray-600 bg-gray-50 p-2 rounded">
+                                    <div className="font-medium mb-1">Instructions:</div>
+                                    <div className="line-clamp-2">{order.special_instructions}</div>
+                                  </div>
+                                )}
+                                {!canModifyOrder(order.delivery_date, order.is_locked) && 
+                                  order.status !== 'ready_for_pickup' && 
+                                  order.status !== 'delivered' && 
+                                  order.status !== 'cancelled' && (
+                                  <div className="text-xs text-yellow-700 bg-yellow-50 p-2 rounded flex items-start gap-1">
+                                    <Lock className="w-3 h-3 mt-0.5 flex-shrink-0" />
+                                    <span>Locked (8hrs before delivery)</span>
+                                  </div>
+                                )}
+                              </div>
+                            </td>
+
+                            {/* Actions Column */}
+                            <td className="p-4">
+                              {order.status !== 'ready_for_pickup' && order.status !== 'delivered' && order.status !== 'cancelled' && canModifyOrder(order.delivery_date, order.is_locked) ? (
+                                <div className="flex flex-col gap-2">
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => handleEditOrder(order)}
+                                    data-testid={`edit-order-${order.id}`}
+                                    className="w-full"
+                                  >
+                                    <Edit className="w-4 h-4 mr-1" />
+                                    Edit
+                                  </Button>
+                                  <Button
+                                    variant="destructive"
+                                    size="sm"
+                                    onClick={() => handleCancelOrder(order.id)}
+                                    disabled={cancellingOrderId === order.id}
+                                    data-testid={`cancel-order-${order.id}`}
+                                    className="w-full"
+                                  >
+                                    {cancellingOrderId === order.id ? (
+                                      <>
+                                        <Clock className="w-4 h-4 mr-1 animate-spin" />
+                                        Cancelling...
+                                      </>
+                                    ) : (
+                                      'Cancel'
+                                    )}
+                                  </Button>
+                                </div>
+                              ) : (
+                                <div className="text-xs text-gray-500 text-center">No actions</div>
+                              )}
+                            </td>
+                          </tr>
+                        </React.Fragment>
+                      ))
                     )}
-
-                    {order.status !== 'ready_for_pickup' && order.status !== 'delivered' && order.status !== 'cancelled' && !canModifyOrder(order.delivery_date, order.is_locked) && (
-                      <div className="mt-4 p-3 bg-yellow-50 rounded-lg">
-                        <p className="text-sm text-yellow-800">⚠️ This order cannot be modified (locked 8 hours before delivery)</p>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-            )}
+                  </tbody>
+                </table>
+              </div>
+            </Card>
           </div>
         )}
 
@@ -1266,61 +1408,218 @@ function CustomerDashboard() {
               </Dialog>
             </div>
 
-            <div className="grid gap-4" data-testid="customer-cases-list">
-              {cases.map((caseItem) => (
-                <Card key={caseItem.id} className="card-hover">
-                  <CardContent className="p-6">
-                    <div className="flex justify-between items-start mb-4">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-3 mb-2">
-                          <h3 className="text-xl font-bold text-gray-900">{caseItem.case_number}</h3>
-                          <span className={`px-3 py-1 text-xs font-semibold rounded-full ${
-                            caseItem.status === 'open' ? 'bg-yellow-100 text-yellow-800' :
-                            caseItem.status === 'in_progress' ? 'bg-blue-100 text-blue-800' :
-                            caseItem.status === 'resolved' ? 'bg-green-100 text-green-800' :
-                            'bg-gray-100 text-gray-800'
-                          }`}>
-                            {caseItem.status.replace('_', ' ')}
-                          </span>
-                          <span className={`px-3 py-1 text-xs font-semibold rounded-full ${
-                            caseItem.priority === 'high' ? 'bg-red-100 text-red-800' :
-                            caseItem.priority === 'medium' ? 'bg-orange-100 text-orange-800' :
-                            'bg-gray-100 text-gray-800'
-                          }`}>
-                            {caseItem.priority}
-                          </span>
-                        </div>
-                        <p className="text-sm text-gray-500 mb-3">
-                          Created: {new Date(caseItem.created_at).toLocaleDateString()}
-                        </p>
-                      </div>
-                    </div>
+            {/* Filter & Sort Controls */}
+            <Card className="mb-6">
+              <CardContent className="pt-6 space-y-4">
+                {/* Search Bar */}
+                <div className="flex items-center gap-2">
+                  <div className="relative flex-1">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                    <Input
+                      type="text"
+                      placeholder="Search by case number, subject, or description..."
+                      value={caseSearchQuery}
+                      onChange={(e) => setCaseSearchQuery(e.target.value)}
+                      className="pl-10"
+                    />
+                  </div>
+                  {(caseSearchQuery || caseStatusFilter.length > 0 || casePriorityFilter.length > 0 || caseTypeFilter !== 'all') && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={clearAllCaseFilters}
+                      className="whitespace-nowrap"
+                    >
+                      Clear Filters
+                    </Button>
+                  )}
+                </div>
 
-                    <div>
-                      <p className="font-semibold text-gray-700 mb-1">{caseItem.subject}</p>
-                      <p className="text-sm text-gray-600 mb-3">{caseItem.description}</p>
-                      <p className="text-xs text-gray-500">Type: {caseItem.type}</p>
-                    </div>
+                <div className="flex flex-wrap items-center gap-3">
+                  {/* Sort By */}
+                  <div className="flex items-center gap-2">
+                    <Label className="text-sm font-medium whitespace-nowrap">Sort by:</Label>
+                    <Select value={caseSortBy} onValueChange={setCaseSortBy}>
+                      <SelectTrigger className="w-[150px]">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="created_at">Date Created</SelectItem>
+                        <SelectItem value="case_number">Case Number</SelectItem>
+                        <SelectItem value="status">Status</SelectItem>
+                        <SelectItem value="priority">Priority</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCaseSortOrder(caseSortOrder === 'asc' ? 'desc' : 'asc')}
+                      title={caseSortOrder === 'asc' ? 'Ascending' : 'Descending'}
+                    >
+                      <ArrowUpDown className="w-4 h-4" />
+                      {caseSortOrder === 'asc' ? '↑' : '↓'}
+                    </Button>
+                  </div>
 
-                    {caseItem.resolution && (
-                      <div className="mt-4 p-4 bg-green-50 rounded-lg border border-green-200">
-                        <p className="text-sm font-semibold text-green-800 mb-1">✓ Resolution:</p>
-                        <p className="text-sm text-green-700">{caseItem.resolution}</p>
-                      </div>
+                  {/* Type Filter */}
+                  <div className="flex items-center gap-2">
+                    <Label className="text-sm font-medium whitespace-nowrap">Type:</Label>
+                    <Select value={caseTypeFilter} onValueChange={setCaseTypeFilter}>
+                      <SelectTrigger className="w-[130px]">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Types</SelectItem>
+                        <SelectItem value="inquiry">Inquiry</SelectItem>
+                        <SelectItem value="complaint">Complaint</SelectItem>
+                        <SelectItem value="refund">Refund</SelectItem>
+                        <SelectItem value="feedback">Feedback</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                {/* Status Filter Chips */}
+                <div className="flex items-center gap-2 flex-wrap">
+                  <Filter className="w-4 h-4 text-gray-500" />
+                  <Label className="text-sm font-medium">Status:</Label>
+                  {['open', 'in_progress', 'resolved', 'closed'].map(status => (
+                    <button
+                      key={status}
+                      onClick={() => toggleCaseStatusFilter(status)}
+                      className={`px-3 py-1 text-xs rounded-full border transition-colors ${
+                        caseStatusFilter.includes(status)
+                          ? 'bg-teal-500 text-white border-teal-500'
+                          : 'bg-white text-gray-700 border-gray-300 hover:border-teal-500'
+                      }`}
+                    >
+                      {status.replace('_', ' ').toUpperCase()}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Priority Filter Chips */}
+                <div className="flex items-center gap-2 flex-wrap">
+                  <AlertCircle className="w-4 h-4 text-gray-500" />
+                  <Label className="text-sm font-medium">Priority:</Label>
+                  {['low', 'medium', 'high', 'urgent'].map(priority => (
+                    <button
+                      key={priority}
+                      onClick={() => toggleCasePriorityFilter(priority)}
+                      className={`px-3 py-1 text-xs rounded-full border transition-colors ${
+                        casePriorityFilter.includes(priority)
+                          ? 'bg-teal-500 text-white border-teal-500'
+                          : 'bg-white text-gray-700 border-gray-300 hover:border-teal-500'
+                      }`}
+                    >
+                      {priority.toUpperCase()}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Results Count */}
+                <div className="text-sm text-gray-600">
+                  Showing <span className="font-semibold">{getFilteredAndSortedCases().length}</span> of <span className="font-semibold">{cases.length}</span> cases
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Cases Table */}
+            <Card>
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b bg-gray-50">
+                      <th className="text-left p-4 font-semibold text-gray-700 text-sm uppercase tracking-wide">Case Details</th>
+                      <th className="text-left p-4 font-semibold text-gray-700 text-sm uppercase tracking-wide">Subject & Description</th>
+                      <th className="text-left p-4 font-semibold text-gray-700 text-sm uppercase tracking-wide">Type</th>
+                      <th className="text-left p-4 font-semibold text-gray-700 text-sm uppercase tracking-wide">Priority</th>
+                      <th className="text-left p-4 font-semibold text-gray-700 text-sm uppercase tracking-wide">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {getFilteredAndSortedCases().length === 0 ? (
+                      <tr>
+                        <td colSpan="5" className="p-12 text-center">
+                          <AlertCircle className="h-16 w-16 mx-auto mb-4 text-gray-400" />
+                          <p className="text-gray-600 text-lg font-medium">
+                            {caseSearchQuery || caseStatusFilter.length > 0 || casePriorityFilter.length > 0 || caseTypeFilter !== 'all' 
+                              ? 'No cases match your filters' 
+                              : 'No cases found'}
+                          </p>
+                          <p className="text-gray-500 text-sm mt-2">
+                            {!(caseSearchQuery || caseStatusFilter.length > 0 || casePriorityFilter.length > 0 || caseTypeFilter !== 'all') &&
+                              'Raise a case if you need assistance'}
+                          </p>
+                        </td>
+                      </tr>
+                    ) : (
+                      getFilteredAndSortedCases().map((caseItem) => (
+                        <tr key={caseItem.id} className="border-b hover:bg-gray-50 transition-colors" data-testid="customer-case-row">
+                          {/* Case Details Column */}
+                          <td className="p-4">
+                            <div className="space-y-1">
+                              <div className="font-semibold text-gray-900">{caseItem.case_number}</div>
+                              <div className="text-xs text-gray-500">
+                                Created: {new Date(caseItem.created_at).toLocaleDateString()}
+                              </div>
+                              <div className="text-xs text-gray-500">
+                                {new Date(caseItem.created_at).toLocaleTimeString()}
+                              </div>
+                            </div>
+                          </td>
+
+                          {/* Subject & Description Column */}
+                          <td className="p-4">
+                            <div className="space-y-2">
+                              <div className="font-semibold text-gray-900">{caseItem.subject}</div>
+                              <div className="text-sm text-gray-600 line-clamp-2">{caseItem.description}</div>
+                              {caseItem.resolution && (
+                                <div className="mt-2 p-2 bg-green-50 rounded border border-green-200">
+                                  <div className="text-xs font-semibold text-green-800 mb-1">✓ Resolution:</div>
+                                  <div className="text-xs text-green-700 line-clamp-2">{caseItem.resolution}</div>
+                                </div>
+                              )}
+                            </div>
+                          </td>
+
+                          {/* Type Column */}
+                          <td className="p-4">
+                            <span className="px-3 py-1 text-xs font-semibold rounded-full bg-teal-100 text-teal-800">
+                              {caseItem.type}
+                            </span>
+                          </td>
+
+                          {/* Priority Column */}
+                          <td className="p-4">
+                            <span className={`px-3 py-1 text-xs font-semibold rounded-full ${
+                              caseItem.priority === 'urgent' ? 'bg-red-100 text-red-800' :
+                              caseItem.priority === 'high' ? 'bg-orange-100 text-orange-800' :
+                              caseItem.priority === 'medium' ? 'bg-yellow-100 text-yellow-800' :
+                              'bg-gray-100 text-gray-800'
+                            }`}>
+                              {caseItem.priority}
+                            </span>
+                          </td>
+
+                          {/* Status Column */}
+                          <td className="p-4">
+                            <span className={`px-3 py-1 text-xs font-semibold rounded-full ${
+                              caseItem.status === 'open' ? 'bg-yellow-100 text-yellow-800' :
+                              caseItem.status === 'in_progress' ? 'bg-blue-100 text-blue-800' :
+                              caseItem.status === 'resolved' ? 'bg-green-100 text-green-800' :
+                              'bg-gray-100 text-gray-800'
+                            }`}>
+                              {caseItem.status.replace('_', ' ')}
+                            </span>
+                          </td>
+                        </tr>
+                      ))
                     )}
-                  </CardContent>
-                </Card>
-              ))}
-              {cases.length === 0 && (
-                <Card>
-                  <CardContent className="p-12 text-center">
-                    <AlertCircle className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                    <p className="text-gray-600">No cases found</p>
-                    <p className="text-sm text-gray-500 mt-2">Raise a case if you need assistance</p>
-                  </CardContent>
-                </Card>
-              )}
-            </div>
+                  </tbody>
+                </table>
+              </div>
+            </Card>
           </div>
         )}
 
