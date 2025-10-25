@@ -83,6 +83,8 @@ function OwnerDashboard() {
   const [orderStatusFilter, setOrderStatusFilter] = useState([]);
   const [orderDeliveryStatusFilter, setOrderDeliveryStatusFilter] = useState([]);
   const [orderDateFilter, setOrderDateFilter] = useState('all');
+  const [orderDateFrom, setOrderDateFrom] = useState('');
+  const [orderDateTo, setOrderDateTo] = useState('');
   const [orderTypeFilter, setOrderTypeFilter] = useState('all');
 
   // Users Filter & Sort
@@ -436,6 +438,22 @@ function OwnerDashboard() {
             const monthAgo = new Date(today);
             monthAgo.setMonth(monthAgo.getMonth() - 1);
             return deliveryDate >= monthAgo;
+          case 'custom':
+            // Custom date range filtering
+            if (orderDateFrom && orderDateTo) {
+              const fromDate = new Date(orderDateFrom);
+              const toDate = new Date(orderDateTo);
+              toDate.setHours(23, 59, 59, 999); // Include entire end date
+              return deliveryDate >= fromDate && deliveryDate <= toDate;
+            } else if (orderDateFrom) {
+              const fromDate = new Date(orderDateFrom);
+              return deliveryDate >= fromDate;
+            } else if (orderDateTo) {
+              const toDate = new Date(orderDateTo);
+              toDate.setHours(23, 59, 59, 999);
+              return deliveryDate <= toDate;
+            }
+            return true;
           default:
             return true;
         }
@@ -502,6 +520,8 @@ function OwnerDashboard() {
     setOrderStatusFilter([]);
     setOrderDeliveryStatusFilter([]);
     setOrderDateFilter('all');
+    setOrderDateFrom('');
+    setOrderDateTo('');
     setOrderTypeFilter('all');
     setOrderSortBy('created_at');
     setOrderSortOrder('desc');
@@ -2039,7 +2059,7 @@ function OwnerDashboard() {
                         className="pl-10"
                       />
                     </div>
-                    {(orderSearchQuery || orderStatusFilter.length > 0 || orderDeliveryStatusFilter.length > 0 || orderDateFilter !== 'all' || orderTypeFilter !== 'all') && (
+                    {(orderSearchQuery || orderStatusFilter.length > 0 || orderDeliveryStatusFilter.length > 0 || orderDateFilter !== 'all' || orderDateFrom || orderDateTo || orderTypeFilter !== 'all') && (
                       <Button
                         variant="outline"
                         size="sm"
@@ -2092,9 +2112,30 @@ function OwnerDashboard() {
                           <SelectItem value="today">Today</SelectItem>
                           <SelectItem value="week">This Week</SelectItem>
                           <SelectItem value="month">This Month</SelectItem>
+                          <SelectItem value="custom">Custom Range</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
+
+                    {/* Custom Date Range Inputs */}
+                    {orderDateFilter === 'custom' && (
+                      <div className="flex items-center gap-2">
+                        <Label className="text-sm whitespace-nowrap">From:</Label>
+                        <Input
+                          type="date"
+                          value={orderDateFrom}
+                          onChange={(e) => setOrderDateFrom(e.target.value)}
+                          className="w-[150px]"
+                        />
+                        <Label className="text-sm whitespace-nowrap">To:</Label>
+                        <Input
+                          type="date"
+                          value={orderDateTo}
+                          onChange={(e) => setOrderDateTo(e.target.value)}
+                          className="w-[150px]"
+                        />
+                      </div>
+                    )}
 
                     {/* Type Filter */}
                     <div className="flex items-center gap-2">
@@ -2159,7 +2200,7 @@ function OwnerDashboard() {
                 {getFilteredAndSortedOrders().length === 0 ? (
                   <div className="text-center py-8 text-gray-500">
                     <Package className="h-12 w-12 mx-auto mb-2 opacity-50" />
-                    <p>{orderSearchQuery || orderStatusFilter.length > 0 || orderDeliveryStatusFilter.length > 0 || orderDateFilter !== 'all' || orderTypeFilter !== 'all' 
+                    <p>{orderSearchQuery || orderStatusFilter.length > 0 || orderDeliveryStatusFilter.length > 0 || orderDateFilter !== 'all' || orderDateFrom || orderDateTo || orderTypeFilter !== 'all' 
                       ? 'No orders match your filters' 
                       : 'No orders available'}</p>
                   </div>
