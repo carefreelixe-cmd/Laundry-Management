@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Switch } from '@/components/ui/switch';
-import { Package, Users, AlertCircle, Plus, Edit, Lock, Unlock, Repeat, Truck, MapPin, Clock, CheckCircle, Search, Filter, ArrowUpDown, X, Trash2, DollarSign } from 'lucide-react';
+import { Package, Users, AlertCircle, Plus, Edit, Lock, Unlock, Repeat, Truck, MapPin, Clock, CheckCircle, Search, Filter, ArrowUpDown, X, Trash2, DollarSign, Ban, CheckCircle2, Key } from 'lucide-react';
 import { toast } from 'sonner';
 import axios from 'axios';
 
@@ -271,6 +271,51 @@ function AdminDashboard() {
     } finally {
       setUpdatingCaseId(null);
     }
+  };
+
+  const handleToggleUserStatus = async (user) => {
+    const action = user.is_active ? 'disable' : 'enable';
+    if (!window.confirm(`Are you sure you want to ${action} ${user.full_name}'s account?`)) return;
+    try {
+      await axios.put(`${API}/admin/users/${user.id}/toggle-status`);
+      toast.success(`User account ${action}d successfully`);
+      fetchData();
+    } catch (error) {
+      toast.error(error.response?.data?.detail || `Failed to ${action} user`);
+    }
+  };
+
+  const handlePasswordReset = async (e) => {
+    e.preventDefault();
+    if (!newPassword || newPassword.length < 6) {
+      toast.error('Password must be at least 6 characters long');
+      return;
+    }
+    if (!window.confirm(`Are you sure you want to reset the password for ${selectedUser?.full_name}?`)) {
+      return;
+    }
+    
+    setResettingPasswordUserId(selectedUser.id);
+    try {
+      await axios.put(`${API}/admin/reset-password/${selectedUser.id}`, {
+        new_password: newPassword
+      });
+      toast.success('Password reset successfully');
+      setShowPasswordDialog(false);
+      setSelectedUser(null);
+      setNewPassword('');
+    } catch (error) {
+      console.error('Failed to reset password:', error);
+      toast.error(error.response?.data?.detail || 'Failed to reset password');
+    } finally {
+      setResettingPasswordUserId(null);
+    }
+  };
+
+  const openPasswordResetDialog = (user) => {
+    setSelectedUser(user);
+    setNewPassword('');
+    setShowPasswordDialog(true);
   };
 
   const addOrderItem = () => {
@@ -1450,7 +1495,7 @@ function AdminDashboard() {
             
             <div className="grid gap-4">
               {getFilteredAndSortedUsers().map((customer) => (
-                <Card key={customer.id} className="card-hover">
+                <Card key={customer.id} className={`card-hover ${!customer.is_active ? 'opacity-50 bg-gray-100' : ''}`}>
                   <CardContent className="p-6">
                     <div className="flex justify-between items-start">
                       <div className="flex-1">
@@ -1463,6 +1508,15 @@ function AdminDashboard() {
                             'bg-green-100 text-green-800'
                           }`}>
                             {customer.role.charAt(0).toUpperCase() + customer.role.slice(1)}
+                          </span>
+                          <span className={`px-3 py-1 text-xs font-semibold rounded-full flex items-center gap-1 ${
+                            customer.is_active !== false ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                          }`}>
+                            {customer.is_active !== false ? (
+                              <><CheckCircle2 className="w-3 h-3" /> Active</>
+                            ) : (
+                              <><Ban className="w-3 h-3" /> Disabled</>
+                            )}
                           </span>
                         </div>
                         
@@ -1495,6 +1549,7 @@ function AdminDashboard() {
                           size="sm"
                           className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
                           disabled={resettingPasswordUserId === customer.id}
+                          title="Reset Password"
                         >
                           {resettingPasswordUserId === customer.id ? (
                             <>
@@ -1503,9 +1558,22 @@ function AdminDashboard() {
                             </>
                           ) : (
                             <>
-                              <Lock className="w-4 h-4 mr-1" />
+                              <Key className="w-4 h-4 mr-1" />
                               Reset Password
                             </>
+                          )}
+                        </Button>
+                        <Button
+                          onClick={() => handleToggleUserStatus(customer)} 
+                          variant="outline"
+                          size="sm"
+                          className={`${customer.is_active !== false ? 'text-red-600 hover:text-red-800' : 'text-green-600 hover:text-green-800'}`}
+                          title={customer.is_active !== false ? 'Disable User' : 'Enable User'}
+                        >
+                          {customer.is_active !== false ? (
+                            <><Ban className="w-4 h-4 mr-1" /> Disable</>
+                          ) : (
+                            <><CheckCircle2 className="w-4 h-4 mr-1" /> Enable</>
                           )}
                         </Button>
                       </div>
