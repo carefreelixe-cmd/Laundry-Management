@@ -1175,7 +1175,7 @@ function OwnerDashboard() {
     <DashboardLayout>
       <div className="space-y-6">
         <div className="flex justify-between items-center">
-          <h1 className="text-3xl font-bold text-gray-900">Owner Dashboard</h1>
+          <h1 className="text-3xl font-bold text-gray-900">Infinite Laundary Solutions</h1>
         </div>
 
         {/* Stats Cards */}
