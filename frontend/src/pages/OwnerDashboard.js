@@ -1762,12 +1762,19 @@ function OwnerDashboard() {
                     <div className="space-y-2">
                       <p className="text-sm text-gray-600">Category: {sku.category}</p>
                       <div className="mt-3 p-3 bg-gray-50 rounded border border-gray-200">
-                        <div className="flex justify-between items-center">
-                          <div>
-                            <span className="text-sm font-semibold text-gray-900">Price</span>
-                            <p className="text-xs text-gray-500">Includes 10% GST</p>
+                        <div className="space-y-2">
+                          <div className="flex justify-between items-center text-sm">
+                            <span className="text-gray-600">Base Price:</span>
+                            <span className="font-medium text-gray-900">${sku.price.toFixed(2)}</span>
                           </div>
-                          <span className="text-2xl font-bold text-teal-600">${(sku.price * 1.10).toFixed(2)}</span>
+                          <div className="flex justify-between items-center text-sm">
+                            <span className="text-gray-600">GST (10%):</span>
+                            <span className="font-medium text-gray-900">${(sku.price * 0.10).toFixed(2)}</span>
+                          </div>
+                          <div className="flex justify-between items-center pt-2 border-t">
+                            <span className="text-sm font-semibold text-gray-900">Total (Inc. GST):</span>
+                            <span className="text-2xl font-bold text-teal-600">${(sku.price * 1.10).toFixed(2)}</span>
+                          </div>
                         </div>
                       </div>
                       <p className="text-sm text-gray-500">{sku.unit}</p>
@@ -1897,27 +1904,37 @@ function OwnerDashboard() {
                           {sku.has_custom_pricing ? (
                             <>
                               <div className="flex items-center gap-2 mb-2">
-                                <p className="text-lg text-gray-400 line-through">${(sku.price * 1.10).toFixed(2)}</p>
+                                <p className="text-sm text-gray-400 line-through">Base: ${(sku.price * 1.10).toFixed(2)}</p>
                                 <Tag className="w-4 h-4 text-teal-600" />
-                                <span className="text-xs font-semibold text-teal-600">CUSTOM</span>
+                                <span className="text-xs font-semibold text-teal-600">CUSTOM PRICING</span>
                               </div>
-                              <div className="p-3 bg-teal-50 rounded border border-teal-200">
-                                <div className="flex justify-between items-center">
-                                  <div>
-                                    <span className="text-sm font-semibold text-gray-900">Custom Price</span>
-                                    <p className="text-xs text-gray-500">Includes 10% GST</p>
-                                  </div>
+                              <div className="p-3 bg-teal-50 rounded border border-teal-200 space-y-2">
+                                <div className="flex justify-between items-center text-sm">
+                                  <span className="text-gray-700">Custom Price:</span>
+                                  <span className="font-medium text-gray-900">${sku.customer_price.toFixed(2)}</span>
+                                </div>
+                                <div className="flex justify-between items-center text-sm">
+                                  <span className="text-gray-700">GST (10%):</span>
+                                  <span className="font-medium text-gray-900">${(sku.customer_price * 0.10).toFixed(2)}</span>
+                                </div>
+                                <div className="flex justify-between items-center pt-2 border-t border-teal-300">
+                                  <span className="text-sm font-semibold text-gray-900">Total (Inc. GST):</span>
                                   <span className="text-2xl font-bold text-teal-600">${(sku.customer_price * 1.10).toFixed(2)}</span>
                                 </div>
                               </div>
                             </>
                           ) : (
-                            <div className="p-3 bg-gray-50 rounded border border-gray-200">
-                              <div className="flex justify-between items-center">
-                                <div>
-                                  <span className="text-sm font-semibold text-gray-900">Base Price</span>
-                                  <p className="text-xs text-gray-500">Includes 10% GST</p>
-                                </div>
+                            <div className="p-3 bg-gray-50 rounded border border-gray-200 space-y-2">
+                              <div className="flex justify-between items-center text-sm">
+                                <span className="text-gray-600">Base Price:</span>
+                                <span className="font-medium text-gray-900">${sku.price.toFixed(2)}</span>
+                              </div>
+                              <div className="flex justify-between items-center text-sm">
+                                <span className="text-gray-600">GST (10%):</span>
+                                <span className="font-medium text-gray-900">${(sku.price * 0.10).toFixed(2)}</span>
+                              </div>
+                              <div className="flex justify-between items-center pt-2 border-t">
+                                <span className="text-sm font-semibold text-gray-900">Total (Inc. GST):</span>
                                 <span className="text-2xl font-bold text-gray-900">${(sku.price * 1.10).toFixed(2)}</span>
                               </div>
                             </div>
@@ -2408,10 +2425,11 @@ function OwnerDashboard() {
                             <SelectContent>
                               {customerSkus.map((sku) => {
                                 const price = sku.customer_price !== undefined ? sku.customer_price : sku.price;
-                                const priceIncGST = price * 1.10;
+                                const gst = price * 0.10;
+                                const priceIncGST = price + gst;
                                 return (
                                   <SelectItem key={sku.id} value={sku.id}>
-                                    {sku.name} - ${priceIncGST.toFixed(2)}
+                                    {sku.name} - ${price.toFixed(2)} + GST ${gst.toFixed(2)} = ${priceIncGST.toFixed(2)}
                                     {sku.customer_price !== undefined && ' (Custom)'}
                                   </SelectItem>
                                 );

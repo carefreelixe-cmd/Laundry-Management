@@ -220,6 +220,8 @@ async def auto_create_next_recurring_order(order: dict):
         )
         
         # Send email notification
+        base_price = new_order['total_amount'] / 1.10
+        gst = new_order['total_amount'] - base_price
         send_email(
             to_email=customer['email'],
             subject="Next Recurring Order Created",
@@ -233,8 +235,21 @@ async def auto_create_next_recurring_order(order: dict):
                     <li><strong>Order Number:</strong> {new_order['order_number']}</li>
                     <li><strong>Pickup Date:</strong> {next_pickup_date.strftime('%Y-%m-%d')}</li>
                     <li><strong>Delivery Date:</strong> {next_delivery_date.strftime('%Y-%m-%d')}</li>
-                    <li><strong>Total Amount:</strong> ${new_order['total_amount']:.2f}</li>
                 </ul>
+                <div style="background: #f9fafb; padding: 12px; border-radius: 6px; margin: 10px 0;">
+                    <div style="display: flex; justify-content: space-between; padding: 4px 0;">
+                        <span>Base Price:</span>
+                        <span>${base_price:.2f}</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; padding: 4px 0;">
+                        <span>GST (10%):</span>
+                        <span>${gst:.2f}</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; padding: 8px 0; border-top: 1px solid #e0e0e0; margin-top: 4px;">
+                        <strong>Total (Inc. GST):</strong>
+                        <strong style="color: #40E0D0;">${new_order['total_amount']:.2f}</strong>
+                    </div>
+                </div>
                 <p>You can view and manage your order in your dashboard.</p>
             </body>
             </html>
@@ -251,7 +266,7 @@ Your next recurring order {new_order['order_number']} has been automatically cre
 
 Pickup: {next_pickup_date.strftime('%Y-%m-%d')}
 Delivery: {next_delivery_date.strftime('%Y-%m-%d')}
-Total: ${new_order['total_amount']:.2f}
+Base: ${base_price:.2f} + GST: ${gst:.2f} = Total: ${new_order['total_amount']:.2f}
 
 View details in your dashboard."""
             )
@@ -1198,13 +1213,19 @@ async def create_customer_order(order: CustomerOrderCreate, current_user: dict =
     await db.orders.insert_one(doc)
     
     # Prepare detailed order info
+    base_price = total_amount / 1.10
+    gst = total_amount - base_price
     items_list = "\n".join([f"    - {item.sku_name}: {item.quantity} x ${item.price:.2f} = ${item.quantity * item.price:.2f}" for item in order.items])
     order_details = f"""
     Order Number: {order_number}
     Order Type: {'Recurring' if order.is_recurring else 'Regular'}
     Customer: {customer['full_name']}
     Email: {customer['email']}
-    Total Amount: ${total_amount:.2f}
+    
+    Pricing:
+    - Base Price: ${base_price:.2f}
+    - GST (10%): ${gst:.2f}
+    - Total (Inc. GST): ${total_amount:.2f}
     
     Items:
 {items_list}
@@ -1368,10 +1389,17 @@ async def update_order(order_id: str, update: OrderUpdate, current_user: dict = 
         )
     
     # Prepare order details for notifications
+    base_price = updated_order.get('total_amount', 0) / 1.10
+    gst = updated_order.get('total_amount', 0) - base_price
     order_details = f"""
     Order Number: {order_doc['order_number']}
     Status: {updated_order.get('status', 'N/A')}
-    Total Amount: ${updated_order.get('total_amount', 0):.2f}
+    
+    Pricing:
+    - Base Price: ${base_price:.2f}
+    - GST (10%): ${gst:.2f}
+    - Total (Inc. GST): ${updated_order.get('total_amount', 0):.2f}
+    
     Pickup Date: {updated_order.get('pickup_date', 'N/A')}
     Delivery Date: {updated_order.get('delivery_date', 'N/A')}
     """

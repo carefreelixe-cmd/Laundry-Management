@@ -312,10 +312,26 @@ def send_order_status_email(to_email: str, customer_name: str, order_number: str
                 """
             
             if order_details.get('total_amount'):
+                base_price = order_details['total_amount'] / 1.10
+                gst = order_details['total_amount'] - base_price
                 details_html += f"""
                     <tr>
-                        <td style="padding: 8px 0; color: #666;">Total Amount:</td>
-                        <td style="padding: 8px 0; font-weight: bold;">${order_details['total_amount']:.2f}</td>
+                        <td colspan="2" style="padding: 12px 0;">
+                            <div style="background: #f9fafb; padding: 12px; border-radius: 6px;">
+                                <div style="display: flex; justify-content: space-between; padding: 4px 0;">
+                                    <span style="color: #666;">Base Price:</span>
+                                    <span style="font-weight: 500;">${base_price:.2f}</span>
+                                </div>
+                                <div style="display: flex; justify-content: space-between; padding: 4px 0;">
+                                    <span style="color: #666;">GST (10%):</span>
+                                    <span style="font-weight: 500;">${gst:.2f}</span>
+                                </div>
+                                <div style="display: flex; justify-content: space-between; padding: 8px 0 4px 0; border-top: 1px solid #e0e0e0; margin-top: 4px;">
+                                    <span style="font-weight: bold; color: #333;">Total (Inc. GST):</span>
+                                    <span style="font-weight: bold; color: #40E0D0; font-size: 18px;">${order_details['total_amount']:.2f}</span>
+                                </div>
+                            </div>
+                        </td>
                     </tr>
                 """
             

@@ -1054,9 +1054,15 @@ function AdminDashboard() {
                               <SelectValue placeholder="Select item" />
                             </SelectTrigger>
                             <SelectContent>
-                              {skus.map(sku => (
-                                <SelectItem key={sku.id} value={sku.id}>{sku.name} (${(sku.price * 1.10).toFixed(2)})</SelectItem>
-                              ))}
+                              {skus.map(sku => {
+                                const gst = sku.price * 0.10;
+                                const total = sku.price + gst;
+                                return (
+                                  <SelectItem key={sku.id} value={sku.id}>
+                                    {sku.name} - ${sku.price.toFixed(2)} + GST ${gst.toFixed(2)} = ${total.toFixed(2)}
+                                  </SelectItem>
+                                );
+                              })}
                             </SelectContent>
                           </Select>
                           <Input
@@ -2623,9 +2629,16 @@ function AdminDashboard() {
 
                           {/* Price */}
                           <td className="px-6 py-4">
-                            <div className="flex flex-col">
-                              <span className="text-lg font-bold text-teal-600">${(sku.price * 1.10).toFixed(2)}</span>
-                              <span className="text-xs text-gray-500">(Base: ${sku.price.toFixed(2)})</span>
+                            <div className="flex flex-col space-y-0.5">
+                              <div className="text-xs text-gray-600">
+                                Base: ${sku.price.toFixed(2)}
+                              </div>
+                              <div className="text-xs text-gray-600">
+                                GST (10%): ${(sku.price * 0.10).toFixed(2)}
+                              </div>
+                              <div className="text-sm font-bold text-teal-600 pt-1 border-t">
+                                ${(sku.price * 1.10).toFixed(2)}
+                              </div>
                             </div>
                           </td>
 
@@ -2725,11 +2738,15 @@ function AdminDashboard() {
                                 <SelectValue placeholder="Choose SKU" />
                               </SelectTrigger>
                               <SelectContent>
-                                {skus.filter(sku => !skusWithPricing.find(s => s.id === sku.id && s.custom_price)).map(sku => (
-                                  <SelectItem key={sku.id} value={sku.id}>
-                                    {sku.name} (Default: ${(sku.price * 1.10).toFixed(2)})
-                                  </SelectItem>
-                                ))}
+                                {skus.filter(sku => !skusWithPricing.find(s => s.id === sku.id && s.custom_price)).map(sku => {
+                                  const gst = sku.price * 0.10;
+                                  const total = sku.price + gst;
+                                  return (
+                                    <SelectItem key={sku.id} value={sku.id}>
+                                      {sku.name} - ${sku.price.toFixed(2)} + GST ${gst.toFixed(2)} = ${total.toFixed(2)}
+                                    </SelectItem>
+                                  );
+                                })}
                               </SelectContent>
                             </Select>
                           </div>
@@ -2760,15 +2777,41 @@ function AdminDashboard() {
                         <div className="flex justify-between items-center">
                           <div className="flex-1">
                             <h4 className="font-semibold text-gray-900">{sku.name}</h4>
-                            <div className="flex items-center gap-4 mt-2 text-sm">
-                              <div>
-                                <span className="text-gray-600">Default Price:</span>
-                                <span className="ml-2 font-medium text-gray-900">${(sku.price * 1.10).toFixed(2)}</span>
+                            <div className="grid grid-cols-2 gap-4 mt-2">
+                              <div className="p-2 bg-gray-50 rounded">
+                                <p className="text-xs text-gray-600 mb-1">Default Price:</p>
+                                <div className="space-y-0.5 text-xs">
+                                  <div className="flex justify-between">
+                                    <span className="text-gray-600">Base:</span>
+                                    <span className="font-medium">${sku.price.toFixed(2)}</span>
+                                  </div>
+                                  <div className="flex justify-between">
+                                    <span className="text-gray-600">GST (10%):</span>
+                                    <span className="font-medium">${(sku.price * 0.10).toFixed(2)}</span>
+                                  </div>
+                                  <div className="flex justify-between pt-1 border-t">
+                                    <span className="font-semibold">Total:</span>
+                                    <span className="font-bold text-gray-900">${(sku.price * 1.10).toFixed(2)}</span>
+                                  </div>
+                                </div>
                               </div>
                               {sku.custom_price && (
-                                <div>
-                                  <span className="text-gray-600">Custom Price:</span>
-                                  <span className="ml-2 font-bold text-teal-600">${(sku.custom_price * 1.10).toFixed(2)}</span>
+                                <div className="p-2 bg-teal-50 rounded border border-teal-200">
+                                  <p className="text-xs text-teal-700 mb-1 font-medium">Custom Price:</p>
+                                  <div className="space-y-0.5 text-xs">
+                                    <div className="flex justify-between">
+                                      <span className="text-teal-700">Base:</span>
+                                      <span className="font-medium">${sku.custom_price.toFixed(2)}</span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                      <span className="text-teal-700">GST (10%):</span>
+                                      <span className="font-medium">${(sku.custom_price * 0.10).toFixed(2)}</span>
+                                    </div>
+                                    <div className="flex justify-between pt-1 border-t border-teal-300">
+                                      <span className="font-semibold text-teal-900">Total:</span>
+                                      <span className="font-bold text-teal-600">${(sku.custom_price * 1.10).toFixed(2)}</span>
+                                    </div>
+                                  </div>
                                 </div>
                               )}
                             </div>

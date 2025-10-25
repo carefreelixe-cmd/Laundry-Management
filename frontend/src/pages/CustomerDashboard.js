@@ -839,11 +839,15 @@ function CustomerDashboard() {
                               <SelectValue placeholder="Select item" />
                             </SelectTrigger>
                             <SelectContent>
-                              {skus.map(sku => (
-                                <SelectItem key={sku.id} value={sku.id}>
-                                  {sku.name} (${(sku.customer_price * 1.10).toFixed(2)})
-                                </SelectItem>
-                              ))}
+                              {skus.map(sku => {
+                                const gst = sku.customer_price * 0.10;
+                                const total = sku.customer_price + gst;
+                                return (
+                                  <SelectItem key={sku.id} value={sku.id}>
+                                    {sku.name} - ${sku.customer_price.toFixed(2)} + GST ${gst.toFixed(2)} = ${total.toFixed(2)}
+                                  </SelectItem>
+                                );
+                              })}
                               {skus.length === 0 && (
                                 <div className="p-2 text-sm text-gray-500 text-center">
                                   No items available. Contact admin to set up pricing.
