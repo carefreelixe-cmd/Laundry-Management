@@ -109,6 +109,10 @@ function CustomerDashboard() {
         // Filter orders that have drivers assigned
         const ordersWithDrivers = ordersRes.data.filter(order => order.driver_id);
         setOrders(ordersWithDrivers);
+      } else if (activeTab === 'calendar') {
+        // Fetch orders for calendar view
+        const ordersRes = await axios.get(`${API}/orders`);
+        setOrders(ordersRes.data);
       }
     } catch (error) {
       console.error('Failed to fetch data', error);

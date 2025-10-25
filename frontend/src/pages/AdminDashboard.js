@@ -76,6 +76,14 @@ function AdminDashboard() {
   const [caseDateFrom, setCaseDateFrom] = useState('');
   const [caseDateTo, setCaseDateTo] = useState('');
   
+  // Orders Filter & Sort
+  const [orderSearchQuery, setOrderSearchQuery] = useState('');
+  const [orderSortBy, setOrderSortBy] = useState('created_at');
+  const [orderSortOrder, setOrderSortOrder] = useState('desc');
+  const [orderStatusFilter, setOrderStatusFilter] = useState([]);
+  const [orderRecurringFilter, setOrderRecurringFilter] = useState('all'); // 'all', 'recurring', 'one-time'
+  const [orderLockFilter, setOrderLockFilter] = useState('all'); // 'all', 'locked', 'unlocked'
+  
   // Delivery Tracking Filters
   const [deliveryDateFrom, setDeliveryDateFrom] = useState('');
   const [deliveryDateTo, setDeliveryDateTo] = useState('');
@@ -130,6 +138,10 @@ function AdminDashboard() {
         const usersRes = await axios.get(`${API}/users`);
         setCustomers(usersRes.data);
       } else if (activeTab === 'delivery-tracking') {
+        const ordersRes = await axios.get(`${API}/orders`);
+        setOrders(ordersRes.data);
+      } else if (activeTab === 'calendar') {
+        // Fetch orders for calendar view
         const ordersRes = await axios.get(`${API}/orders`);
         setOrders(ordersRes.data);
       } else if (activeTab === 'skus') {
@@ -746,6 +758,97 @@ function AdminDashboard() {
     setCaseDateTo('');
   };
 
+  // Order Filter & Sort Functions
+  const getFilteredAndSortedOrders = () => {
+    let filtered = [...orders];
+    
+    // Search filter
+    if (orderSearchQuery) {
+      const query = orderSearchQuery.toLowerCase();
+      filtered = filtered.filter(o =>
+        o.order_number?.toLowerCase().includes(query) ||
+        o.customer_name?.toLowerCase().includes(query) ||
+        o.customer_email?.toLowerCase().includes(query)
+      );
+    }
+    
+    // Status filter
+    if (orderStatusFilter.length > 0) {
+      filtered = filtered.filter(o => orderStatusFilter.includes(o.status));
+    }
+    
+    // Recurring filter
+    if (orderRecurringFilter === 'recurring') {
+      filtered = filtered.filter(o => o.is_recurring === true);
+    } else if (orderRecurringFilter === 'one-time') {
+      filtered = filtered.filter(o => !o.is_recurring);
+    }
+    
+    // Lock filter
+    if (orderLockFilter === 'locked') {
+      filtered = filtered.filter(o => o.is_locked === true);
+    } else if (orderLockFilter === 'unlocked') {
+      filtered = filtered.filter(o => !o.is_locked);
+    }
+    
+    // Sort
+    filtered.sort((a, b) => {
+      let aVal, bVal;
+      
+      switch(orderSortBy) {
+        case 'order_number':
+          aVal = a.order_number;
+          bVal = b.order_number;
+          break;
+        case 'customer_name':
+          aVal = a.customer_name?.toLowerCase() || '';
+          bVal = b.customer_name?.toLowerCase() || '';
+          break;
+        case 'status':
+          aVal = a.status;
+          bVal = b.status;
+          break;
+        case 'total_amount':
+          aVal = a.total_amount || 0;
+          bVal = b.total_amount || 0;
+          break;
+        case 'pickup_date':
+          aVal = new Date(a.pickup_date);
+          bVal = new Date(b.pickup_date);
+          break;
+        case 'delivery_date':
+          aVal = new Date(a.delivery_date);
+          bVal = new Date(b.delivery_date);
+          break;
+        case 'created_at':
+        default:
+          aVal = new Date(a.created_at);
+          bVal = new Date(b.created_at);
+      }
+      
+      if (aVal < bVal) return orderSortOrder === 'asc' ? -1 : 1;
+      if (aVal > bVal) return orderSortOrder === 'asc' ? 1 : -1;
+      return 0;
+    });
+    
+    return filtered;
+  };
+
+  const toggleOrderStatusFilter = (status) => {
+    setOrderStatusFilter(prev => 
+      prev.includes(status) ? prev.filter(s => s !== status) : [...prev, status]
+    );
+  };
+
+  const clearOrderFilters = () => {
+    setOrderSearchQuery('');
+    setOrderSortBy('created_at');
+    setOrderSortOrder('desc');
+    setOrderStatusFilter([]);
+    setOrderRecurringFilter('all');
+    setOrderLockFilter('all');
+  };
+
   // Delivery tracking filter functions
   const getFilteredDeliveryOrders = () => {
     return orders.filter(o => o.driver_id).filter(order => {
@@ -1050,162 +1153,354 @@ function AdminDashboard() {
               </Dialog>
             </div>
 
-            <div className="grid gap-4" data-testid="orders-list">
-              {orders.map((order) => (
-                <Card key={order.id} className="card-hover">
-                  <CardContent className="p-6">
-                    <div className="flex justify-between items-start">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-3 mb-2">
-                          <h3 className="text-xl font-bold text-gray-900">{order.order_number}</h3>
-                          <span className={`px-3 py-1 text-xs font-semibold rounded-full ${getStatusBadgeClass(order.status)}`}>
-                            {getStatusDisplayName(order.status)}
-                          </span>
-                          {order.is_recurring && (
-                            <span className="px-3 py-1 text-xs font-semibold rounded-full bg-purple-100 text-purple-800 flex items-center gap-1">
-                              <Repeat className="w-3 h-3" />
-                              Recurring
-                            </span>
-                          )}
-                          {order.is_locked ? (
-                            <span className="px-3 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800 flex items-center gap-1">
-                              <Lock className="w-3 h-3" />
-                              Locked for Customer
-                            </span>
-                          ) : (
-                            <span className="px-3 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800 flex items-center gap-1">
-                              <Unlock className="w-3 h-3" />
-                              Editable
-                            </span>
-                          )}
-                        </div>
-                        <p className="text-gray-600 mb-2">{order.customer_name} - {order.customer_email}</p>
-                        <div className="grid md:grid-cols-2 gap-4 text-sm">
-                          <div>
-                            <p className="text-gray-500">Pickup: {new Date(order.pickup_date).toLocaleString()}</p>
-                            <p className="text-gray-500">From: {order.pickup_address}</p>
-                          </div>
-                          <div>
-                            <p className="text-gray-500">Delivery: {new Date(order.delivery_date).toLocaleString()}</p>
-                            <p className="text-gray-500">To: {order.delivery_address}</p>
-                          </div>
-                        </div>
-                        <div className="mt-3">
-                          <p className="font-semibold text-gray-700">Items:</p>
-                          <ul className="list-disc list-inside text-sm text-gray-600">
-                            {order.items.map((item, idx) => (
-                              <li key={idx}>{item.sku_name} x{item.quantity} - ${(item.price * item.quantity).toFixed(2)}</li>
-                            ))}
-                          </ul>
-                          <p className="mt-2 text-lg font-bold text-teal-600">Total: ${order.total_amount.toFixed(2)}</p>
-                        </div>
-                      </div>
-                      <div className="flex flex-col gap-2">
-                        <Select 
-                          value={order.status} 
-                          onValueChange={(value) => handleUpdateOrderStatus(order.id, value)}
-                          disabled={updatingStatusOrderId === order.id}
-                        >
-                          <SelectTrigger className="w-40">
-                            {updatingStatusOrderId === order.id ? (
-                              <span className="flex items-center">
-                                <Clock className="w-4 h-4 mr-2 animate-spin" />
-                                Updating...
-                              </span>
-                            ) : (
-                              <SelectValue />
-                            )}
+            {/* Search and Filter Controls */}
+            <Card className="mb-6">
+              <CardContent className="p-4">
+                <div className="space-y-4">
+                  {/* Search and Sort Row */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="md:col-span-2">
+                      <Label className="text-sm font-medium mb-2 flex items-center gap-2">
+                        <Search className="w-4 h-4" />
+                        Search Orders
+                      </Label>
+                      <Input
+                        placeholder="Search by order number, customer name, or email..."
+                        value={orderSearchQuery}
+                        onChange={(e) => setOrderSearchQuery(e.target.value)}
+                        className="w-full"
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-sm font-medium mb-2 flex items-center gap-2">
+                        <ArrowUpDown className="w-4 h-4" />
+                        Sort By
+                      </Label>
+                      <div className="flex gap-2">
+                        <Select value={orderSortBy} onValueChange={setOrderSortBy}>
+                          <SelectTrigger>
+                            <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="pending">Pending</SelectItem>
-                            <SelectItem value="scheduled">Scheduled</SelectItem>
-                            <SelectItem value="processing">Processing</SelectItem>
-                            <SelectItem value="ready_for_pickup">Order Ready for Pickup</SelectItem>
-                            <SelectItem value="out_for_delivery">Out for Delivery</SelectItem>
-                            <SelectItem value="delivered">Delivered</SelectItem>
-                            <SelectItem value="cancelled">Cancelled</SelectItem>
+                            <SelectItem value="created_at">Created Date</SelectItem>
+                            <SelectItem value="order_number">Order Number</SelectItem>
+                            <SelectItem value="customer_name">Customer</SelectItem>
+                            <SelectItem value="status">Status</SelectItem>
+                            <SelectItem value="total_amount">Total Amount</SelectItem>
+                            <SelectItem value="pickup_date">Pickup Date</SelectItem>
+                            <SelectItem value="delivery_date">Delivery Date</SelectItem>
                           </SelectContent>
                         </Select>
-                        
-                        <div className="flex gap-2 mt-3">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleEditOrder(order)}
-                            disabled={editingOrderId === order.id}
-                            className="flex-1 border-teal-300 text-teal-600 hover:bg-teal-50 hover:text-teal-700"
-                            title="Admin can always edit orders"
-                          >
-                              {editingOrderId === order.id ? (
-                                <>
-                                  <Clock className="w-4 h-4 mr-1 animate-spin" />
-                                  Editing...
-                                </>
-                              ) : (
-                                <>
-                                  <Edit className="w-4 h-4 mr-1" />
-                                  Edit
-                                </>
-                              )}
-                            </Button>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleDeleteOrder(order.id)}
-                              disabled={deletingOrderId === order.id}
-                              className="flex-1 border-red-300 text-red-600 hover:bg-red-50 hover:text-red-700"
-                            >
-                              {deletingOrderId === order.id ? (
-                                <>
-                                  <Clock className="w-4 h-4 mr-1 animate-spin" />
-                                  Deleting...
-                                </>
-                              ) : (
-                                'Delete'
-                              )}
-                            </Button>
-                          </div>
-                          
-                          {/* Lock/Unlock Button */}
-                          <div className="mt-2">
-                            {order.is_locked ? (
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => handleUnlockOrder(order.id)}
-                                className="w-full border-green-300 text-green-600 hover:bg-green-50"
-                                title="Unlock order to allow customer edits"
-                              >
-                                <Unlock className="w-4 h-4 mr-1" />
-                                Unlock Order
-                              </Button>
-                            ) : (
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => handleLockOrder(order.id)}
-                                className="w-full border-yellow-300 text-yellow-600 hover:bg-yellow-50"
-                                title="Lock order to prevent customer edits"
-                              >
-                                <Lock className="w-4 h-4 mr-1" />
-                                Lock Order
-                              </Button>
-                            )}
-                          </div>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setOrderSortOrder(orderSortOrder === 'asc' ? 'desc' : 'asc')}
+                          className="px-3"
+                        >
+                          {orderSortOrder === 'asc' ? '↑' : '↓'}
+                        </Button>
                       </div>
                     </div>
-                  </CardContent>
-                </Card>
-              ))}
-              {orders.length === 0 && (
-                <Card>
-                  <CardContent className="p-12 text-center">
-                    <Package className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                    <p className="text-gray-600">No orders found</p>
-                  </CardContent>
-                </Card>
-              )}
-            </div>
+                  </div>
+
+                  {/* Status Filter */}
+                  <div>
+                    <Label className="text-sm font-medium mb-2 flex items-center gap-2">
+                      <Filter className="w-4 h-4" />
+                      Filter by Status
+                    </Label>
+                    <div className="flex flex-wrap gap-2">
+                      {['pending', 'scheduled', 'processing', 'ready_for_pickup', 'out_for_delivery', 'delivered', 'cancelled'].map((status) => (
+                        <Button
+                          key={status}
+                          variant={orderStatusFilter.includes(status) ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => toggleOrderStatusFilter(status)}
+                          className={orderStatusFilter.includes(status) ? 'bg-blue-500 hover:bg-blue-600' : ''}
+                        >
+                          {status.replace(/_/g, ' ')}
+                        </Button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Type and Lock Filters */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <Label className="text-sm font-medium mb-2">Order Type</Label>
+                      <div className="flex gap-2">
+                        <Button
+                          variant={orderRecurringFilter === 'all' ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => setOrderRecurringFilter('all')}
+                          className={orderRecurringFilter === 'all' ? 'bg-teal-500 hover:bg-teal-600' : ''}
+                        >
+                          All Orders
+                        </Button>
+                        <Button
+                          variant={orderRecurringFilter === 'recurring' ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => setOrderRecurringFilter('recurring')}
+                          className={orderRecurringFilter === 'recurring' ? 'bg-purple-500 hover:bg-purple-600' : ''}
+                        >
+                          <Repeat className="w-3 h-3 mr-1" />
+                          Recurring
+                        </Button>
+                        <Button
+                          variant={orderRecurringFilter === 'one-time' ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => setOrderRecurringFilter('one-time')}
+                          className={orderRecurringFilter === 'one-time' ? 'bg-gray-500 hover:bg-gray-600' : ''}
+                        >
+                          One-Time
+                        </Button>
+                      </div>
+                    </div>
+                    <div>
+                      <Label className="text-sm font-medium mb-2">Lock Status</Label>
+                      <div className="flex gap-2">
+                        <Button
+                          variant={orderLockFilter === 'all' ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => setOrderLockFilter('all')}
+                          className={orderLockFilter === 'all' ? 'bg-teal-500 hover:bg-teal-600' : ''}
+                        >
+                          All
+                        </Button>
+                        <Button
+                          variant={orderLockFilter === 'locked' ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => setOrderLockFilter('locked')}
+                          className={orderLockFilter === 'locked' ? 'bg-yellow-500 hover:bg-yellow-600' : ''}
+                        >
+                          <Lock className="w-3 h-3 mr-1" />
+                          Locked
+                        </Button>
+                        <Button
+                          variant={orderLockFilter === 'unlocked' ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => setOrderLockFilter('unlocked')}
+                          className={orderLockFilter === 'unlocked' ? 'bg-green-500 hover:bg-green-600' : ''}
+                        >
+                          <Unlock className="w-3 h-3 mr-1" />
+                          Unlocked
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Results and Clear */}
+                  <div className="flex justify-between items-center pt-2 border-t">
+                    <p className="text-sm text-gray-600">
+                      Showing {getFilteredAndSortedOrders().length} of {orders.length} orders
+                    </p>
+                    {(orderSearchQuery || orderStatusFilter.length > 0 || orderRecurringFilter !== 'all' || orderLockFilter !== 'all' || orderSortBy !== 'created_at' || orderSortOrder !== 'desc') && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={clearOrderFilters}
+                      >
+                        <X className="w-4 h-4 mr-2" />
+                        Clear Filters
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Orders Table - Professional Full-Width Layout */}
+            <Card>
+              <CardContent className="p-0">
+                <div className="overflow-x-auto">
+                  <table className="w-full" data-testid="orders-list">
+                    <thead className="bg-gray-50 border-b border-gray-200">
+                      <tr>
+                        <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Order Details</th>
+                        <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Customer</th>
+                        <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Items</th>
+                        <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Dates</th>
+                        <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Total</th>
+                        <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Status</th>
+                        <th className="px-6 py-4 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {getFilteredAndSortedOrders().map((order) => (
+                        <tr key={order.id} className="hover:bg-gray-50 transition-colors">
+                          {/* Order Details */}
+                          <td className="px-6 py-4">
+                            <div className="flex flex-col gap-1">
+                              <span className="font-bold text-gray-900 text-base">{order.order_number}</span>
+                              <div className="flex gap-2 flex-wrap">
+                                <span className={`px-2 py-1 text-xs font-semibold rounded-full ${getStatusBadgeClass(order.status)}`}>
+                                  {getStatusDisplayName(order.status)}
+                                </span>
+                                {order.is_recurring && (
+                                  <span className="px-2 py-1 text-xs font-semibold rounded-full bg-purple-100 text-purple-800 flex items-center gap-1">
+                                    <Repeat className="w-3 h-3" />
+                                    Recurring
+                                  </span>
+                                )}
+                                {order.is_locked ? (
+                                  <span className="px-2 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800 flex items-center gap-1">
+                                    <Lock className="w-3 h-3" />
+                                    Locked
+                                  </span>
+                                ) : (
+                                  <span className="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800 flex items-center gap-1">
+                                    <Unlock className="w-3 h-3" />
+                                    Editable
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          </td>
+
+                          {/* Customer */}
+                          <td className="px-6 py-4">
+                            <div className="text-sm">
+                              <p className="font-medium text-gray-900">{order.customer_name}</p>
+                              <p className="text-gray-500 text-xs">{order.customer_email}</p>
+                            </div>
+                          </td>
+
+                          {/* Items */}
+                          <td className="px-6 py-4">
+                            <div className="text-sm space-y-1">
+                              {order.items.slice(0, 2).map((item, idx) => (
+                                <p key={idx} className="text-gray-700">
+                                  {item.sku_name} <span className="text-gray-500">×{item.quantity}</span>
+                                </p>
+                              ))}
+                              {order.items.length > 2 && (
+                                <p className="text-xs text-gray-500">+{order.items.length - 2} more</p>
+                              )}
+                            </div>
+                          </td>
+
+                          {/* Dates */}
+                          <td className="px-6 py-4">
+                            <div className="text-xs space-y-1">
+                              <div>
+                                <span className="font-medium text-teal-600">Pickup:</span>
+                                <p className="text-gray-700">{new Date(order.pickup_date).toLocaleString()}</p>
+                              </div>
+                              <div>
+                                <span className="font-medium text-green-600">Delivery:</span>
+                                <p className="text-gray-700">{new Date(order.delivery_date).toLocaleString()}</p>
+                              </div>
+                            </div>
+                          </td>
+
+                          {/* Total */}
+                          <td className="px-6 py-4">
+                            <span className="text-lg font-bold text-teal-600">${order.total_amount.toFixed(2)}</span>
+                          </td>
+
+                          {/* Status Selector */}
+                          <td className="px-6 py-4">
+                            <Select 
+                              value={order.status} 
+                              onValueChange={(value) => handleUpdateOrderStatus(order.id, value)}
+                              disabled={updatingStatusOrderId === order.id}
+                            >
+                              <SelectTrigger className="w-full min-w-[140px]">
+                                {updatingStatusOrderId === order.id ? (
+                                  <span className="flex items-center text-xs">
+                                    <Clock className="w-3 h-3 mr-2 animate-spin" />
+                                    Updating...
+                                  </span>
+                                ) : (
+                                  <SelectValue />
+                                )}
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="pending">Pending</SelectItem>
+                                <SelectItem value="scheduled">Scheduled</SelectItem>
+                                <SelectItem value="processing">Processing</SelectItem>
+                                <SelectItem value="ready_for_pickup">Ready for Pickup</SelectItem>
+                                <SelectItem value="out_for_delivery">Out for Delivery</SelectItem>
+                                <SelectItem value="delivered">Delivered</SelectItem>
+                                <SelectItem value="cancelled">Cancelled</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </td>
+
+                          {/* Actions */}
+                          <td className="px-6 py-4">
+                            <div className="flex flex-col gap-2">
+                              <div className="flex gap-2">
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => handleEditOrder(order)}
+                                  disabled={editingOrderId === order.id}
+                                  className="flex-1 border-teal-300 text-teal-600 hover:bg-teal-50"
+                                  title="Edit order"
+                                >
+                                  {editingOrderId === order.id ? (
+                                    <Clock className="w-4 h-4 animate-spin" />
+                                  ) : (
+                                    <Edit className="w-4 h-4" />
+                                  )}
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => handleDeleteOrder(order.id)}
+                                  disabled={deletingOrderId === order.id}
+                                  className="flex-1 border-red-300 text-red-600 hover:bg-red-50"
+                                  title="Delete order"
+                                >
+                                  {deletingOrderId === order.id ? (
+                                    <Clock className="w-4 h-4 animate-spin" />
+                                  ) : (
+                                    <Trash2 className="w-4 h-4" />
+                                  )}
+                                </Button>
+                              </div>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => order.is_locked ? handleUnlockOrder(order.id) : handleLockOrder(order.id)}
+                                className={`w-full ${
+                                  order.is_locked 
+                                    ? 'border-green-300 text-green-600 hover:bg-green-50' 
+                                    : 'border-yellow-300 text-yellow-600 hover:bg-yellow-50'
+                                }`}
+                                title={order.is_locked ? "Unlock order" : "Lock order"}
+                              >
+                                {order.is_locked ? (
+                                  <>
+                                    <Unlock className="w-4 h-4 mr-1" />
+                                    Unlock
+                                  </>
+                                ) : (
+                                  <>
+                                    <Lock className="w-4 h-4 mr-1" />
+                                    Lock
+                                  </>
+                                )}
+                              </Button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Empty State */}
+                {getFilteredAndSortedOrders().length === 0 && (
+                  <div className="p-12 text-center">
+                    <Package className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                    <h3 className="text-xl font-semibold text-gray-900 mb-2">No Orders Found</h3>
+                    <p className="text-gray-600">{orders.length === 0 ? 'Create your first order to get started' : 'No orders match your current filters'}</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
           </div>
         )}
 
@@ -1347,70 +1642,118 @@ function AdminDashboard() {
               </CardContent>
             </Card>
             
-            <div className="grid gap-4" data-testid="cases-list">
-              {getFilteredAndSortedCases().map((caseItem) => (
-                <Card key={caseItem.id} className="card-hover">
-                  <CardContent className="p-6">
-                    <div className="flex justify-between items-start">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-3 mb-2">
-                          <h3 className="text-xl font-bold text-gray-900">{caseItem.case_number}</h3>
-                          <span className={`px-3 py-1 text-xs font-semibold rounded-full ${
-                            caseItem.status === 'open' ? 'bg-yellow-100 text-yellow-800' :
-                            caseItem.status === 'in_progress' ? 'bg-blue-100 text-blue-800' :
-                            'bg-green-100 text-green-800'
-                          }`}>
-                            {caseItem.status}
-                          </span>
-                          <span className={`px-3 py-1 text-xs font-semibold rounded-full ${
-                            caseItem.priority === 'high' ? 'bg-red-100 text-red-800' :
-                            caseItem.priority === 'medium' ? 'bg-orange-100 text-orange-800' :
-                            'bg-gray-100 text-gray-800'
-                          }`}>
-                            {caseItem.priority}
-                          </span>
-                        </div>
-                        <p className="text-gray-600 mb-2">{caseItem.customer_name} - {caseItem.customer_email}</p>
-                        <p className="font-semibold text-gray-700">{caseItem.subject}</p>
-                        <p className="text-sm text-gray-600 mt-2">{caseItem.description}</p>
-                        {caseItem.resolution && (
-                          <div className="mt-3 p-3 bg-green-50 rounded-lg">
-                            <p className="text-sm font-semibold text-green-800">Resolution:</p>
-                            <p className="text-sm text-green-700">{caseItem.resolution}</p>
-                          </div>
-                        )}
-                      </div>
-                      <Button
-                        onClick={() => {
-                          setSelectedCase(caseItem);
-                          setCaseUpdate({
-                            status: caseItem.status,
-                            resolution: caseItem.resolution || '',
-                            priority: caseItem.priority
-                          });
-                          setShowCaseDialog(true);
-                        }}
-                        className="bg-teal-500 hover:bg-teal-600"
-                        data-testid={`update-case-${caseItem.id}`}
-                      >
-                        <Edit className="w-4 h-4 mr-2" />
-                        Update
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-              {getFilteredAndSortedCases().length === 0 && (
-                <Card>
-                  <CardContent className="p-12 text-center">
-                    <AlertCircle className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+            {/* Cases Table - Professional Full-Width Layout */}
+            <Card>
+              <CardContent className="p-0">
+                <div className="overflow-x-auto">
+                  <table className="w-full" data-testid="cases-list">
+                    <thead className="bg-gray-50 border-b border-gray-200">
+                      <tr>
+                        <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Case Details</th>
+                        <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Customer</th>
+                        <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Subject & Description</th>
+                        <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Priority</th>
+                        <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Status</th>
+                        <th className="px-6 py-4 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {getFilteredAndSortedCases().map((caseItem) => (
+                        <tr key={caseItem.id} className="hover:bg-gray-50 transition-colors">
+                          {/* Case Details */}
+                          <td className="px-6 py-4">
+                            <div className="flex flex-col gap-1">
+                              <span className="font-bold text-gray-900 text-base">{caseItem.case_number}</span>
+                              <span className="text-xs text-gray-500">
+                                Created: {new Date(caseItem.created_at).toLocaleDateString()}
+                              </span>
+                            </div>
+                          </td>
+
+                          {/* Customer */}
+                          <td className="px-6 py-4">
+                            <div className="text-sm">
+                              <p className="font-medium text-gray-900">{caseItem.customer_name}</p>
+                              <p className="text-gray-500 text-xs">{caseItem.customer_email}</p>
+                            </div>
+                          </td>
+
+                          {/* Subject & Description */}
+                          <td className="px-6 py-4">
+                            <div className="max-w-md">
+                              <p className="font-semibold text-gray-900 text-sm mb-1">{caseItem.subject}</p>
+                              <p className="text-gray-600 text-xs line-clamp-2">{caseItem.description}</p>
+                              {caseItem.resolution && (
+                                <div className="mt-2 p-2 bg-green-50 rounded">
+                                  <p className="text-xs font-semibold text-green-800">Resolution:</p>
+                                  <p className="text-xs text-green-700 line-clamp-2">{caseItem.resolution}</p>
+                                </div>
+                              )}
+                            </div>
+                          </td>
+
+                          {/* Priority */}
+                          <td className="px-6 py-4">
+                            <span className={`px-3 py-1 text-xs font-semibold rounded-full inline-block ${
+                              caseItem.priority === 'urgent' ? 'bg-red-100 text-red-800' :
+                              caseItem.priority === 'high' ? 'bg-orange-100 text-orange-800' :
+                              caseItem.priority === 'medium' ? 'bg-yellow-100 text-yellow-800' :
+                              'bg-gray-100 text-gray-800'
+                            }`}>
+                              {caseItem.priority}
+                            </span>
+                          </td>
+
+                          {/* Status */}
+                          <td className="px-6 py-4">
+                            <span className={`px-3 py-1 text-xs font-semibold rounded-full inline-block ${
+                              caseItem.status === 'open' ? 'bg-yellow-100 text-yellow-800' :
+                              caseItem.status === 'in_progress' ? 'bg-blue-100 text-blue-800' :
+                              caseItem.status === 'resolved' ? 'bg-green-100 text-green-800' :
+                              'bg-gray-100 text-gray-800'
+                            }`}>
+                              {caseItem.status.replace('_', ' ')}
+                            </span>
+                          </td>
+
+                          {/* Actions */}
+                          <td className="px-6 py-4">
+                            <Button
+                              onClick={() => {
+                                setSelectedCase(caseItem);
+                                setCaseUpdate({
+                                  status: caseItem.status,
+                                  resolution: caseItem.resolution || '',
+                                  priority: caseItem.priority
+                                });
+                                setShowCaseDialog(true);
+                              }}
+                              size="sm"
+                              className="bg-teal-500 hover:bg-teal-600"
+                              data-testid={`update-case-${caseItem.id}`}
+                            >
+                              <Edit className="w-4 h-4 mr-1" />
+                              Update
+                            </Button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Empty State */}
+                {getFilteredAndSortedCases().length === 0 && (
+                  <div className="p-12 text-center">
+                    <AlertCircle className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                    <h3 className="text-xl font-semibold text-gray-900 mb-2">No Cases Found</h3>
                     <p className="text-gray-600">
-                      {cases.length === 0 ? 'No cases found' : 'No cases match your filters'}
+                      {cases.length === 0 ? 'No cases have been submitted yet' : 'No cases match your current filters'}
                     </p>
-                  </CardContent>
-                </Card>
-              )}
-            </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
 
             <Dialog open={showCaseDialog} onOpenChange={setShowCaseDialog}>
               <DialogContent>
@@ -1881,110 +2224,123 @@ function AdminDashboard() {
               </CardContent>
             </Card>
             
-            <div className="grid gap-4">
-              {getFilteredAndSortedUsers().map((customer) => (
-                <Card key={customer.id} className={`card-hover ${!customer.is_active ? 'opacity-50 bg-gray-100' : ''}`}>
-                  <CardContent className="p-6">
-                    <div className="flex justify-between items-start">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-3 mb-3">
-                          <h3 className="text-xl font-bold text-gray-900">{customer.full_name}</h3>
-                          <span className={`px-3 py-1 text-xs font-semibold rounded-full ${
-                            customer.role === 'owner' ? 'bg-purple-100 text-purple-800' :
-                            customer.role === 'admin' ? 'bg-blue-100 text-blue-800' :
-                            customer.role === 'driver' ? 'bg-orange-100 text-orange-800' :
-                            'bg-green-100 text-green-800'
-                          }`}>
-                            {customer.role.charAt(0).toUpperCase() + customer.role.slice(1)}
-                          </span>
-                          <span className={`px-3 py-1 text-xs font-semibold rounded-full flex items-center gap-1 ${
-                            customer.is_active !== false ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                          }`}>
-                            {customer.is_active !== false ? (
-                              <><CheckCircle2 className="w-3 h-3" /> Active</>
-                            ) : (
-                              <><Ban className="w-3 h-3" /> Disabled</>
-                            )}
-                          </span>
-                        </div>
-                        
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
-                          <div>
-                            <p className="text-gray-600">Email</p>
-                            <p className="font-medium text-gray-900">{customer.email}</p>
-                          </div>
-                          <div>
-                            <p className="text-gray-600">Phone</p>
-                            <p className="font-medium text-gray-900">{customer.phone || 'N/A'}</p>
-                          </div>
-                          <div>
-                            <p className="text-gray-600">User ID</p>
-                            <p className="font-mono text-xs text-gray-600">{customer.id}</p>
-                          </div>
-                          <div>
-                            <p className="text-gray-600">Created</p>
-                            <p className="font-medium text-gray-900">
+            {/* Users Table - Professional Full-Width Layout */}
+            <Card>
+              <CardContent className="p-0">
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead className="bg-gray-50 border-b border-gray-200">
+                      <tr>
+                        <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">User Details</th>
+                        <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Contact</th>
+                        <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Role</th>
+                        <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Status</th>
+                        <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Created</th>
+                        <th className="px-6 py-4 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {getFilteredAndSortedUsers().map((customer) => (
+                        <tr key={customer.id} className={`hover:bg-gray-50 transition-colors ${!customer.is_active ? 'opacity-60 bg-gray-50' : ''}`}>
+                          {/* User Details */}
+                          <td className="px-6 py-4">
+                            <div className="flex flex-col gap-1">
+                              <span className="font-bold text-gray-900 text-base">{customer.full_name}</span>
+                              <span className="font-mono text-xs text-gray-500">{customer.id}</span>
+                            </div>
+                          </td>
+
+                          {/* Contact */}
+                          <td className="px-6 py-4">
+                            <div className="text-sm">
+                              <p className="font-medium text-gray-900">{customer.email}</p>
+                              <p className="text-gray-500 text-xs">{customer.phone || 'N/A'}</p>
+                            </div>
+                          </td>
+
+                          {/* Role */}
+                          <td className="px-6 py-4">
+                            <span className={`px-3 py-1 text-xs font-semibold rounded-full inline-block ${
+                              customer.role === 'owner' ? 'bg-purple-100 text-purple-800' :
+                              customer.role === 'admin' ? 'bg-blue-100 text-blue-800' :
+                              customer.role === 'driver' ? 'bg-orange-100 text-orange-800' :
+                              'bg-green-100 text-green-800'
+                            }`}>
+                              {customer.role.charAt(0).toUpperCase() + customer.role.slice(1)}
+                            </span>
+                          </td>
+
+                          {/* Status */}
+                          <td className="px-6 py-4">
+                            <span className={`px-3 py-1 text-xs font-semibold rounded-full inline-flex items-center gap-1 ${
+                              customer.is_active !== false ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                            }`}>
+                              {customer.is_active !== false ? (
+                                <><CheckCircle2 className="w-3 h-3" /> Active</>
+                              ) : (
+                                <><Ban className="w-3 h-3" /> Disabled</>
+                              )}
+                            </span>
+                          </td>
+
+                          {/* Created */}
+                          <td className="px-6 py-4">
+                            <span className="text-sm text-gray-700">
                               {new Date(customer.created_at).toLocaleDateString()}
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                      
-                      <div className="flex gap-2">
-                        <Button
-                          onClick={() => openPasswordResetDialog(customer)}
-                          variant="outline"
-                          size="sm"
-                          className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
-                          disabled={resettingPasswordUserId === customer.id}
-                          title="Reset Password"
-                        >
-                          {resettingPasswordUserId === customer.id ? (
-                            <>
-                              <Clock className="w-4 h-4 mr-1 animate-spin" />
-                              Resetting...
-                            </>
-                          ) : (
-                            <>
-                              <Key className="w-4 h-4 mr-1" />
-                              Reset Password
-                            </>
-                          )}
-                        </Button>
-                        <Button
-                          onClick={() => handleToggleUserStatus(customer)} 
-                          variant="outline"
-                          size="sm"
-                          className={`${customer.is_active !== false ? 'text-red-600 hover:text-red-800' : 'text-green-600 hover:text-green-800'}`}
-                          title={customer.is_active !== false ? 'Disable User' : 'Enable User'}
-                          disabled={togglingUserId === customer.id}
-                        >
-                          {togglingUserId === customer.id ? (
-                            <>
-                              <Clock className="w-4 h-4 mr-1 animate-spin" />
-                              {customer.is_active !== false ? 'Disabling...' : 'Enabling...'}
-                            </>
-                          ) : customer.is_active !== false ? (
-                            <><Ban className="w-4 h-4 mr-1" /> Disable</>
-                          ) : (
-                            <><CheckCircle2 className="w-4 h-4 mr-1" /> Enable</>
-                          )}
-                        </Button>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-              
-              {getFilteredAndSortedUsers().length === 0 && (
-                <Card>
-                  <CardContent className="p-12 text-center">
-                    <Users className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                    <p className="text-gray-600">No users found matching your filters</p>
-                  </CardContent>
-                </Card>
-              )}
-            </div>
+                            </span>
+                          </td>
+
+                          {/* Actions */}
+                          <td className="px-6 py-4">
+                            <div className="flex gap-2 justify-center">
+                              <Button
+                                onClick={() => openPasswordResetDialog(customer)}
+                                variant="outline"
+                                size="sm"
+                                className="text-blue-600 hover:text-blue-700 hover:bg-blue-50 border-blue-300"
+                                disabled={resettingPasswordUserId === customer.id}
+                                title="Reset Password"
+                              >
+                                {resettingPasswordUserId === customer.id ? (
+                                  <Clock className="w-4 h-4 animate-spin" />
+                                ) : (
+                                  <Key className="w-4 h-4" />
+                                )}
+                              </Button>
+                              <Button
+                                onClick={() => handleToggleUserStatus(customer)} 
+                                variant="outline"
+                                size="sm"
+                                className={`${customer.is_active !== false ? 'text-red-600 hover:text-red-800 border-red-300 hover:bg-red-50' : 'text-green-600 hover:text-green-800 border-green-300 hover:bg-green-50'}`}
+                                title={customer.is_active !== false ? 'Disable User' : 'Enable User'}
+                                disabled={togglingUserId === customer.id}
+                              >
+                                {togglingUserId === customer.id ? (
+                                  <Clock className="w-4 h-4 animate-spin" />
+                                ) : customer.is_active !== false ? (
+                                  <Ban className="w-4 h-4" />
+                                ) : (
+                                  <CheckCircle2 className="w-4 h-4" />
+                                )}
+                              </Button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Empty State */}
+                {getFilteredAndSortedUsers().length === 0 && (
+                  <div className="p-12 text-center">
+                    <Users className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                    <h3 className="text-xl font-semibold text-gray-900 mb-2">No Users Found</h3>
+                    <p className="text-gray-600">{customers.length === 0 ? 'No users in the system yet' : 'No users match your current filters'}</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
 
             {/* Password Reset Dialog */}
             <Dialog open={showPasswordDialog} onOpenChange={setShowPasswordDialog}>
@@ -2204,74 +2560,100 @@ function AdminDashboard() {
               </CardContent>
             </Card>
 
-            <div className="grid gap-4" data-testid="skus-list">
-              {getFilteredAndSortedSkus().map((sku) => (
-                <Card key={sku.id} className="card-hover">
-                  <CardContent className="p-6">
-                    <div className="flex justify-between items-start">
-                      <div className="flex-1">
-                        <h3 className="text-xl font-bold text-gray-900 mb-2">{sku.name}</h3>
-                        <div className="grid grid-cols-2 gap-4 text-sm">
-                          <div>
-                            <span className="text-gray-600">Category:</span>
-                            <span className="ml-2 font-medium text-gray-900">{sku.category}</span>
-                          </div>
-                          <div>
-                            <span className="text-gray-600">Unit:</span>
-                            <span className="ml-2 font-medium text-gray-900">{sku.unit}</span>
-                          </div>
-                          <div>
-                            <span className="text-gray-600">Price:</span>
-                            <span className="ml-2 font-bold text-teal-600">${(sku.price * 1.10).toFixed(2)}</span>
-                            <span className="ml-1 text-xs text-gray-500">(Inc. GST)</span>
-                          </div>
-                        </div>
-                        {sku.description && (
-                          <p className="text-sm text-gray-600 mt-3">{sku.description}</p>
-                        )}
-                      </div>
-                      <div className="flex gap-2">
-                        <Button variant="outline" size="sm" onClick={() => handleEditSku(sku)} className="border-teal-300 text-teal-600 hover:bg-teal-50">
-                          <Edit className="w-4 h-4 mr-1" />
-                          Edit
-                        </Button>
-                        <Button variant="outline" size="sm" onClick={() => handleDeleteSku(sku.id)} disabled={deletingSkuId === sku.id} className="border-red-300 text-red-600 hover:bg-red-50">
-                          {deletingSkuId === sku.id ? (
-                            <>
-                              <Clock className="w-4 h-4 mr-1 animate-spin" />
-                              Deleting...
-                            </>
-                          ) : (
-                            <>
-                              <Trash2 className="w-4 h-4 mr-1" />
-                              Delete
-                            </>
-                          )}
-                        </Button>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-              
-              {getFilteredAndSortedSkus().length === 0 && skus.length > 0 && (
-                <Card>
-                  <CardContent className="p-12 text-center">
-                    <Package className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                    <p className="text-gray-600">No SKUs found matching your filters</p>
-                  </CardContent>
-                </Card>
-              )}
-              
-              {skus.length === 0 && (
-                <Card>
-                  <CardContent className="p-12 text-center">
-                    <Package className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                    <p className="text-gray-600">No SKUs found</p>
-                  </CardContent>
-                </Card>
-              )}
-            </div>
+            {/* SKUs Table - Professional Full-Width Layout */}
+            <Card>
+              <CardContent className="p-0">
+                <div className="overflow-x-auto">
+                  <table className="w-full" data-testid="skus-list">
+                    <thead className="bg-gray-50 border-b border-gray-200">
+                      <tr>
+                        <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">SKU Name</th>
+                        <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Category</th>
+                        <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Description</th>
+                        <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Unit</th>
+                        <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Price (Inc. GST)</th>
+                        <th className="px-6 py-4 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {getFilteredAndSortedSkus().map((sku) => (
+                        <tr key={sku.id} className="hover:bg-gray-50 transition-colors">
+                          {/* SKU Name */}
+                          <td className="px-6 py-4">
+                            <span className="font-bold text-gray-900 text-base">{sku.name}</span>
+                          </td>
+
+                          {/* Category */}
+                          <td className="px-6 py-4">
+                            <span className="px-3 py-1 text-xs font-semibold rounded-full bg-teal-100 text-teal-800 inline-block">
+                              {sku.category}
+                            </span>
+                          </td>
+
+                          {/* Description */}
+                          <td className="px-6 py-4">
+                            <p className="text-sm text-gray-600 max-w-xs line-clamp-2">
+                              {sku.description || 'No description'}
+                            </p>
+                          </td>
+
+                          {/* Unit */}
+                          <td className="px-6 py-4">
+                            <span className="text-sm font-medium text-gray-700">{sku.unit}</span>
+                          </td>
+
+                          {/* Price */}
+                          <td className="px-6 py-4">
+                            <div className="flex flex-col">
+                              <span className="text-lg font-bold text-teal-600">${(sku.price * 1.10).toFixed(2)}</span>
+                              <span className="text-xs text-gray-500">(Base: ${sku.price.toFixed(2)})</span>
+                            </div>
+                          </td>
+
+                          {/* Actions */}
+                          <td className="px-6 py-4">
+                            <div className="flex gap-2 justify-center">
+                              <Button 
+                                variant="outline" 
+                                size="sm" 
+                                onClick={() => handleEditSku(sku)} 
+                                className="border-teal-300 text-teal-600 hover:bg-teal-50"
+                                title="Edit SKU"
+                              >
+                                <Edit className="w-4 h-4" />
+                              </Button>
+                              <Button 
+                                variant="outline" 
+                                size="sm" 
+                                onClick={() => handleDeleteSku(sku.id)} 
+                                disabled={deletingSkuId === sku.id} 
+                                className="border-red-300 text-red-600 hover:bg-red-50"
+                                title="Delete SKU"
+                              >
+                                {deletingSkuId === sku.id ? (
+                                  <Clock className="w-4 h-4 animate-spin" />
+                                ) : (
+                                  <Trash2 className="w-4 h-4" />
+                                )}
+                              </Button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Empty State */}
+                {getFilteredAndSortedSkus().length === 0 && (
+                  <div className="p-12 text-center">
+                    <Package className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                    <h3 className="text-xl font-semibold text-gray-900 mb-2">No SKUs Found</h3>
+                    <p className="text-gray-600">{skus.length === 0 ? 'Create your first SKU to get started' : 'No SKUs match your current filters'}</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
           </div>
         )}
 

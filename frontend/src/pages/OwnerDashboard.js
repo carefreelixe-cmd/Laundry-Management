@@ -160,6 +160,9 @@ function OwnerDashboard() {
       fetchFrequencyTemplates();
     } else if (activeTab === 'delivery-tracking') {
       fetchOrders();
+    } else if (activeTab === 'calendar') {
+      // Fetch orders for calendar view
+      fetchOrders();
     }
   }, [activeTab]);
 
