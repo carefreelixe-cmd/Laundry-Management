@@ -3129,7 +3129,7 @@ function LandingPage() {
                 <span className="border-b-8 border-gray-900 pb-3 inline-block">About ILS</span>
               </h2>
               <p className="text-gray-800 text-base sm:text-lg leading-relaxed">
-                Born from the success of Infinite Asset Solutions, **Infinite Laundry Solutions** was created to solve a growing need we saw firsthand—dependable, quality-driven laundry services for the **hospitality and healthcare** sectors. As long-time operators in motel and commercial venue management, we understand what's at stake when it comes to clean, timely linen delivery.
+                Born from the success of Infinite Asset Solutions, Infinite Laundry Solutions was created to solve a growing need we saw firsthand—dependable, quality-driven laundry services for the hospitality and healthcare sectors. As long-time operators in motel and commercial venue management, we understand what's at stake when it comes to clean, timely linen delivery.
               </p>
             </div>
             <div>
@@ -3137,7 +3137,7 @@ function LandingPage() {
                 <span className="border-b-8 border-gray-900 pb-3 inline-block">Our Mission</span>
               </h2>
               <p className="text-gray-800 text-base sm:text-lg leading-relaxed mb-12">
-                To deliver commercial laundry solutions with **precision, reliability, and care**—helping our clients focus on what they do best.
+                To deliver commercial laundry solutions with precision, reliability, and care—helping our clients focus on what they do best.
               </p>
               <h3 className="text-3xl sm:text-4xl font-black text-gray-900 mb-8">
                 <span className="border-b-8 border-gray-900 pb-3 inline-block">Our Values</span>
@@ -3356,7 +3356,7 @@ function LandingPage() {
           <div className="grid md:grid-cols-2 gap-12 mb-16 items-center">
             <div>
               <p className="text-gray-800 text-base sm:text-lg leading-relaxed">
-                We've built Infinite Laundry Solutions on a foundation of industry knowledge, operational excellence, and next-generation technology. With premium **Electrolux machines** and sustainable practices at our core, we deliver more than clean linen—we deliver **peace of mind**.
+                We've built Infinite Laundry Solutions on a foundation of industry knowledge, operational excellence, and next-generation technology. With premium Electrolux machines and sustainable practices at our core, we deliver more than clean linen—we deliver peace of mind.
               </p>
             </div>
             <div className="bg-white rounded-2xl overflow-hidden shadow-lg border-2 border-cyan-500">
@@ -3456,7 +3456,7 @@ function LandingPage() {
             <span className="border-b-8 border-gray-900 pb-3 inline-block">GET A QUOTE</span>
           </h2>
           <p className="text-gray-800 text-base sm:text-lg leading-relaxed mb-12">
-            Try Us Today. We offer trial services and sample pickups for eligible businesses. Let's show you what premium laundry service feels like. With **Infinite Laundry Solutions**, you're not just choosing a provider—you're choosing a partner in cleanliness, care, and operational excellence.
+            Try Us Today. We offer trial services and sample pickups for eligible businesses. Let's show you what premium laundry service feels like. With Infinite Laundry Solutions, you're not just choosing a provider—you're choosing a partner in cleanliness, care, and operational excellence.
           </p>
           <div className="bg-white rounded-2xl p-8 sm:p-12 shadow-lg border-t-8 border-gray-900">
             <form onSubmit={handleContactSubmit} className="space-y-6">
@@ -3579,9 +3579,9 @@ function LandingPage() {
             </div>
           </div>
           
-          <div className="border-t border-gray-400 mt-12 pt-8 text-center text-gray-700">
+          {/* <div className="border-t border-gray-400 mt-12 pt-8 text-center text-gray-700">
             <p className="text-sm sm:text-base">&copy; 2025 Infinite Laundry Solutions. All rights reserved.</p>
-          </div>
+          </div> */}
         </div>
       </footer>
     </div>
