@@ -673,7 +673,7 @@ function CustomerDashboard() {
                             <SelectContent>
                               {skus.map(sku => (
                                 <SelectItem key={sku.id} value={sku.id}>
-                                  {sku.name} (${sku.customer_price.toFixed(2)} Ex GST)
+                                  {sku.name} (${(sku.customer_price * 1.10).toFixed(2)})
                                 </SelectItem>
                               ))}
                               {skus.length === 0 && (
@@ -1095,17 +1095,12 @@ function CustomerDashboard() {
                           </li>
                         ))}
                       </ul>
-                      <div className="mt-3 pt-3 border-t space-y-2">
-                        <div className="flex justify-between text-sm">
-                          <span className="text-gray-600">Subtotal (Ex GST)</span>
-                          <span className="text-gray-900">${(order.total_amount / 1.1).toFixed(2)}</span>
-                        </div>
-                        <div className="flex justify-between text-sm">
-                          <span className="text-gray-600">GST (10%)</span>
-                          <span className="text-gray-900">${(order.total_amount - (order.total_amount / 1.1)).toFixed(2)}</span>
-                        </div>
-                        <div className="flex justify-between items-center pt-2 border-t">
-                          <span className="text-lg font-bold text-gray-900">Total (Inc GST)</span>
+                      <div className="mt-3 pt-3 border-t">
+                        <div className="flex justify-between items-center">
+                          <div>
+                            <span className="text-lg font-bold text-gray-900">Total</span>
+                            <p className="text-xs text-gray-500">Includes 10% GST</p>
+                          </div>
                           <span className="text-2xl font-bold text-teal-600">${order.total_amount.toFixed(2)}</span>
                         </div>
                       </div>

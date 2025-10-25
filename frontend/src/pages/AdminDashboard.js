@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Switch } from '@/components/ui/switch';
-import { Package, Users, AlertCircle, Plus, Edit, Lock, Unlock, Repeat, Truck, MapPin, Clock, CheckCircle } from 'lucide-react';
+import { Package, Users, AlertCircle, Plus, Edit, Lock, Unlock, Repeat, Truck, MapPin, Clock, CheckCircle, Search, Filter, ArrowUpDown, X, Trash2, DollarSign } from 'lucide-react';
 import { toast } from 'sonner';
 import axios from 'axios';
 
@@ -735,7 +735,7 @@ function AdminDashboard() {
                             </SelectTrigger>
                             <SelectContent>
                               {skus.map(sku => (
-                                <SelectItem key={sku.id} value={sku.id}>{sku.name} (${sku.price})</SelectItem>
+                                <SelectItem key={sku.id} value={sku.id}>{sku.name} (${(sku.price * 1.10).toFixed(2)})</SelectItem>
                               ))}
                             </SelectContent>
                           </Select>
@@ -1760,7 +1760,8 @@ function AdminDashboard() {
                           </div>
                           <div>
                             <span className="text-gray-600">Price:</span>
-                            <span className="ml-2 font-bold text-teal-600">${sku.price}</span>
+                            <span className="ml-2 font-bold text-teal-600">${(sku.price * 1.10).toFixed(2)}</span>
+                            <span className="ml-1 text-xs text-gray-500">(Inc. GST)</span>
                           </div>
                         </div>
                         {sku.description && (
@@ -1863,7 +1864,7 @@ function AdminDashboard() {
                               <SelectContent>
                                 {skus.filter(sku => !skusWithPricing.find(s => s.id === sku.id && s.custom_price)).map(sku => (
                                   <SelectItem key={sku.id} value={sku.id}>
-                                    {sku.name} (Default: ${sku.price})
+                                    {sku.name} (Default: ${(sku.price * 1.10).toFixed(2)})
                                   </SelectItem>
                                 ))}
                               </SelectContent>
@@ -1890,7 +1891,7 @@ function AdminDashboard() {
                 </div>
 
                 <div className="space-y-3" data-testid="pricing-list">
-                  {skusWithPricing.map((sku) => (
+                  {skusWithPricing.filter(sku => sku.custom_price).map((sku) => (
                     <Card key={sku.id} className="card-hover">
                       <CardContent className="p-4">
                         <div className="flex justify-between items-center">
@@ -1899,12 +1900,12 @@ function AdminDashboard() {
                             <div className="flex items-center gap-4 mt-2 text-sm">
                               <div>
                                 <span className="text-gray-600">Default Price:</span>
-                                <span className="ml-2 font-medium text-gray-900">${sku.price}</span>
+                                <span className="ml-2 font-medium text-gray-900">${(sku.price * 1.10).toFixed(2)}</span>
                               </div>
                               {sku.custom_price && (
                                 <div>
                                   <span className="text-gray-600">Custom Price:</span>
-                                  <span className="ml-2 font-bold text-teal-600">${sku.custom_price}</span>
+                                  <span className="ml-2 font-bold text-teal-600">${(sku.custom_price * 1.10).toFixed(2)}</span>
                                 </div>
                               )}
                             </div>
@@ -1929,6 +1930,16 @@ function AdminDashboard() {
                     </Card>
                   ))}
                 </div>
+
+                {selectedCustomer && skusWithPricing.filter(sku => sku.custom_price).length === 0 && (
+                  <Card className="mt-6">
+                    <CardContent className="p-12 text-center">
+                      <Package className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                      <p className="text-gray-600 mb-2">No custom pricing set for this customer</p>
+                      <p className="text-sm text-gray-500">Click "Add Custom Pricing" above to set custom pricing for this customer</p>
+                    </CardContent>
+                  </Card>
+                )}
               </>
             )}
 

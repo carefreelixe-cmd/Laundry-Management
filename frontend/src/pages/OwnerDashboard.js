@@ -81,6 +81,7 @@ function OwnerDashboard() {
   const [orderSortBy, setOrderSortBy] = useState('created_at');
   const [orderSortOrder, setOrderSortOrder] = useState('desc');
   const [orderStatusFilter, setOrderStatusFilter] = useState([]);
+  const [orderDeliveryStatusFilter, setOrderDeliveryStatusFilter] = useState([]);
   const [orderDateFilter, setOrderDateFilter] = useState('all');
   const [orderTypeFilter, setOrderTypeFilter] = useState('all');
 
@@ -402,6 +403,13 @@ function OwnerDashboard() {
       filtered = filtered.filter(order => orderStatusFilter.includes(order.status));
     }
 
+    // Delivery Status filter
+    if (orderDeliveryStatusFilter.length > 0) {
+      filtered = filtered.filter(order => 
+        order.delivery_status && orderDeliveryStatusFilter.includes(order.delivery_status)
+      );
+    }
+
     // Type filter (recurring vs regular)
     if (orderTypeFilter !== 'all') {
       filtered = filtered.filter(order => 
@@ -483,9 +491,16 @@ function OwnerDashboard() {
     );
   };
 
+  const toggleDeliveryStatusFilter = (status) => {
+    setOrderDeliveryStatusFilter(prev =>
+      prev.includes(status) ? prev.filter(s => s !== status) : [...prev, status]
+    );
+  };
+
   const clearAllOrderFilters = () => {
     setOrderSearchQuery('');
     setOrderStatusFilter([]);
+    setOrderDeliveryStatusFilter([]);
     setOrderDateFilter('all');
     setOrderTypeFilter('all');
     setOrderSortBy('created_at');
@@ -1437,19 +1452,12 @@ function OwnerDashboard() {
                     <div className="space-y-2">
                       <p className="text-sm text-gray-600">Category: {sku.category}</p>
                       <div className="mt-3 p-3 bg-gray-50 rounded border border-gray-200">
-                        <div className="space-y-1">
-                          <div className="flex justify-between text-sm">
-                            <span className="text-gray-600">Price (Ex GST)</span>
-                            <span className="text-gray-900 font-medium">${sku.price.toFixed(2)}</span>
+                        <div className="flex justify-between items-center">
+                          <div>
+                            <span className="text-sm font-semibold text-gray-900">Price</span>
+                            <p className="text-xs text-gray-500">Includes 10% GST</p>
                           </div>
-                          <div className="flex justify-between text-sm">
-                            <span className="text-gray-600">GST (10%)</span>
-                            <span className="text-gray-900 font-medium">${(sku.price * 0.10).toFixed(2)}</span>
-                          </div>
-                          <div className="flex justify-between pt-2 border-t border-gray-300">
-                            <span className="text-sm font-semibold text-gray-900">Price (Inc GST)</span>
-                            <span className="text-xl font-bold text-teal-600">${(sku.price * 1.10).toFixed(2)}</span>
-                          </div>
+                          <span className="text-2xl font-bold text-teal-600">${(sku.price * 1.10).toFixed(2)}</span>
                         </div>
                       </div>
                       <p className="text-sm text-gray-500">{sku.unit}</p>
@@ -1553,7 +1561,7 @@ function OwnerDashboard() {
                 </div>
 
                 <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {skusWithPricing.map((sku) => (
+                  {skusWithPricing.filter(sku => sku.has_custom_pricing).map((sku) => (
                     <Card key={sku.id} className="card-hover">
                       <CardHeader>
                         <CardTitle className="flex justify-between items-start">
@@ -1579,42 +1587,28 @@ function OwnerDashboard() {
                           {sku.has_custom_pricing ? (
                             <>
                               <div className="flex items-center gap-2 mb-2">
-                                <p className="text-lg text-gray-400 line-through">${sku.price.toFixed(2)}</p>
+                                <p className="text-lg text-gray-400 line-through">${(sku.price * 1.10).toFixed(2)}</p>
                                 <Tag className="w-4 h-4 text-teal-600" />
                                 <span className="text-xs font-semibold text-teal-600">CUSTOM</span>
                               </div>
                               <div className="p-3 bg-teal-50 rounded border border-teal-200">
-                                <div className="space-y-1">
-                                  <div className="flex justify-between text-sm">
-                                    <span className="text-gray-600">Custom Price (Ex GST)</span>
-                                    <span className="text-gray-900 font-medium">${sku.customer_price.toFixed(2)}</span>
+                                <div className="flex justify-between items-center">
+                                  <div>
+                                    <span className="text-sm font-semibold text-gray-900">Custom Price</span>
+                                    <p className="text-xs text-gray-500">Includes 10% GST</p>
                                   </div>
-                                  <div className="flex justify-between text-sm">
-                                    <span className="text-gray-600">GST (10%)</span>
-                                    <span className="text-gray-900 font-medium">${(sku.customer_price * 0.10).toFixed(2)}</span>
-                                  </div>
-                                  <div className="flex justify-between pt-2 border-t border-teal-300">
-                                    <span className="text-sm font-semibold text-gray-900">Price (Inc GST)</span>
-                                    <span className="text-xl font-bold text-teal-600">${(sku.customer_price * 1.10).toFixed(2)}</span>
-                                  </div>
+                                  <span className="text-2xl font-bold text-teal-600">${(sku.customer_price * 1.10).toFixed(2)}</span>
                                 </div>
                               </div>
                             </>
                           ) : (
                             <div className="p-3 bg-gray-50 rounded border border-gray-200">
-                              <div className="space-y-1">
-                                <div className="flex justify-between text-sm">
-                                  <span className="text-gray-600">Base Price (Ex GST)</span>
-                                  <span className="text-gray-900 font-medium">${sku.price.toFixed(2)}</span>
+                              <div className="flex justify-between items-center">
+                                <div>
+                                  <span className="text-sm font-semibold text-gray-900">Base Price</span>
+                                  <p className="text-xs text-gray-500">Includes 10% GST</p>
                                 </div>
-                                <div className="flex justify-between text-sm">
-                                  <span className="text-gray-600">GST (10%)</span>
-                                  <span className="text-gray-900 font-medium">${(sku.price * 0.10).toFixed(2)}</span>
-                                </div>
-                                <div className="flex justify-between pt-2 border-t border-gray-300">
-                                  <span className="text-sm font-semibold text-gray-900">Price (Inc GST)</span>
-                                  <span className="text-xl font-bold text-gray-900">${(sku.price * 1.10).toFixed(2)}</span>
-                                </div>
+                                <span className="text-2xl font-bold text-gray-900">${(sku.price * 1.10).toFixed(2)}</span>
                               </div>
                             </div>
                           )}
@@ -1624,6 +1618,16 @@ function OwnerDashboard() {
                     </Card>
                   ))}
                 </div>
+
+                {selectedCustomer && skusWithPricing.filter(sku => sku.has_custom_pricing).length === 0 && (
+                  <Card className="mt-6">
+                    <CardContent className="p-12 text-center">
+                      <Package className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                      <p className="text-gray-600 mb-2">No custom pricing set for this customer</p>
+                      <p className="text-sm text-gray-500">Click "Set Custom Price" above to add custom pricing for this customer</p>
+                    </CardContent>
+                  </Card>
+                )}
               </div>
             )}
           </div>
@@ -1832,9 +1836,10 @@ function OwnerDashboard() {
                             <SelectContent>
                               {customerSkus.map((sku) => {
                                 const price = sku.customer_price !== undefined ? sku.customer_price : sku.price;
+                                const priceIncGST = price * 1.10;
                                 return (
                                   <SelectItem key={sku.id} value={sku.id}>
-                                    {sku.name} - ${price.toFixed(2)} (Ex GST)
+                                    {sku.name} - ${priceIncGST.toFixed(2)}
                                     {sku.customer_price !== undefined && ' (Custom)'}
                                   </SelectItem>
                                 );
@@ -1985,22 +1990,15 @@ function OwnerDashboard() {
                             const totalIncGST = subtotalExGST + gstAmount;
                             
                             return (
-                              <>
-                                <div className="border-t pt-2 mt-2">
-                                  <div className="flex justify-between text-sm">
-                                    <span className="text-gray-600">Subtotal (Ex GST)</span>
-                                    <span className="text-gray-900">${subtotalExGST.toFixed(2)}</span>
+                              <div className="border-t pt-3 mt-3">
+                                <div className="flex justify-between items-center">
+                                  <div>
+                                    <span className="text-lg font-bold text-gray-900">Total</span>
+                                    <p className="text-xs text-gray-500">Includes 10% GST</p>
                                   </div>
-                                  <div className="flex justify-between text-sm mt-1">
-                                    <span className="text-gray-600">GST (10%)</span>
-                                    <span className="text-gray-900">${gstAmount.toFixed(2)}</span>
-                                  </div>
-                                </div>
-                                <div className="border-t pt-2 mt-2 flex justify-between items-center">
-                                  <span className="text-lg font-bold text-gray-900">Total (Inc GST)</span>
                                   <span className="text-2xl font-bold text-teal-600">${totalIncGST.toFixed(2)}</span>
                                 </div>
-                              </>
+                              </div>
                             );
                           })()}
                         </div>
@@ -2041,7 +2039,7 @@ function OwnerDashboard() {
                         className="pl-10"
                       />
                     </div>
-                    {(orderSearchQuery || orderStatusFilter.length > 0 || orderDateFilter !== 'all' || orderTypeFilter !== 'all') && (
+                    {(orderSearchQuery || orderStatusFilter.length > 0 || orderDeliveryStatusFilter.length > 0 || orderDateFilter !== 'all' || orderTypeFilter !== 'all') && (
                       <Button
                         variant="outline"
                         size="sm"
@@ -2133,6 +2131,25 @@ function OwnerDashboard() {
                     ))}
                   </div>
 
+                  {/* Delivery Status Filter Chips */}
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <Truck className="w-4 h-4 text-gray-500" />
+                    <Label className="text-sm font-medium">Delivery Status:</Label>
+                    {['assigned', 'picked_up', 'out_for_delivery', 'delivered'].map(deliveryStatus => (
+                      <button
+                        key={deliveryStatus}
+                        onClick={() => toggleDeliveryStatusFilter(deliveryStatus)}
+                        className={`px-3 py-1 text-xs rounded-full border transition-colors ${
+                          orderDeliveryStatusFilter.includes(deliveryStatus)
+                            ? 'bg-blue-500 text-white border-blue-500'
+                            : 'bg-white text-gray-700 border-gray-300 hover:border-blue-500'
+                        }`}
+                      >
+                        {deliveryStatus.replace(/_/g, ' ')}
+                      </button>
+                    ))}
+                  </div>
+
                   {/* Results Count */}
                   <div className="text-sm text-gray-600">
                     Showing <span className="font-semibold">{getFilteredAndSortedOrders().length}</span> of <span className="font-semibold">{orders.length}</span> orders
@@ -2142,7 +2159,7 @@ function OwnerDashboard() {
                 {getFilteredAndSortedOrders().length === 0 ? (
                   <div className="text-center py-8 text-gray-500">
                     <Package className="h-12 w-12 mx-auto mb-2 opacity-50" />
-                    <p>{orderSearchQuery || orderStatusFilter.length > 0 || orderDateFilter !== 'all' || orderTypeFilter !== 'all' 
+                    <p>{orderSearchQuery || orderStatusFilter.length > 0 || orderDeliveryStatusFilter.length > 0 || orderDateFilter !== 'all' || orderTypeFilter !== 'all' 
                       ? 'No orders match your filters' 
                       : 'No orders available'}</p>
                   </div>
