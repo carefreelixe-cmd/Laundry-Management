@@ -176,6 +176,20 @@ function OwnerDashboard() {
     }
   }, [selectedCustomer]);
 
+  // Helper function to get display name for order status
+  const getStatusDisplayName = (status) => {
+    const statusMap = {
+      'pending': 'Pending',
+      'scheduled': 'Scheduled',
+      'processing': 'Processing',
+      'ready_for_pickup': 'Order Ready for Pickup',
+      'out_for_delivery': 'Out for Delivery',
+      'delivered': 'Delivered',
+      'cancelled': 'Cancelled'
+    };
+    return statusMap[status] || status;
+  };
+
   const fetchData = async () => {
     try {
       const [statsRes, usersRes, skusRes] = await Promise.all([
@@ -2649,7 +2663,7 @@ function OwnerDashboard() {
                             : 'bg-white text-gray-700 border-gray-300 hover:border-teal-500'
                         }`}
                       >
-                        {status.replace(/_/g, ' ')}
+                        {getStatusDisplayName(status)}
                       </button>
                     ))}
                   </div>
@@ -2724,7 +2738,7 @@ function OwnerDashboard() {
                                 order.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
                                 'bg-gray-100 text-gray-800'
                               }`}>
-                                {order.status}
+                                {getStatusDisplayName(order.status)}
                               </span>
                             </td>
                             <td className="px-4 py-3">

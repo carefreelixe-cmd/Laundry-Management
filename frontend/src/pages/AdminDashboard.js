@@ -143,6 +143,20 @@ function AdminDashboard() {
     }
   };
 
+  // Helper function to get display name for order status
+  const getStatusDisplayName = (status) => {
+    const statusMap = {
+      'pending': 'Pending',
+      'scheduled': 'Scheduled',
+      'processing': 'Processing',
+      'ready_for_pickup': 'Order Ready for Pickup',
+      'out_for_delivery': 'Out for Delivery',
+      'delivered': 'Delivered',
+      'cancelled': 'Cancelled'
+    };
+    return statusMap[status] || status;
+  };
+
   const handleCreateOrder = async (e) => {
     e.preventDefault();
     if (creatingOrder || editingOrderId) return; // Prevent duplicate submissions
@@ -966,7 +980,7 @@ function AdminDashboard() {
                         <div className="flex items-center gap-3 mb-2">
                           <h3 className="text-xl font-bold text-gray-900">{order.order_number}</h3>
                           <span className={`px-3 py-1 text-xs font-semibold rounded-full ${getStatusBadgeClass(order.status)}`}>
-                            {order.status}
+                            {getStatusDisplayName(order.status)}
                           </span>
                           {order.is_recurring && (
                             <span className="px-3 py-1 text-xs font-semibold rounded-full bg-purple-100 text-purple-800 flex items-center gap-1">
@@ -1027,7 +1041,7 @@ function AdminDashboard() {
                             <SelectItem value="pending">Pending</SelectItem>
                             <SelectItem value="scheduled">Scheduled</SelectItem>
                             <SelectItem value="processing">Processing</SelectItem>
-                            <SelectItem value="ready_for_pickup">Ready for Pickup</SelectItem>
+                            <SelectItem value="ready_for_pickup">Order Ready for Pickup</SelectItem>
                             <SelectItem value="out_for_delivery">Out for Delivery</SelectItem>
                             <SelectItem value="delivered">Delivered</SelectItem>
                             <SelectItem value="cancelled">Cancelled</SelectItem>

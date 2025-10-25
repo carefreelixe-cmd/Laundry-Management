@@ -111,6 +111,20 @@ function CustomerDashboard() {
     }
   };
 
+  // Helper function to get display name for order status
+  const getStatusDisplayName = (status) => {
+    const statusMap = {
+      'pending': 'Pending',
+      'scheduled': 'Scheduled',
+      'processing': 'Processing',
+      'ready_for_pickup': 'Order Ready for Pickup',
+      'out_for_delivery': 'Out for Delivery',
+      'delivered': 'Delivered',
+      'cancelled': 'Cancelled'
+    };
+    return statusMap[status] || status;
+  };
+
   const getFilteredAndSortedOrders = () => {
     let filtered = [...orders];
 
@@ -880,7 +894,7 @@ function CustomerDashboard() {
                           : 'bg-white text-gray-700 border-gray-300 hover:border-teal-500'
                       }`}
                     >
-                      {status.replace(/_/g, ' ')}
+                      {getStatusDisplayName(status)}
                     </button>
                   ))}
                 </div>
@@ -1002,7 +1016,7 @@ function CustomerDashboard() {
                         <div className="flex items-center gap-3 mb-2 flex-wrap">
                           <h3 className="text-xl font-bold text-gray-900">{order.order_number}</h3>
                           <span className={`px-3 py-1 text-xs font-semibold rounded-full ${getStatusBadgeClass(order.status)}`}>
-                            {order.status}
+                            {getStatusDisplayName(order.status)}
                           </span>
                           {order.is_recurring && (
                             <span className="px-3 py-1 text-xs font-semibold rounded-full bg-purple-100 text-purple-800 flex items-center gap-1">
@@ -1537,7 +1551,7 @@ function CustomerDashboard() {
                             </p>
                           </div>
                           <span className={`px-3 py-1 text-xs font-semibold rounded-full ${getStatusBadgeClass(order.status)}`}>
-                            {order.status}
+                            {getStatusDisplayName(order.status)}
                           </span>
                         </div>
                       </div>
