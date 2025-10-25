@@ -258,31 +258,6 @@ View details in your dashboard."""
     
     return new_order
 
-def send_email(to_email: str, subject: str, body: str):
-    try:
-        gmail_user = os.environ.get('GMAIL_USER')
-        gmail_password = os.environ.get('GMAIL_PASSWORD')
-        
-        if not gmail_user or not gmail_password:
-            logging.warning("Gmail credentials not configured")
-            return False
-        
-        msg = MIMEMultipart()
-        msg['From'] = gmail_user
-        msg['To'] = to_email
-        msg['Subject'] = subject
-        msg.attach(MIMEText(body, 'html'))
-        
-        server = smtplib.SMTP('smtp.gmail.com', 587)
-        server.starttls()
-        server.login(gmail_user, gmail_password)
-        server.send_message(msg)
-        server.quit()
-        return True
-    except Exception as e:
-        logging.error(f"Email sending failed: {str(e)}")
-        return False
-
 # Pydantic Models
 class UserBase(BaseModel):
     email: EmailStr
@@ -846,7 +821,7 @@ async def toggle_user_status(
     
     # Send notification to user
     status_text = "enabled" if new_status else "disabled"
-    await send_email(
+    send_email(
         to_email=user['email'],
         subject=f"Account {status_text.title()}",
         html_content=f"""
