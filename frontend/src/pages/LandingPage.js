@@ -2361,16 +2361,634 @@
 
 
 
-import React, { useState } from 'react'; // <-- FIXED: useState is now imported
-import { useNavigate } from 'react-router-dom'; 
+// import React, { useState } from 'react'; // <-- FIXED: useState is now imported
+// import { useNavigate } from 'react-router-dom'; 
+// import { Phone, Mail, MapPin, Check, Star, Clock, Shield, Users, Heart, Hotel, Package, Sparkles, TrendingUp, Menu, X } from 'lucide-react';
+// import { Button } from '@/components/ui/button';
+// import { Input } from '@/components/ui/input';
+// import { Textarea } from '@/components/ui/textarea';
+
+// // Using standard Tailwind classes (cyan-100, cyan-500) for color safety.
+
+// function LandingPage() {
+//   const navigate = useNavigate();
+
+//   const [contactForm, setContactForm] = useState({ name: '', email: '', phone: '', message: '', company: '', address: '' });
+//   const [submitStatus, setSubmitStatus] = useState('');
+//   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+//   const scrollToSection = (id) => {
+//     const el = document.getElementById(id);
+//     if(el) {
+//       setMobileMenuOpen(false); 
+//       const y = el.getBoundingClientRect().top + window.pageYOffset - 80;
+//       window.scrollTo({ top: y, behavior: 'smooth' });
+//     }
+//   };
+
+//   const handleContactSubmit = (e) => {
+//     e.preventDefault();
+//     // Placeholder for API call
+//     console.log('Contact form submitted:', contactForm);
+//     setSubmitStatus('success');
+//     setContactForm({ name: '', email: '', phone: '', message: '', company: '', address: '' });
+//     setTimeout(() => setSubmitStatus(''), 3000);
+//   };
+  
+//   const pricingRental = [
+//     { product: 'King Sheets', price: 'from $2.25' }, { product: 'Queen Sheets', price: 'from $2.05' },
+//     { product: 'Single Sheets', price: 'from $1.95' }, { product: 'Bath Towels', price: 'from $1.50' },
+//     { product: 'Tea Towels', price: 'from $1.10' }, { product: 'Pillowcases', price: 'from $1.05' },
+//     { product: 'Bath Mats', price: 'from $0.90' }, { product: 'Hand Towels', price: 'from $0.80' },
+//     { product: 'Face Washers', price: 'from $0.75' }
+//   ];
+
+//   // Function to handle login navigation
+//   const handleLoginClick = () => {
+//     navigate('/login');
+//     setMobileMenuOpen(false);
+//   };
+
+//   return (
+//     <div className="min-h-screen bg-white">
+//       {/* Navigation Bar (Header) */}
+//       <nav className="fixed top-0 w-full bg-white shadow-md z-50">
+//         <div className="max-w-7xl mx-auto px-8">
+//           <div className="flex justify-between items-center h-24">
+//             {/* Logo Section */}
+//             <div className="flex items-center gap-4">
+//               <img src="/assets/logo.png" alt="Infinite Laundry Solutions" className="h-20" />
+//               <div>
+//                 <div className="text-2xl font-bold text-gray-900">Infinite</div>
+//                 <div className="text-2xl font-bold text-gray-900">Laundry</div>
+//                 <div className="text-2xl font-bold text-gray-900">Solutions</div>
+//               </div>
+//             </div>
+            
+//             {/* Desktop Navigation Links and Login Button */}
+//             <div className="hidden lg:flex items-center gap-8">
+//               <a onClick={() => scrollToSection('home')} className="text-gray-700 hover:text-cyan-600 cursor-pointer font-medium">Home</a>
+//               <a onClick={() => scrollToSection('about')} className="text-gray-700 hover:text-cyan-600 cursor-pointer font-medium">About</a>
+//               <a onClick={() => scrollToSection('services')} className="text-gray-700 hover:text-cyan-600 cursor-pointer font-medium">Services</a>
+//               <a onClick={() => scrollToSection('industries')} className="text-gray-700 hover:text-cyan-600 cursor-pointer font-medium">Industries we Serve</a>
+//               <a onClick={() => scrollToSection('prices')} className="text-gray-700 hover:text-cyan-600 cursor-pointer font-medium">Our Prices</a>
+//               <a onClick={() => scrollToSection('why')} className="text-gray-700 hover:text-cyan-600 cursor-pointer font-medium">Why Us?</a>
+//               <a onClick={() => scrollToSection('quote')} className="text-gray-700 hover:text-cyan-600 cursor-pointer font-medium">More</a>
+              
+//               {/* Login Button */}
+//               <Button 
+//                 onClick={handleLoginClick} 
+//                 className="bg-cyan-500 hover:bg-cyan-600 text-white py-2 rounded-full px-6 text-base font-medium shadow-md transition-colors"
+//                 data-testid="nav-login-btn"
+//               >
+//                 Login
+//               </Button>
+//             </div>
+            
+//             {/* Mobile Menu Button */}
+//             <div className="lg:hidden flex items-center gap-2">
+//               <Button onClick={() => setMobileMenuOpen(!mobileMenuOpen)} variant="ghost">
+//                 {mobileMenuOpen ? <X className="h-6 w-6 text-gray-900" /> : <Menu className="h-6 w-6 text-gray-900" />}
+//               </Button>
+//             </div>
+//           </div>
+          
+//           {/* Mobile Menu Dropdown */}
+//           {mobileMenuOpen && (
+//             <div className="lg:hidden absolute top-24 left-0 w-full bg-white shadow-lg py-4 border-t border-gray-200" data-testid="mobile-menu">
+//               <div className="flex flex-col space-y-3 px-8">
+//                 <a onClick={() => scrollToSection('home')} className="text-gray-700 hover:text-cyan-600 font-medium py-2">Home</a>
+//                 <a onClick={() => scrollToSection('about')} className="text-gray-700 hover:text-cyan-600 font-medium py-2">About</a>
+//                 <a onClick={() => scrollToSection('services')} className="text-gray-700 hover:text-cyan-600 font-medium py-2">Services</a>
+//                 <a onClick={() => scrollToSection('industries')} className="text-gray-700 hover:text-cyan-600 font-medium py-2">Industries we Serve</a>
+//                 <a onClick={() => scrollToSection('prices')} className="text-gray-700 hover:text-cyan-600 font-medium py-2">Our Prices</a>
+//                 <a onClick={() => scrollToSection('why')} className="text-gray-700 hover:text-cyan-600 font-medium py-2">Why Us?</a>
+//                 <a onClick={() => scrollToSection('quote')} className="text-gray-700 hover:text-cyan-600 font-medium py-2">More</a>
+//                 <Button onClick={handleLoginClick} className="bg-cyan-500 hover:bg-cyan-600 text-white rounded-full w-full mt-4">Login</Button>
+//               </div>
+//             </div>
+//           )}
+//         </div>
+//       </nav>
+
+//       {/* --- */}
+
+//       {/* Hero Section - Light Tint Background */}
+//       <section id="home" className="pt-32 pb-20 px-8 bg-gradient-to-b from-cyan-50/70 via-cyan-100 to-white">
+//         <div className="max-w-7xl mx-auto">
+//           <div className="text-center mb-8">
+//             <div className="inline-flex flex-wrap gap-2 justify-center mb-6">
+//               <span className="bg-white/80 px-3 py-1 rounded-full text-sm border border-gray-300">Professional Laundry Services</span>
+//               <span className="bg-white/80 px-3 py-1 rounded-full text-sm border border-gray-300">Hospitality & Healthcare</span>
+//             </div>
+//           </div>
+//           <div className="bg-cyan-100/70 backdrop-blur-sm rounded-3xl p-10 sm:p-16 text-center max-w-5xl mx-auto border-2 border-white/50 shadow-xl">
+//             <h1 className="text-5xl sm:text-6xl md:text-7xl font-black text-gray-900 mb-8 leading-tight">
+//               Exceptional<br/>Laundry Care
+//             </h1>
+//             <p className="text-lg sm:text-xl text-gray-800 mb-10 max-w-2xl mx-auto leading-relaxed">
+//               Your premium laundry solution for hospitality and healthcare industries across Queensland.
+//             </p>
+//             <Button 
+//               className="bg-cyan-500 hover:bg-cyan-600 text-white px-10 py-7 rounded-full text-lg font-semibold border-2 border-white shadow-lg transition-colors"
+//               onClick={() => scrollToSection('services')}
+//             >
+//               Discover Our Services
+//             </Button>
+//           </div>
+//         </div>
+//       </section>
+
+//       {/* --- */}
+
+//       {/* About Section - Mid Tint Background */}
+//       <section id="about" className="py-20 px-8 bg-cyan-100">
+//         <div className="max-w-7xl mx-auto">
+//           <div className="grid md:grid-cols-2 gap-16">
+//             <div>
+//               <h2 className="text-4xl sm:text-5xl font-black text-gray-900 mb-8">
+//                 <span className="border-b-8 border-gray-900 pb-3 inline-block">About ILS</span>
+//               </h2>
+//               <p className="text-gray-800 text-base sm:text-lg leading-relaxed">
+//                 Born from the success of Infinite Asset Solutions, Infinite Laundry Solutions was created to solve a growing need we saw firsthand—dependable, quality-driven laundry services for the hospitality and healthcare sectors. As long-time operators in motel and commercial venue management, we understand what's at stake when it comes to clean, timely linen delivery.
+//               </p>
+//             </div>
+//             <div>
+//               <h2 className="text-4xl sm:text-5xl font-black text-gray-900 mb-8">
+//                 <span className="border-b-8 border-gray-900 pb-3 inline-block">Our Mission</span>
+//               </h2>
+//               <p className="text-gray-800 text-base sm:text-lg leading-relaxed mb-12">
+//                 To deliver commercial laundry solutions with precision, reliability, and care—helping our clients focus on what they do best.
+//               </p>
+//               <h3 className="text-3xl sm:text-4xl font-black text-gray-900 mb-8">
+//                 <span className="border-b-8 border-gray-900 pb-3 inline-block">Our Values</span>
+//               </h3>
+//               <div className="flex flex-wrap justify-start gap-6">
+//                 <div className="text-center">
+//                   <div className="w-16 h-16 sm:w-20 sm:h-20 flex items-center justify-center mx-auto mb-3">
+//                     <div className="text-4xl sm:text-6xl">⚙️</div>
+//                   </div>
+//                   <p className="text-sm font-bold">Quality</p>
+//                 </div>
+//                 <div className="text-center">
+//                   <div className="w-16 h-16 sm:w-20 sm:h-20 flex items-center justify-center mx-auto mb-3">
+//                     <div className="text-4xl sm:text-6xl">🛡️</div>
+//                   </div>
+//                   <p className="text-sm font-bold">Transparency</p>
+//                 </div>
+//                 <div className="text-center">
+//                   <div className="w-16 h-16 sm:w-20 sm:h-20 flex items-center justify-center mx-auto mb-3">
+//                     <div className="text-4xl sm:text-6xl">⏱️</div>
+//                   </div>
+//                   <p className="text-sm font-bold">Reliability</p>
+//                 </div>
+//                 <div className="text-center">
+//                   <div className="w-16 h-16 sm:w-20 sm:h-20 flex items-center justify-center mx-auto mb-3">
+//                     <div className="text-4xl sm:text-6xl">💡</div>
+//                   </div>
+//                   <p className="text-sm font-bold">Innovation</p>
+//                 </div>
+//                 <div className="text-center">
+//                   <div className="w-16 h-16 sm:w-20 sm:h-20 flex items-center justify-center mx-auto mb-3">
+//                     <div className="text-4xl sm:text-6xl">🤝</div>
+//                   </div>
+//                   <p className="text-sm font-bold">Care</p>
+//                 </div>
+//               </div>
+//             </div>
+//           </div>
+//         </div>
+//       </section>
+
+//       {/* --- */}
+
+//       {/* Services Section - Mid Tint Background */}
+//       <section id="services" className="py-20 px-8 bg-cyan-100">
+//         <div className="max-w-7xl mx-auto">
+//           <h2 className="text-4xl sm:text-5xl font-black text-gray-900 mb-8">
+//             <span className="border-b-8 border-gray-900 pb-3 inline-block">Services</span>
+//           </h2>
+//           <p className="text-gray-800 text-base sm:text-lg leading-relaxed mb-16 max-w-5xl">
+//             Clean linen shouldn't be a luxury—it should be the standard. At Infinite Laundry Solutions, we offer a range of services designed to meet the specific demands of busy venues across Queensland.
+//           </p>
+//           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 sm:gap-6">
+//             <div className="bg-white rounded-2xl p-6 sm:p-8 text-center shadow-lg hover:shadow-xl transition-shadow border-t-4 border-white/0 hover:border-cyan-500">
+//               <div className="text-5xl sm:text-7xl mb-4 sm:mb-6">🧺</div>
+//               <h3 className="text-xs sm:text-sm font-black uppercase mb-3 tracking-wide text-gray-900">Commercial Laundry Services</h3>
+//               <p className="text-xs text-gray-700 leading-snug">High-volume, fast-turnaround service for hotels, motels, resorts, and more.</p>
+//             </div>
+//             <div className="bg-gray-800 rounded-2xl p-6 sm:p-8 text-center shadow-lg hover:shadow-xl transition-shadow text-white border-t-4 border-white/0 hover:border-cyan-500">
+//               <div className="text-5xl sm:text-7xl mb-4 sm:mb-6">🛏️</div>
+//               <h3 className="text-xs sm:text-sm font-black uppercase mb-3 tracking-wide">Linen Hire & Rental</h3>
+//               <p className="text-xs text-gray-200 leading-snug">Clean, pressed linen delivered on your schedule.</p>
+//             </div>
+//             <div className="bg-white rounded-2xl p-6 sm:p-8 text-center shadow-lg hover:shadow-xl transition-shadow border-t-4 border-white/0 hover:border-cyan-500">
+//               <div className="text-5xl sm:text-7xl mb-4 sm:mb-6">👔</div>
+//               <h3 className="text-xs sm:text-sm font-black uppercase mb-3 tracking-wide text-gray-900">Uniform & Apparel Cleaning</h3>
+//               <p className="text-xs text-gray-700 leading-snug">For corporate, industrial, and healthcare staff.</p>
+//             </div>
+//             <div className="bg-gray-800 rounded-2xl p-6 sm:p-8 text-center shadow-lg hover:shadow-xl transition-shadow text-white border-t-4 border-white/0 hover:border-cyan-500">
+//               <div className="text-5xl sm:text-7xl mb-4 sm:mb-6">📦</div>
+//               <h3 className="text-xs sm:text-sm font-black uppercase mb-3 tracking-wide">Customer-Owned Goods (COG)</h3>
+//               <p className="text-xs text-gray-200 leading-snug">We clean what you own—professionally and precisely.</p>
+//             </div>
+//             <div className="bg-white rounded-2xl p-6 sm:p-8 text-center shadow-lg hover:shadow-xl transition-shadow border-t-4 border-white/0 hover:border-cyan-500">
+//               <div className="text-5xl sm:text-7xl mb-4 sm:mb-6">🎪</div>
+//               <h3 className="text-xs sm:text-sm font-black uppercase mb-3 tracking-wide text-gray-900">Specialty & Event Linen</h3>
+//               <p className="text-xs text-gray-700 leading-snug">Towels, napkins, tablecloths, bedding and more.</p>
+//             </div>
+//           </div>
+//         </div>
+//       </section>
+      
+//       {/* --- */}
+
+//       {/* Industries Section - Mid Tint Background */}
+//       <section id="industries" className="py-20 px-8 bg-cyan-100">
+//         <div className="max-w-7xl mx-auto">
+//           <h2 className="text-4xl sm:text-5xl font-black text-gray-900 mb-8">
+//             <span className="border-b-8 border-gray-900 pb-3 inline-block">Industries We Serve</span>
+//           </h2>
+//           <p className="text-gray-800 text-base sm:text-lg leading-relaxed mb-16 max-w-4xl">
+//             We understand the unique needs of every industry we serve. You need clean, dependable linen—and fast.
+//           </p>
+//           <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto mb-16">
+//             <div className="bg-white rounded-2xl p-8 sm:p-12 text-center shadow-lg hover:shadow-xl transition-shadow border-t-4 border-white/0 hover:border-cyan-500">
+//               <div className="w-24 h-24 sm:w-32 sm:h-32 mx-auto mb-6 flex items-center justify-center">
+//                 <div className="text-6xl sm:text-8xl">🏨</div>
+//               </div>
+//               <h3 className="text-2xl sm:text-3xl font-black text-gray-900 mb-4">Hospitality</h3>
+//               <p className="text-base sm:text-lg text-gray-800">Hotels, Motels, Resorts, Short-Term Rentals</p>
+//             </div>
+//             <div className="bg-white rounded-2xl p-8 sm:p-12 text-center shadow-lg hover:shadow-xl transition-shadow border-t-4 border-white/0 hover:border-cyan-500">
+//               <div className="w-24 h-24 sm:w-32 sm:h-32 mx-auto mb-6 flex items-center justify-center">
+//                 <div className="text-6xl sm:text-8xl">🏥</div>
+//               </div>
+//               <h3 className="text-2xl sm:text-3xl font-black text-gray-900 mb-4">Healthcare</h3>
+//               <p className="text-base sm:text-lg text-gray-800">Clinics, Medical Centres, Aged Care Homes</p>
+//             </div>
+//           </div>
+//           <div className="bg-white rounded-2xl p-8 sm:p-10 text-center max-w-3xl mx-auto shadow-lg border-2 border-cyan-500">
+//             <p className="text-gray-900 font-black text-xl mb-3">Don't see your industry?</p>
+//             <p className="text-gray-800 text-lg mb-6">Let's chat – we tailor our services to you.</p>
+//             <Button 
+//               className="bg-cyan-500 hover:bg-cyan-600 text-white px-8 py-4 rounded-lg font-bold text-lg shadow-md transition-colors"
+//               onClick={() => scrollToSection('quote')}
+//             >
+//               Contact Us
+//             </Button>
+//           </div>
+//         </div>
+//       </section>
+
+//       {/* --- */}
+
+//       {/* Prices Section - Mid Tint Background */}
+//       <section id="prices" className="py-20 px-8 bg-cyan-100">
+//         <div className="max-w-7xl mx-auto">
+//           <h2 className="text-4xl sm:text-5xl font-black text-gray-900 mb-8">
+//             <span className="border-b-8 border-gray-900 pb-3 inline-block">Our Prices</span>
+//           </h2>
+//           <p className="text-gray-800 text-base sm:text-lg leading-relaxed mb-16 max-w-5xl">
+//             At Infinite Laundry Solutions, we believe in transparent, tailored pricing that suits the unique needs of your business.
+//           </p>
+//           <div className="grid md:grid-cols-2 gap-12">
+//             <div className="bg-white rounded-2xl p-8 sm:p-10 shadow-lg border-t-8 border-cyan-500">
+//               <div className="flex items-center gap-6 mb-8">
+//                 <div className="text-5xl sm:text-7xl">🧺</div>
+//                 <h3 className="text-xl sm:text-2xl font-black text-gray-900 uppercase">Linen Rental Services</h3>
+//               </div>
+//               <p className="text-gray-700 text-sm sm:text-base mb-8 leading-relaxed">
+//                 Perfect for businesses looking for a hassle-free solution. Our pricing includes laundering, drying and replacement of worn items.
+//               </p>
+//               <div className="space-y-1">
+//                 <div className="grid grid-cols-2 gap-4 pb-3 border-b-4 border-gray-900 font-black text-sm">
+//                   <div>Product</div>
+//                   <div className="text-right">Pricing (exc. GST)</div>
+//                 </div>
+//                 {pricingRental.map((item, index) => (
+//                   <div key={index} className="grid grid-cols-2 gap-4 py-3 border-b border-gray-300 last:border-b-0">
+//                     <div className="text-gray-700 text-sm">{item.product}</div>
+//                     <div className="text-right font-bold italic text-cyan-600 text-sm">{item.price}</div>
+//                   </div>
+//                 ))}
+//               </div>
+//             </div>
+//             <div className="bg-white rounded-2xl p-8 sm:p-10 shadow-lg border-t-8 border-cyan-500">
+//               <div className="flex items-center gap-6 mb-8">
+//                 <div className="text-5xl sm:text-7xl">💼</div>
+//                 <h3 className="text-xl sm:text-2xl font-black text-gray-900 uppercase">Customer-Owned Goods (COG) Services</h3>
+//               </div>
+//               <p className="text-gray-700 text-sm sm:text-base mb-10 leading-relaxed">
+//                 Already have your own linen? No problem. We offer competitive per-kilo or per-piece pricing for cleaning and return of your linen, with options for express turnaround and volume discounts.
+//               </p>
+//               <div className="space-y-5 mb-10">
+//                 <div className="flex items-start gap-4">
+//                   <Check className="w-6 h-6 text-cyan-600 flex-shrink-0 mt-1" />
+//                   <div>
+//                     <p className="font-black text-gray-900 text-base">Competitive Per-Kilo Pricing</p>
+//                     <p className="text-sm text-gray-600">Best rates for bulk laundry</p>
+//                   </div>
+//                 </div>
+//                 <div className="flex items-start gap-4">
+//                   <Check className="w-6 h-6 text-cyan-600 flex-shrink-0 mt-1" />
+//                   <div>
+//                     <p className="font-black text-gray-900 text-base">Per-Piece Pricing Available</p>
+//                     <p className="text-sm text-gray-600">Perfect for specialized items</p>
+//                   </div>
+//                 </div>
+//                 <div className="flex items-start gap-4">
+//                   <Check className="w-6 h-6 text-cyan-600 flex-shrink-0 mt-1" />
+//                   <div>
+//                     <p className="font-black text-gray-900 text-base">Express Turnaround Options</p>
+//                     <p className="text-sm text-gray-600">When you need it fast</p>
+//                   </div>
+//                 </div>
+//                 <div className="flex items-start gap-4">
+//                   <Check className="w-6 h-6 text-cyan-600 flex-shrink-0 mt-1" />
+//                   <div>
+//                     <p className="font-black text-gray-900 text-base">Volume Discounts</p>
+//                     <p className="text-sm text-gray-600">Save more with higher volumes</p>
+//                   </div>
+//                 </div>
+//               </div>
+//               <div className="bg-cyan-50/70 rounded-xl p-6 sm:p-8 text-center border border-cyan-500">
+//                 <p className="text-gray-900 font-black text-lg mb-5">For a custom quote based on your needs, please click here. We tailor to your needs!!</p>
+//                 <Button 
+//                   className="bg-gray-600 hover:bg-gray-700 text-white px-8 py-4 rounded-lg font-bold text-lg shadow-md transition-colors"
+//                   onClick={() => scrollToSection('quote')}
+//                 >
+//                   Request Custom Quote
+//                 </Button>
+//               </div>
+//             </div>
+//           </div>
+//         </div>
+//       </section>
+
+//       {/* --- */}
+
+//       {/* Why Us Section - Mid Tint Background */}
+//       <section id="why" className="py-20 px-8 bg-cyan-100">
+//         <div className="max-w-7xl mx-auto">
+//           <h2 className="text-4xl sm:text-5xl font-black text-gray-900 mb-16">
+//             <span className="border-b-8 border-gray-900 pb-3 inline-block">Why ILS?</span>
+//           </h2>
+//           <div className="grid md:grid-cols-2 gap-12 mb-16 items-center">
+//             <div>
+//               <p className="text-gray-800 text-base sm:text-lg leading-relaxed">
+//                 We've built Infinite Laundry Solutions on a foundation of industry knowledge, operational excellence, and next-generation technology. With premium **Electrolux machines** and sustainable practices at our core, we deliver more than clean linen—we deliver **peace of mind**.
+//               </p>
+//             </div>
+//             <div className="bg-white rounded-2xl overflow-hidden shadow-lg border-2 border-cyan-500">
+//               <img src="https://images.unsplash.com/photo-1627564359646-5972788cec65?w=800" alt="Stacked towels" className="w-full h-64 sm:h-80 object-cover" />
+//             </div>
+//           </div>
+//           <div className="space-y-8">
+//             <div className="border-b-2 border-gray-400 pb-6">
+//               <div className="flex flex-col sm:flex-row justify-between items-start gap-4 sm:gap-8">
+//                 <h3 className="text-xl sm:text-2xl font-black text-gray-900 flex-1">Electrolux Machinery</h3>
+//                 <p className="text-gray-800 text-base sm:text-lg flex-1 text-left sm:text-right">Our state-of-the-art European machines provide best-in-class performance with exceptional water and energy efficiency.</p>
+//               </div>
+//             </div>
+//             <div className="border-b-2 border-gray-400 pb-6">
+//               <div className="flex flex-col sm:flex-row justify-between items-start gap-4 sm:gap-8">
+//                 <h3 className="text-xl sm:text-2xl font-black text-gray-900 flex-1">Experience-Driven</h3>
+//                 <p className="text-gray-800 text-base sm:text-lg flex-1 text-left sm:text-right">We know the industry inside-out because we're part of it.</p>
+//               </div>
+//             </div>
+//             <div className="border-b-2 border-gray-400 pb-6">
+//               <div className="flex flex-col sm:flex-row justify-between items-start gap-4 sm:gap-8">
+//                 <h3 className="text-xl sm:text-2xl font-black text-gray-900 flex-1">Flexible Service Models</h3>
+//                 <p className="text-gray-800 text-base sm:text-lg flex-1 text-left sm:text-right">Linen hire or COG, on-demand or scheduled – we work your way.</p>
+//               </div>
+//             </div>
+//             <div className="border-b-2 border-gray-400 pb-6">
+//               <div className="flex flex-col sm:flex-row justify-between items-start gap-4 sm:gap-8">
+//                 <h3 className="text-xl sm:text-2xl font-black text-gray-900 flex-1">Trial & Sample Pickups Available</h3>
+//                 <p className="text-gray-800 text-base sm:text-lg flex-1 text-left sm:text-right">Try us before you commit.</p>
+//               </div>
+//             </div>
+//             <div className="border-b-2 border-gray-400 pb-6">
+//               <div className="flex flex-col sm:flex-row justify-between items-start gap-4 sm:gap-8">
+//                 <h3 className="text-xl sm:text-2xl font-black text-gray-900 flex-1">Sustainability-Focused</h3>
+//                 <p className="text-gray-800 text-base sm:text-lg flex-1 text-left sm:text-right">Our machines and processes are designed to reduce consumption and environmental impact.</p>
+//               </div>
+//             </div>
+//           </div>
+//         </div>
+//       </section>
+
+//       {/* --- */}
+
+//       {/* Service Areas Section - Mid Tint Background */}
+//       <section className="py-20 px-8 bg-cyan-100">
+//         <div className="max-w-7xl mx-auto">
+//           <h2 className="text-4xl sm:text-5xl font-black text-gray-900 mb-16">
+//             <span className="border-b-8 border-gray-900 pb-3 inline-block">Our Service Areas</span>
+//           </h2>
+//           <p className="text-gray-800 text-base sm:text-lg leading-relaxed mb-12 max-w-4xl">
+//             We're proud to support businesses across Queensland with reliable, efficient linen and laundry services. From bustling city hotels to coastal clinics, our reach is growing fast.
+//           </p>
+//           <div className="grid md:grid-cols-2 gap-12 mb-12">
+//             <div>
+//               <h3 className="text-2xl sm:text-3xl font-black text-gray-900 mb-6">Currently Serving:</h3>
+//               <p className="text-lg sm:text-xl font-bold text-gray-900">Brisbane | Gold Coast | Sunshine Coast & Surrounding Suburbs</p>
+//             </div>
+//             <div>
+//               <h3 className="text-2xl sm:text-3xl font-black text-gray-900 mb-6">Expanding Soon to:</h3>
+//               <p className="text-lg sm:text-xl font-bold text-gray-900">Sydney | Newcastle | Hunter Region</p>
+//             </div>
+//           </div>
+//           <p className="text-gray-800 text-base sm:text-lg mb-8">
+//             Explore the map below to see if we service your area—or click the button for clean linen!!
+//           </p>
+//           <div className="bg-white rounded-2xl p-4 h-64 sm:h-96 flex items-center justify-center mb-10 shadow-lg border-2 border-cyan-500">
+//             <p className="text-gray-400 text-xl sm:text-2xl">[Map Placeholder - Google Maps Integration]</p>
+//           </div>
+//           <div className="text-center">
+//             <Button 
+//               className="bg-white hover:bg-gray-100 text-gray-900 px-10 py-5 rounded-lg font-black text-lg sm:text-xl border-4 border-gray-900 shadow-md transition-colors"
+//               onClick={() => scrollToSection('quote')}
+//             >
+//               Get Clean Linen Now!
+//             </Button>
+//           </div>
+//         </div>
+//       </section>
+
+//       {/* --- */}
+
+//       {/* Get a Quote / Contact Form Section - Mid Tint Background */}
+//       <section id="quote" className="py-20 px-8 bg-cyan-100">
+//         <div className="max-w-5xl mx-auto">
+//           <h2 className="text-4xl sm:text-5xl font-black text-gray-900 mb-12">
+//             <span className="border-b-8 border-gray-900 pb-3 inline-block">GET A QUOTE</span>
+//           </h2>
+//           <p className="text-gray-800 text-base sm:text-lg leading-relaxed mb-12">
+//             Try Us Today. We offer trial services and sample pickups for eligible businesses. Let's show you what premium laundry service feels like. With Infinite Laundry Solutions, you're not just choosing a provider—you're choosing a partner in cleanliness, care, and operational excellence.
+//           </p>
+//           <div className="bg-white rounded-2xl p-8 sm:p-12 shadow-lg border-t-8 border-gray-900">
+//             <form onSubmit={handleContactSubmit} className="space-y-6">
+//               <div className="grid md:grid-cols-2 gap-6">
+//                 <div>
+//                   <label className="block text-sm font-bold mb-2">Full Name <span className="text-red-500">*</span></label>
+//                   <Input 
+//                     value={contactForm.name} 
+//                     onChange={(e) => setContactForm({...contactForm, name: e.target.value})} 
+//                     required 
+//                     className="bg-cyan-50/70 border-none h-12" 
+//                   />
+//                 </div>
+//                 <div>
+//                   <label className="block text-sm font-bold mb-2">Phone <span className="text-red-500">*</span></label>
+//                   <Input 
+//                     value={contactForm.phone} 
+//                     onChange={(e) => setContactForm({...contactForm, phone: e.target.value})} 
+//                     required 
+//                     className="bg-cyan-50/70 border-none h-12" 
+//                   />
+//                 </div>
+//               </div>
+//               <div className="grid md:grid-cols-2 gap-6">
+//                 <div>
+//                   <label className="block text-sm font-bold mb-2">Company name</label>
+//                   <Input 
+//                     value={contactForm.company} 
+//                     onChange={(e) => setContactForm({...contactForm, company: e.target.value})} 
+//                     className="bg-cyan-50/70 border-none h-12" 
+//                   />
+//                 </div>
+//                 <div>
+//                   <label className="block text-sm font-bold mb-2">Property Address</label>
+//                   <Input 
+//                     value={contactForm.address} 
+//                     onChange={(e) => setContactForm({...contactForm, address: e.target.value})} 
+//                     className="bg-cyan-50/70 border-none h-12" 
+//                   />
+//                 </div>
+//               </div>
+//               <div>
+//                 <label className="block text-sm font-bold mb-2">Email <span className="text-red-500">*</span></label>
+//                 <Input 
+//                   type="email" 
+//                   value={contactForm.email} 
+//                   onChange={(e) => setContactForm({...contactForm, email: e.target.value})} 
+//                   required 
+//                   className="bg-cyan-50/70 border-none h-12" 
+//                 />
+//               </div>
+//               <div>
+//                 <label className="block text-sm font-bold mb-2">Services Required / Message</label>
+//                 <Textarea 
+//                   rows={5} 
+//                   value={contactForm.message} 
+//                   onChange={(e) => setContactForm({...contactForm, message: e.target.value})} 
+//                   className="bg-cyan-50/70 border-none" 
+//                 />
+//               </div>
+//               <Button type="submit" className="w-full bg-gray-600 hover:bg-gray-700 text-white py-5 rounded-lg font-bold text-lg shadow-md transition-colors">
+//                 Submit Quote Request
+//               </Button>
+//               {submitStatus === 'success' && <p className="text-green-600 text-center font-bold text-lg">Message sent successfully! We'll be in touch soon.</p>}
+//             </form>
+//           </div>
+//         </div>
+//       </section>
+
+//       {/* --- */}
+
+//       {/* Footer - Mid Tint Background with Teal Border */}
+//       <footer className="bg-cyan-100 py-16 px-8 border-t-8 border-cyan-500">
+//         <div className="max-w-7xl mx-auto">
+//           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-12">
+            
+//             {/* Logo and Navigation */}
+//             <div className="flex flex-col sm:flex-row items-start gap-8">
+//               <div className="w-24 sm:w-32 bg-white rounded-xl flex items-center justify-center flex-shrink-0 shadow-lg p-4 border border-gray-300">
+//                 <img src="/assets/logo.png" alt="ILS Logo" className="w-full h-full object-contain" />
+//               </div>
+//               <div>
+//                 <h3 className="text-2xl font-black text-gray-900 mb-6">
+//                   Infinite Laundry Solutions
+//                 </h3>
+//                 <div className="space-y-2">
+//                   <a onClick={() => scrollToSection('home')} className="block text-gray-800 hover:text-cyan-600 cursor-pointer font-medium text-base">Home</a>
+//                   <a onClick={() => scrollToSection('services')} className="block text-gray-800 hover:text-cyan-600 cursor-pointer font-medium text-base">Services</a>
+//                   <a onClick={() => scrollToSection('about')} className="block text-gray-800 hover:text-cyan-600 cursor-pointer font-medium text-base">About Us</a>
+//                   <a onClick={handleLoginClick} className="block text-gray-800 hover:text-cyan-600 cursor-pointer font-medium text-base">Book Online / Login</a>
+//                   <a href="#" className="block text-gray-800 hover:text-cyan-600 cursor-pointer font-medium text-base">Blog</a>
+//                 </div>
+//               </div>
+//             </div>
+            
+//             {/* Contact Info */}
+//             <div className="text-left md:text-center lg:text-left">
+//               <h3 className="text-2xl font-black text-gray-900 mb-6">Contact Us</h3>
+//               <div className="space-y-3">
+//                 <p className="text-lg font-black text-gray-900 flex items-center gap-3"><Phone className="w-5 h-5 text-cyan-500"/> +61426159286</p>
+//                 <p className="text-base text-gray-800 font-medium flex items-center gap-3"><Mail className="w-5 h-5 text-cyan-500"/> info@infinitelaundrysolutions.com.au</p>
+//                 <p className="text-base text-gray-800 font-medium flex items-start gap-3"><MapPin className="w-5 h-5 text-cyan-500 flex-shrink-0 mt-1"/> 3/76 Mica Street, Carole Park, QLD, 4300</p>
+//               </div>
+//               <Button 
+//                 className="bg-white hover:bg-gray-100 text-gray-900 px-8 py-4 rounded-lg font-black text-lg mt-8 border-4 border-gray-900 shadow-md transition-colors"
+//                 onClick={() => scrollToSection('quote')}
+//               >
+//                 LETS CHAT!!
+//               </Button>
+//             </div>
+            
+//             {/* Business Hours */}
+//             <div>
+//               <h3 className="text-2xl font-black text-gray-900 mb-6">Business Hours</h3>
+//               <div className="space-y-2 text-lg text-gray-800">
+//                 <p><span className="font-semibold">Monday - Friday:</span> 7:00 AM - 8:00 PM</p>
+//                 <p><span className="font-semibold">Saturday:</span> 8:00 AM - 6:00 PM</p>
+//                 <p><span className="font-semibold">Sunday:</span> 9:00 AM - 5:00 PM</p>
+//               </div>
+//             </div>
+//           </div>
+          
+//           {/* <div className="border-t border-gray-400 mt-12 pt-8 text-center text-gray-700">
+//             <p className="text-sm sm:text-base">&copy; 2025 Infinite Laundry Solutions. All rights reserved.</p>
+//           </div> */}
+//         </div>
+//       </footer>
+//     </div>
+//   );
+// }
+
+// export default LandingPage;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Phone, Mail, MapPin, Check, Star, Clock, Shield, Users, Heart, Hotel, Package, Sparkles, TrendingUp, Menu, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 
-// Using standard Tailwind classes (cyan-100, cyan-500) for color safety.
-
 function LandingPage() {
+  // Assuming this component is wrapped in a <BrowserRouter> in your App.js
   const navigate = useNavigate();
 
   const [contactForm, setContactForm] = useState({ name: '', email: '', phone: '', message: '', company: '', address: '' });
@@ -2381,6 +2999,7 @@ function LandingPage() {
     const el = document.getElementById(id);
     if(el) {
       setMobileMenuOpen(false); 
+      // Offset for fixed header
       const y = el.getBoundingClientRect().top + window.pageYOffset - 80;
       window.scrollTo({ top: y, behavior: 'smooth' });
     }
@@ -2510,7 +3129,7 @@ function LandingPage() {
                 <span className="border-b-8 border-gray-900 pb-3 inline-block">About ILS</span>
               </h2>
               <p className="text-gray-800 text-base sm:text-lg leading-relaxed">
-                Born from the success of Infinite Asset Solutions, Infinite Laundry Solutions was created to solve a growing need we saw firsthand—dependable, quality-driven laundry services for the hospitality and healthcare sectors. As long-time operators in motel and commercial venue management, we understand what's at stake when it comes to clean, timely linen delivery.
+                Born from the success of Infinite Asset Solutions, **Infinite Laundry Solutions** was created to solve a growing need we saw firsthand—dependable, quality-driven laundry services for the **hospitality and healthcare** sectors. As long-time operators in motel and commercial venue management, we understand what's at stake when it comes to clean, timely linen delivery.
               </p>
             </div>
             <div>
@@ -2518,7 +3137,7 @@ function LandingPage() {
                 <span className="border-b-8 border-gray-900 pb-3 inline-block">Our Mission</span>
               </h2>
               <p className="text-gray-800 text-base sm:text-lg leading-relaxed mb-12">
-                To deliver commercial laundry solutions with precision, reliability, and care—helping our clients focus on what they do best.
+                To deliver commercial laundry solutions with **precision, reliability, and care**—helping our clients focus on what they do best.
               </p>
               <h3 className="text-3xl sm:text-4xl font-black text-gray-900 mb-8">
                 <span className="border-b-8 border-gray-900 pb-3 inline-block">Our Values</span>
@@ -2803,9 +3422,20 @@ function LandingPage() {
           <p className="text-gray-800 text-base sm:text-lg mb-8">
             Explore the map below to see if we service your area—or click the button for clean linen!!
           </p>
-          <div className="bg-white rounded-2xl p-4 h-64 sm:h-96 flex items-center justify-center mb-10 shadow-lg border-2 border-cyan-500">
-            <p className="text-gray-400 text-xl sm:text-2xl">[Map Placeholder - Google Maps Integration]</p>
+          
+          {/* EMBEDDED MAP IFRAME */}
+          <div className="bg-white rounded-2xl p-4 h-96 flex items-center justify-center mb-10 shadow-lg border-2 border-cyan-500 overflow-hidden">
+            <iframe 
+                src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3535.1159799028533!2d152.92012437514364!3d-27.62092442316589!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x6b914955d9951729%3A0xb16876b4fb2bb3a!2s3%2F76%20Mica%20St%2C%20Carole%20Park%20QLD%204300%2C%20Australia!5e0!3m2!1sen!2sin!4v1761402560116!5m2!1sen!2sin" 
+                width="100%" 
+                height="100%" 
+                style={{ border: 0 }} 
+                allowFullScreen="" 
+                loading="lazy" 
+                referrerPolicy="no-referrer-when-downgrade"
+            ></iframe>
           </div>
+          
           <div className="text-center">
             <Button 
               className="bg-white hover:bg-gray-100 text-gray-900 px-10 py-5 rounded-lg font-black text-lg sm:text-xl border-4 border-gray-900 shadow-md transition-colors"
@@ -2826,7 +3456,7 @@ function LandingPage() {
             <span className="border-b-8 border-gray-900 pb-3 inline-block">GET A QUOTE</span>
           </h2>
           <p className="text-gray-800 text-base sm:text-lg leading-relaxed mb-12">
-            Try Us Today. We offer trial services and sample pickups for eligible businesses. Let's show you what premium laundry service feels like. With Infinite Laundry Solutions, you're not just choosing a provider—you're choosing a partner in cleanliness, care, and operational excellence.
+            Try Us Today. We offer trial services and sample pickups for eligible businesses. Let's show you what premium laundry service feels like. With **Infinite Laundry Solutions**, you're not just choosing a provider—you're choosing a partner in cleanliness, care, and operational excellence.
           </p>
           <div className="bg-white rounded-2xl p-8 sm:p-12 shadow-lg border-t-8 border-gray-900">
             <form onSubmit={handleContactSubmit} className="space-y-6">
