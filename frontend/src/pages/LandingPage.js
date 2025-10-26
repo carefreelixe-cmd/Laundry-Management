@@ -73,8 +73,7 @@ function LandingPage() {
   };
   
   const handleLoginClick = () => {
-    navigate('/login');
-    setMobileMenuOpen(false);
+    window.location.href = 'https://portal.infinitelaundrysolutions.com.au/login';
   };
 
   // Helper component for the bold typography style matching the screenshot
