@@ -3024,8 +3024,7 @@ function LandingPage() {
 
   // Function to handle login navigation
   const handleLoginClick = () => {
-    navigate('/login');
-    setMobileMenuOpen(false);
+    window.location.href = 'https://portal.infinitelaundrysolutions.com.au/login';
   };
 
   return (
