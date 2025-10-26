@@ -336,10 +336,10 @@ function LandingPageNew() {
           <div className="grid md:grid-cols-2 gap-12">
             {/* Linen Rental Services */}
             <div className="bg-white rounded-2xl p-10 shadow-lg">
-              <div className="mb-8">
-                <img src={priceLinenRental} alt="Linen Rental Services" className="w-full h-32 object-cover rounded-xl shadow-md mb-6" />
-                <h3 className="text-2xl font-black text-gray-900 uppercase">LINEN RENTAL SERVICES</h3>
+              <div className="mb-6 flex justify-center">
+                <img src={priceLinenRental} alt="Linen Rental Services" className="w-32 h-32 object-contain rounded-xl shadow-md" />
               </div>
+              <h3 className="text-xl font-black text-gray-900 uppercase mb-4 text-center">LINEN RENTAL SERVICES</h3>
               <p className="text-gray-700 text-base mb-8 leading-relaxed">
                 Perfect for businesses looking for a hassle-free solution. Our pricing includes laundering, drying and replacement of worn items—ideal for hospitality and healthcare settings that require consistent quality and supply.
               </p>
@@ -359,10 +359,10 @@ function LandingPageNew() {
             
             {/* COG Services */}
             <div className="bg-white rounded-2xl p-10 shadow-lg">
-              <div className="mb-8">
-                <img src={priceCOG} alt="Customer-Owned Goods Services" className="w-full h-32 object-cover rounded-xl shadow-md mb-6" />
-                <h3 className="text-2xl font-black text-gray-900 uppercase">CUSTOMER-OWNED GOODS (COG) SERVICES</h3>
+              <div className="mb-6 flex justify-center">
+                <img src={priceCOG} alt="Customer-Owned Goods Services" className="w-32 h-32 object-contain rounded-xl shadow-md" />
               </div>
+              <h3 className="text-xl font-black text-gray-900 uppercase mb-4 text-center">CUSTOMER-OWNED GOODS (COG) SERVICES</h3>
               <p className="text-gray-700 text-base mb-8 leading-relaxed">
                 Already have your own linen? No problem. We offer competitive per-kilo or per-piece pricing for cleaning and return of your linen, with options for express turnaround and volume discounts.
               </p>
