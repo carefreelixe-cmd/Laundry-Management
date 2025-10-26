@@ -784,7 +784,7 @@ function LandingPage() {
       </nav>
 
       {/* Hero Section */}
-      <section id="home" style={{backgroundColor: MINT_BG}} className="pt-24 sm:pt-32 pb-12 sm:pb-20 px-4 sm:px-8 relative overflow-hidden min-h-[500px] sm:min-h-[60vh]">
+      {/* <section id="home" style={{backgroundColor: MINT_BG}} className="pt-24 sm:pt-32 pb-12 sm:pb-20 px-4 sm:px-8 relative overflow-hidden min-h-[500px] sm:min-h-[60vh]">
         <div className="absolute inset-0 z-0">
           <img src={heroImage} alt="Clean stacked laundry" className="w-full h-full object-cover opacity-30" />
         </div>
@@ -814,8 +814,104 @@ function LandingPage() {
             </div>
           </div>
         </div>
-      </section>
+      </section> */}
+{/* Hero Section */}
+      {/* <section id="home" style={{backgroundColor: MINT_BG}} className="pt-24 sm:pt-32 pb-12 sm:pb-20 px-4 sm:px-8 relative overflow-hidden min-h-[500px] sm:min-h-[60vh]">
+        <div className="absolute inset-0 z-0">
+          <img src={heroImage} alt="Clean stacked laundry" className="w-full h-full object-cover opacity-30" />
+        </div>
+        
+        <div className="max-w-7xl mx-auto relative z-10">
+          <div style={{backgroundColor: MINT_ACCENT_LIGHT}} className="rounded-xl p-6 sm:p-12 text-center max-w-5xl mx-auto shadow-xl">
+            <div className="flex flex-wrap gap-2 justify-center mb-6">
+              <span className="bg-white/80 px-3 py-1 rounded-full text-xs border border-gray-300 text-gray-800">Professional Laundry Services</span>
+              <span className="bg-white/80 px-3 py-1 rounded-full text-xs border border-gray-300 text-gray-800 hidden sm:inline">Professional Laundry Services</span>
+              <span className="bg-white/80 px-3 py-1 rounded-full text-xs border border-gray-300 text-gray-800 hidden md:inline">Professional Laundry Services</span>
+            </div>
 
+            <div className="grid lg:grid-cols-2 items-center text-left gap-6 sm:gap-8">
+              <div>
+                <h1 style={{color: DEEP_CHARCOAL}} className="text-4xl sm:text-5xl lg:text-6xl xl:text-7xl font-black leading-tight mb-4">
+                  Exceptional<br/>Laundry Care
+                </h1>
+              </div>
+              <div className="lg:text-right text-sm sm:text-base md:text-lg leading-relaxed space-y-4">
+                <p style={{color: DEEP_CHARCOAL}} className="mb-6">
+                  Your premium laundry solution for hospitality and healthcare industries.
+                </p>
+                <Button onClick={() => scrollToSection('services')} className="bg-white hover:bg-gray-100 text-gray-800 px-6 sm:px-8 py-3 rounded-full text-base sm:text-lg font-semibold shadow-md transition-colors border-2 border-gray-800">
+                  Discover More <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5 inline ml-1"/>
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section> */}
+      <section id="home" style={{backgroundColor: MINT_BG}} className="pt-24 sm:pt-32 pb-12 sm:pb-20 px-4 sm:px-8 relative overflow-hidden min-h-[500px] sm:min-h-[60vh]">
+        <div className="absolute inset-0 z-0">
+          <img src={heroImage} alt="Clean stacked laundry" className="w-full h-full object-cover opacity-30" />
+        </div>
+        
+        <div className="max-w-7xl mx-auto relative z-10">
+          <div style={{backgroundColor: MINT_ACCENT_LIGHT}} className="rounded-xl p-6 sm:p-12 text-center max-w-5xl mx-auto shadow-xl">
+            <div className="flex flex-wrap gap-2 justify-center mb-6">
+              <span className="bg-white/80 px-3 py-1 rounded-full text-xs border border-gray-300 text-gray-800">Professional Laundry Services</span>
+              <span className="bg-white/80 px-3 py-1 rounded-full text-xs border border-gray-300 text-gray-800 hidden sm:inline">Professional Laundry Services</span>
+              <span className="bg-white/80 px-3 py-1 rounded-full text-xs border border-gray-300 text-gray-800 hidden md:inline">Professional Laundry Services</span>
+            </div>
+
+            <div className="grid lg:grid-cols-2 items-center text-left gap-6 sm:gap-8">
+              <div>
+                <h1 style={{color: DEEP_CHARCOAL}} className="text-4xl sm:text-5xl lg:text-6xl xl:text-7xl font-black leading-tight mb-4">
+                  Exceptional<br/>Laundry Care
+                </h1>
+              </div>
+              <div className="lg:text-right text-sm sm:text-base md:text-lg leading-relaxed space-y-4">
+                <p style={{color: DEEP_CHARCOAL}} className="mb-6">
+                  Your premium laundry solution for hospitality and healthcare industries.
+                </p>
+                <Button onClick={() => scrollToSection('services')} className="bg-white hover:bg-gray-100 text-gray-800 px-6 sm:px-8 py-3 rounded-full text-base sm:text-lg font-semibold shadow-md transition-colors border-2 border-gray-800">
+                  Discover More <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5 inline ml-1"/>
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+     {/* Hero Section */}
+      {/* <section id="home" style={{backgroundColor: MINT_BG}} className="pt-24 sm:pt-32 pb-12 sm:pb-20 px-4 sm:px-8 relative overflow-hidden min-h-[500px] sm:min-h-[60vh]">
+        <div className="absolute inset-0 z-0">
+          <img src={heroImage} alt="Clean stacked laundry" className="w-full h-full object-cover opacity-30" />
+        </div>
+        
+        <div className="max-w-7xl mx-auto relative z-10">
+          <div style={{backgroundColor: MINT_ACCENT_LIGHT}} className="rounded-xl p-6 sm:p-12 text-center max-w-5xl mx-auto shadow-xl">
+            <div className="flex flex-wrap gap-2 justify-center mb-6">
+              <span className="bg-white/80 px-3 py-1 rounded-full text-xs border border-gray-300 text-gray-800">Professional Laundry Services</span>
+              <span className="bg-white/80 px-3 py-1 rounded-full text-xs border border-gray-300 text-gray-800 hidden sm:inline">Professional Laundry Services</span>
+              <span className="bg-white/80 px-3 py-1 rounded-full text-xs border border-gray-300 text-gray-800 hidden md:inline">Professional Laundry Services</span>
+            </div>
+
+            <div className="grid lg:grid-cols-2 items-center text-left gap-6 sm:gap-8">
+              <div>
+                <h1 style={{color: DEEP_CHARCOAL}} className="text-4xl sm:text-5xl lg:text-6xl xl:text-7xl font-black leading-tight mb-4">
+                  Exceptional<br/>Laundry<br/>Care
+                </h1>
+              </div>
+              <div className="lg:text-right text-sm sm:text-base md:text-lg leading-relaxed space-y-4">
+                <p style={{color: DEEP_CHARCOAL}} className="mb-6">
+                  Your premium laundry solution for hospitality and healthcare industries.
+                </p>
+                <Button onClick={() => scrollToSection('services')} className="bg-white hover:bg-gray-100 text-gray-800 px-6 sm:px-8 py-3 rounded-full text-base sm:text-lg font-semibold shadow-md transition-colors border-2 border-gray-800">
+                  Discover More <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5 inline ml-1"/>
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section> */}
+
+      
       {/* About Section */}
       <section id="about" style={{backgroundColor: MINT_BG}} className="py-12 sm:py-20 px-4 sm:px-8 border-t border-gray-300">
         <div className="max-w-7xl mx-auto">
