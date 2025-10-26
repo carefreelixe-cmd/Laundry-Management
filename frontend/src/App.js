@@ -6,7 +6,7 @@ import '@/App.css';
 import { SocketProvider } from './contexts/SocketContext';
 
 // Pages
-import LandingPage from './pages/LandingPage';
+import LandingPage from './pages/LandingPageNew';
 import LoginPage from './pages/LoginPage';
 import ForgotPasswordPage from './pages/ForgotPasswordPage';
 import OwnerDashboard from './pages/OwnerDashboard';
