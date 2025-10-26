@@ -290,20 +290,20 @@ function LandingPageNew() {
             We understand the unique needs of every industry we serve. Whether you're welcoming guests, caring for patients, or feeding the masses, you need clean, dependable linen—and fast.
           </p>
           
-          <div className="grid md:grid-cols-2 gap-8 max-w-4xl mb-16">
+          <div className="grid md:grid-cols-2 gap-8 mb-16">
             {/* Hospitality */}
-            <div className="bg-gray-200 rounded-2xl p-12 text-center shadow-lg hover:shadow-xl transition-shadow">
-              <div className="w-24 h-24 mx-auto mb-6 flex items-center justify-center">
-                <img src={industryHospitality} alt="Hospitality" className="w-full h-full rounded-xl object-cover shadow-md" />
+            <div className="bg-white rounded-2xl p-8 text-center shadow-lg hover:shadow-xl transition-shadow">
+              <div className="w-32 h-32 mx-auto mb-6 bg-gray-100 rounded-xl flex items-center justify-center p-4">
+                <img src={industryHospitality} alt="Hospitality" className="w-full h-full object-contain" />
               </div>
               <h3 className="text-3xl font-black text-gray-900 mb-4">Hospitality</h3>
               <p className="text-gray-800 text-lg">Hotels, Motels, Resorts, Short-Term Rentals</p>
             </div>
             
             {/* Healthcare */}
-            <div className="bg-gray-200 rounded-2xl p-12 text-center shadow-lg hover:shadow-xl transition-shadow">
-              <div className="w-24 h-24 mx-auto mb-6 flex items-center justify-center">
-                <img src={industryHealthcare} alt="Healthcare" className="w-full h-full rounded-xl object-cover shadow-md" />
+            <div className="bg-white rounded-2xl p-8 text-center shadow-lg hover:shadow-xl transition-shadow">
+              <div className="w-32 h-32 mx-auto mb-6 bg-gray-100 rounded-xl flex items-center justify-center p-4">
+                <img src={industryHealthcare} alt="Healthcare" className="w-full h-full object-contain" />
               </div>
               <h3 className="text-3xl font-black text-gray-900 mb-4">Healthcare</h3>
               <p className="text-gray-800 text-lg">Clinics, Medical Centres, Aged Care Homes</p>
