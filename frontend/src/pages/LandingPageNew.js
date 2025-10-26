@@ -7,11 +7,17 @@ import { Textarea } from '@/components/ui/textarea';
 // Import local images
 import homeWelcome from '@/assets/Home-Welcome-1.jpg';
 import homeAbout from '@/assets/Home-About-1.jpg';
+import heroImage from '@/assets/post-ai-image-3221.png';
+import valuesImage from '@/assets/ChatGPT Image May 28 2025 10_12_28 AM_edited.png';
 import serviceImage1 from '@/assets/ChatGPT Image May 28 2025 10_12_28 AM_edited.png';
 import serviceImage2 from '@/assets/ChatGPT Image May 28 2025 10_40_35 AM.png';
 import serviceImage3 from '@/assets/ChatGPT Image May 28 2025 10_42_23 AM.png';
 import serviceImage4 from '@/assets/ChatGPT Image May 28 2025 10_44_20 AM.png';
 import serviceImage5 from '@/assets/ChatGPT Image May 28 2025 10_45_19 AM.png';
+import industryHospitality from '@/assets/ChatGPT Image May 29 2025 11_31_24 AM.png';
+import industryHealthcare from '@/assets/ChatGPT Image May 29 2025 11_31_36 AM.png';
+import priceLinenRental from '@/assets/ChatGPT Image Jun 11 2025 02_40_32 PM.png';
+import priceCOG from '@/assets/ChatGPT Image Jun 11 2025 02_48_15 PM.png';
 import towelsImage from '@/assets/post-ai-image-3219.png';
 import cleanLinenImage from '@/assets/post-ai-image-3221.png';
 
@@ -69,7 +75,7 @@ function LandingPageNew() {
             </div>
             
             {/* Desktop Menu */}
-            <div className="hidden lg:flex items-center gap-6">
+            <div className="hidden lg:flex items-center gap-8">
               <a onClick={() => scrollToSection('home')} className="text-gray-700 hover:text-teal-600 cursor-pointer font-medium transition-colors">Home</a>
               <a onClick={() => scrollToSection('about')} className="text-gray-700 hover:text-teal-600 cursor-pointer font-medium transition-colors">About</a>
               <a onClick={() => scrollToSection('services')} className="text-gray-700 hover:text-teal-600 cursor-pointer font-medium transition-colors">Services</a>
@@ -77,11 +83,14 @@ function LandingPageNew() {
               <a onClick={() => scrollToSection('prices')} className="text-gray-700 hover:text-teal-600 cursor-pointer font-medium transition-colors">Our Prices</a>
               <a onClick={() => scrollToSection('why')} className="text-gray-700 hover:text-teal-600 cursor-pointer font-medium transition-colors">Why Us?</a>
               <a onClick={() => scrollToSection('quote')} className="text-gray-700 hover:text-teal-600 cursor-pointer font-medium transition-colors">More</a>
-              <div className="relative">
-                <div className="w-10 h-10 bg-teal-500 rounded-full flex items-center justify-center text-white font-bold cursor-pointer hover:bg-teal-600 transition-colors">
-                  0
-                </div>
-              </div>
+              
+              {/* Login Button */}
+              <Button 
+                onClick={handleLoginClick}
+                className="bg-teal-500 hover:bg-teal-600 text-white px-6 py-2 rounded-lg font-medium transition-colors"
+              >
+                Login
+              </Button>
             </div>
             
             {/* Mobile Menu Button */}
@@ -105,34 +114,55 @@ function LandingPageNew() {
             <a onClick={() => scrollToSection('prices')} className="text-gray-700 hover:text-teal-600 font-medium py-2 cursor-pointer">Prices</a>
             <a onClick={() => scrollToSection('why')} className="text-gray-700 hover:text-teal-600 font-medium py-2 cursor-pointer">Why Us</a>
             <a onClick={() => scrollToSection('quote')} className="text-gray-700 hover:text-teal-600 font-medium py-2 cursor-pointer">Contact</a>
+            <Button 
+              onClick={handleLoginClick}
+              className="bg-teal-500 hover:bg-teal-600 text-white w-full py-2 rounded-lg font-medium"
+            >
+              Login
+            </Button>
           </div>
         </div>
       )}
 
       {/* Hero Section */}
-      <section id="home" className="pt-32 pb-16 sm:pt-40 sm:pb-20 px-4 sm:px-8 bg-gradient-to-b from-teal-50 via-teal-100 to-teal-200">
-        <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-8">
-            <div className="flex flex-wrap justify-center gap-3 mb-8">
-              <span className="bg-white/80 px-4 py-2 rounded-full text-sm font-medium shadow-sm">Professional Laundry Services</span>
-              <span className="bg-white/80 px-4 py-2 rounded-full text-sm font-medium shadow-sm">Professional Laundry Services</span>
-              <span className="bg-white/80 px-4 py-2 rounded-full text-sm font-medium shadow-sm">Professional Laundry Services</span>
+      <section id="home" className="relative pt-32 pb-16 sm:pt-40 sm:pb-20 px-4 sm:px-8 min-h-[500px]">
+        {/* Background Image */}
+        <div className="absolute inset-0 z-0">
+          <img 
+            src={heroImage} 
+            alt="Laundry Background" 
+            className="w-full h-full object-cover"
+          />
+          <div className="absolute inset-0 bg-gradient-to-r from-teal-100/90 via-teal-100/80 to-transparent"></div>
+        </div>
+        
+        {/* Content */}
+        <div className="relative z-10 max-w-7xl mx-auto">
+          <div className="grid md:grid-cols-2 gap-8 items-center">
+            {/* Left Side - Text Content */}
+            <div>
+              <div className="flex flex-wrap gap-3 mb-8">
+                <span className="bg-white/90 px-4 py-2 rounded-full text-sm font-medium shadow-sm">Professional Laundry Services</span>
+                <span className="bg-white/90 px-4 py-2 rounded-full text-sm font-medium shadow-sm">Professional Laundry Services</span>
+              </div>
+              
+              <h1 className="text-5xl sm:text-6xl md:text-7xl font-black text-gray-900 mb-6 leading-tight">
+                Exceptional<br/>Laundry Care
+              </h1>
             </div>
-          </div>
-          
-          <div className="bg-teal-100/60 backdrop-blur-sm rounded-3xl p-8 sm:p-16 text-center max-w-5xl mx-auto border-2 border-white/50 shadow-xl">
-            <h1 className="text-5xl sm:text-6xl md:text-7xl font-black text-gray-900 mb-6 sm:mb-8 leading-tight">
-              Exceptional<br/>Laundry Care
-            </h1>
-            <p className="text-lg sm:text-xl text-gray-800 mb-8 sm:mb-10 max-w-2xl mx-auto leading-relaxed">
-              Your premium laundry solution for hospitality and healthcare industries.
-            </p>
-            <Button 
-              onClick={() => scrollToSection('about')}
-              className="bg-teal-500 hover:bg-teal-600 text-white px-10 py-7 rounded-full text-lg font-semibold border-2 border-white shadow-lg transition-all"
-            >
-              Discover More
-            </Button>
+            
+            {/* Right Side - Description & Button */}
+            <div className="bg-teal-100/80 backdrop-blur-sm rounded-2xl p-8 shadow-xl">
+              <p className="text-lg text-gray-900 mb-6 leading-relaxed">
+                Your premium laundry solution for hospitality and healthcare industries.
+              </p>
+              <Button 
+                onClick={() => scrollToSection('about')}
+                className="bg-white hover:bg-gray-50 text-gray-900 px-8 py-3 rounded-full text-base font-semibold border-2 border-gray-900 shadow-md transition-all"
+              >
+                Discover More
+              </Button>
+            </div>
           </div>
         </div>
       </section>
@@ -166,25 +196,23 @@ function LandingPageNew() {
               <h3 className="text-3xl sm:text-4xl font-black text-gray-900 mb-8">
                 <span className="border-b-8 border-gray-900 pb-3 inline-block">Our Values</span>
               </h3>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-6">
-                <div className="text-center bg-white rounded-xl p-4 shadow-md">
-                  <div className="text-4xl mb-2">⚙️</div>
+              <div className="mb-8">
+                <img src={valuesImage} alt="Our Values" className="w-full h-32 object-cover rounded-2xl shadow-lg" />
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                <div className="text-center bg-white rounded-xl p-3 shadow-md">
                   <p className="text-sm font-bold text-gray-900">Quality</p>
                 </div>
-                <div className="text-center bg-white rounded-xl p-4 shadow-md">
-                  <div className="text-4xl mb-2">🛡️</div>
+                <div className="text-center bg-white rounded-xl p-3 shadow-md">
                   <p className="text-sm font-bold text-gray-900">Transparency</p>
                 </div>
-                <div className="text-center bg-white rounded-xl p-4 shadow-md">
-                  <div className="text-4xl mb-2">⚡</div>
+                <div className="text-center bg-white rounded-xl p-3 shadow-md">
                   <p className="text-sm font-bold text-gray-900">Reliability</p>
                 </div>
-                <div className="text-center bg-white rounded-xl p-4 shadow-md">
-                  <div className="text-4xl mb-2">💡</div>
+                <div className="text-center bg-white rounded-xl p-3 shadow-md">
                   <p className="text-sm font-bold text-gray-900">Innovation</p>
                 </div>
-                <div className="text-center bg-white rounded-xl p-4 shadow-md">
-                  <div className="text-4xl mb-2">🤝</div>
+                <div className="text-center bg-white rounded-xl p-3 shadow-md">
                   <p className="text-sm font-bold text-gray-900">Care</p>
                 </div>
               </div>
@@ -265,8 +293,8 @@ function LandingPageNew() {
           <div className="grid md:grid-cols-2 gap-8 max-w-4xl mb-16">
             {/* Hospitality */}
             <div className="bg-gray-200 rounded-2xl p-12 text-center shadow-lg hover:shadow-xl transition-shadow">
-              <div className="w-32 h-32 mx-auto mb-6 flex items-center justify-center">
-                <img src={towelsImage} alt="Hospitality" className="w-full h-full rounded-2xl object-cover shadow-md" />
+              <div className="w-24 h-24 mx-auto mb-6 flex items-center justify-center">
+                <img src={industryHospitality} alt="Hospitality" className="w-full h-full rounded-xl object-cover shadow-md" />
               </div>
               <h3 className="text-3xl font-black text-gray-900 mb-4">Hospitality</h3>
               <p className="text-gray-800 text-lg">Hotels, Motels, Resorts, Short-Term Rentals</p>
@@ -274,8 +302,8 @@ function LandingPageNew() {
             
             {/* Healthcare */}
             <div className="bg-gray-200 rounded-2xl p-12 text-center shadow-lg hover:shadow-xl transition-shadow">
-              <div className="w-32 h-32 mx-auto mb-6 flex items-center justify-center">
-                <img src={cleanLinenImage} alt="Healthcare" className="w-full h-full rounded-2xl object-cover shadow-md" />
+              <div className="w-24 h-24 mx-auto mb-6 flex items-center justify-center">
+                <img src={industryHealthcare} alt="Healthcare" className="w-full h-full rounded-xl object-cover shadow-md" />
               </div>
               <h3 className="text-3xl font-black text-gray-900 mb-4">Healthcare</h3>
               <p className="text-gray-800 text-lg">Clinics, Medical Centres, Aged Care Homes</p>
@@ -308,8 +336,8 @@ function LandingPageNew() {
           <div className="grid md:grid-cols-2 gap-12">
             {/* Linen Rental Services */}
             <div className="bg-white rounded-2xl p-10 shadow-lg">
-              <div className="flex items-center gap-6 mb-8">
-                <div className="text-7xl">🧺</div>
+              <div className="mb-8">
+                <img src={priceLinenRental} alt="Linen Rental Services" className="w-full h-32 object-cover rounded-xl shadow-md mb-6" />
                 <h3 className="text-2xl font-black text-gray-900 uppercase">LINEN RENTAL SERVICES</h3>
               </div>
               <p className="text-gray-700 text-base mb-8 leading-relaxed">
@@ -331,8 +359,8 @@ function LandingPageNew() {
             
             {/* COG Services */}
             <div className="bg-white rounded-2xl p-10 shadow-lg">
-              <div className="flex items-center gap-6 mb-8">
-                <div className="text-7xl">📦</div>
+              <div className="mb-8">
+                <img src={priceCOG} alt="Customer-Owned Goods Services" className="w-full h-32 object-cover rounded-xl shadow-md mb-6" />
                 <h3 className="text-2xl font-black text-gray-900 uppercase">CUSTOMER-OWNED GOODS (COG) SERVICES</h3>
               </div>
               <p className="text-gray-700 text-base mb-8 leading-relaxed">
