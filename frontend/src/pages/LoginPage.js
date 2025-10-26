@@ -117,7 +117,7 @@ function LoginPage() {
             </Button>
           </form>
 
-          <div className="mt-6 sm:mt-8 text-center">
+          {/* <div className="mt-6 sm:mt-8 text-center">
             <p className="text-sm text-gray-600">
               Don't have an account?{' '}
               <button
@@ -127,7 +127,7 @@ function LoginPage() {
                 Sign up here
               </button>
             </p>
-          </div>
+          </div> */}
         </div>
       </div>
     </div>
