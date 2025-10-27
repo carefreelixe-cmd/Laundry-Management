@@ -164,9 +164,13 @@ def send_email(to_email: str, subject: str, html_content: str) -> bool:
         gmail_password = os.environ.get('GMAIL_PASSWORD')
         
         if not gmail_user or not gmail_password:
-            logger.warning("Gmail credentials not configured. Email not sent.")
-            logger.info(f"Email to {to_email}: {subject}")
-            return True  # Return True for development
+            logger.error("Gmail credentials not configured. Email NOT sent.")
+            logger.error(f"GMAIL_USER: {gmail_user}")
+            logger.error(f"GMAIL_PASSWORD exists: {bool(gmail_password)}")
+            logger.info(f"Attempted to send email to {to_email}: {subject}")
+            return False  # Changed from True to False
+        
+        logger.info(f"Attempting to send email from {gmail_user} to {to_email}")
         
         html_body = f"""
         <!DOCTYPE html>

@@ -2085,73 +2085,87 @@ async def get_dashboard_stats(current_user: dict = Depends(require_role(["owner"
 # Contact Form
 @api_router.post("/contact")
 async def submit_contact(form: ContactForm):
-    doc = form.model_dump()
-    doc['id'] = str(uuid.uuid4())
-    doc['created_at'] = datetime.now(timezone.utc).isoformat()
-    doc['status'] = 'new'
-    await db.contacts.insert_one(doc)
-    
-    # Send email notification to admin
-    send_email(
-        os.environ.get('ADMIN_EMAIL', 'admin@clienty.com'),
-        f"New Contact Form Submission from {form.name}",
-        f"<h3>New Contact Form</h3><p><strong>Name:</strong> {form.name}</p><p><strong>Email:</strong> {form.email}</p><p><strong>Phone:</strong> {form.phone}</p><p><strong>Message:</strong> {form.message}</p>"
-    )
-    
-    # Send confirmation email to customer
-    customer_email_body = f"""
-    <h2>Thank You for Contacting Us!</h2>
-    <p>Dear {form.name},</p>
-    <p>We have received your inquiry and our team will get back to you shortly.</p>
-    
-    <div style="background: #f5f5f5; padding: 20px; border-radius: 8px; margin: 20px 0;">
-        <h3 style="margin-top: 0; color: #333;">Your Message Details:</h3>
-        <table style="width: 100%; border-collapse: collapse;">
-            <tr>
-                <td style="padding: 8px 0; color: #666;">Name:</td>
-                <td style="padding: 8px 0; font-weight: bold;">{form.name}</td>
-            </tr>
-            <tr>
-                <td style="padding: 8px 0; color: #666;">Email:</td>
-                <td style="padding: 8px 0;">{form.email}</td>
-            </tr>
-            <tr>
-                <td style="padding: 8px 0; color: #666;">Phone:</td>
-                <td style="padding: 8px 0;">{form.phone}</td>
-            </tr>
-            <tr>
-                <td style="padding: 8px 0; color: #666; vertical-align: top;">Message:</td>
-                <td style="padding: 8px 0; white-space: pre-line;">{form.message}</td>
-            </tr>
-        </table>
-    </div>
-    
-    <p>We typically respond within 24 hours during business hours:</p>
-    <ul>
-        <li><strong>Monday - Friday:</strong> 7:00 AM - 8:00 PM</li>
-        <li><strong>Saturday:</strong> 8:00 AM - 6:00 PM</li>
-        <li><strong>Sunday:</strong> 9:00 AM - 5:00 PM</li>
-    </ul>
-    
-    <p>For urgent inquiries, please call us at <strong>+61 426 159 286</strong></p>
-    
-    <p>Thank you for choosing Infinite Laundry Solutions!</p>
-    
-    <p style="margin-top: 30px;">
-        <strong>Infinite Laundry Solutions</strong><br/>
-        3/76 Mica Street, Carole Park, QLD, 4300<br/>
-        📞 +61 426 159 286<br/>
-        📧 info@infinitelaundrysolutions.com.au
-    </p>
-    """
-    
-    send_email(
-        form.email,
-        "Thank You for Contacting Infinite Laundry Solutions",
-        customer_email_body
-    )
-    
-    return {"message": "Contact form submitted successfully"}
+    try:
+        doc = form.model_dump()
+        doc['id'] = str(uuid.uuid4())
+        doc['created_at'] = datetime.now(timezone.utc).isoformat()
+        doc['status'] = 'new'
+        await db.contacts.insert_one(doc)
+        
+        admin_email = os.environ.get('ADMIN_EMAIL', 'info@infinitelaundrysolutions.com.au')
+        
+        # Send email notification to admin
+        logger.info(f"Sending admin notification to: {admin_email}")
+        admin_email_sent = send_email(
+            admin_email,
+            f"New Contact Form Submission from {form.name}",
+            f"<h3>New Contact Form</h3><p><strong>Name:</strong> {form.name}</p><p><strong>Email:</strong> {form.email}</p><p><strong>Phone:</strong> {form.phone}</p><p><strong>Message:</strong> {form.message}</p>"
+        )
+        logger.info(f"Admin email sent: {admin_email_sent}")
+        
+        # Send confirmation email to customer
+        customer_email_body = f"""
+        <h2>Thank You for Contacting Us!</h2>
+        <p>Dear {form.name},</p>
+        <p>We have received your inquiry and our team will get back to you shortly.</p>
+        
+        <div style="background: #f5f5f5; padding: 20px; border-radius: 8px; margin: 20px 0;">
+            <h3 style="margin-top: 0; color: #333;">Your Message Details:</h3>
+            <table style="width: 100%; border-collapse: collapse;">
+                <tr>
+                    <td style="padding: 8px 0; color: #666;">Name:</td>
+                    <td style="padding: 8px 0; font-weight: bold;">{form.name}</td>
+                </tr>
+                <tr>
+                    <td style="padding: 8px 0; color: #666;">Email:</td>
+                    <td style="padding: 8px 0;">{form.email}</td>
+                </tr>
+                <tr>
+                    <td style="padding: 8px 0; color: #666;">Phone:</td>
+                    <td style="padding: 8px 0;">{form.phone}</td>
+                </tr>
+                <tr>
+                    <td style="padding: 8px 0; color: #666; vertical-align: top;">Message:</td>
+                    <td style="padding: 8px 0; white-space: pre-line;">{form.message}</td>
+                </tr>
+            </table>
+        </div>
+        
+        <p>We typically respond within 24 hours during business hours:</p>
+        <ul>
+            <li><strong>Monday - Friday:</strong> 7:00 AM - 8:00 PM</li>
+            <li><strong>Saturday:</strong> 8:00 AM - 6:00 PM</li>
+            <li><strong>Sunday:</strong> 9:00 AM - 5:00 PM</li>
+        </ul>
+        
+        <p>For urgent inquiries, please call us at <strong>+61 426 159 286</strong></p>
+        
+        <p>Thank you for choosing Infinite Laundry Solutions!</p>
+        
+        <p style="margin-top: 30px;">
+            <strong>Infinite Laundry Solutions</strong><br/>
+            3/76 Mica Street, Carole Park, QLD, 4300<br/>
+            📞 +61 426 159 286<br/>
+            📧 info@infinitelaundrysolutions.com.au
+        </p>
+        """
+        
+        logger.info(f"Sending customer confirmation to: {form.email}")
+        customer_email_sent = send_email(
+            form.email,
+            "Thank You for Contacting Infinite Laundry Solutions",
+            customer_email_body
+        )
+        logger.info(f"Customer email sent: {customer_email_sent}")
+        
+        return {
+            "message": "Contact form submitted successfully",
+            "admin_email_sent": admin_email_sent,
+            "customer_email_sent": customer_email_sent
+        }
+    except Exception as e:
+        logger.error(f"Error in contact form submission: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to process contact form: {str(e)}")
 
 # Include router
 app.include_router(api_router)
