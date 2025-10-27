@@ -142,7 +142,7 @@ function LandingPage() {
       {/* Hero Section */}
       <section id="home" style={{backgroundColor: MINT_BG}} className="pt-24 sm:pt-32 pb-12 sm:pb-20 px-4 sm:px-8 relative overflow-hidden min-h-[500px] sm:min-h-[60vh]">
         <div className="absolute inset-0 z-0">
-          <img src={heroImage} alt="Clean stacked laundry" className="w-full h-full object-cover opacity-30" />
+          <img src={heroImage} alt="Clean stacked laundry" className="w-full h-full object-cover opacity-60" />
         </div>
         
         <div className="max-w-7xl mx-auto relative z-10">
