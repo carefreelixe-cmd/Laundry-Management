@@ -74,11 +74,46 @@ function LandingPage() {
     }
   };
 
-  const handleContactSubmit = (e) => {
+  const handleContactSubmit = async (e) => {
     e.preventDefault();
-    setSubmitStatus('success');
-    setContactForm({ name: '', email: '', phone: '', message: '', company: '', address: '' });
-    setTimeout(() => setSubmitStatus(''), 3000);
+    setSubmitStatus('sending');
+    
+    try {
+      // Combine company and address into the message if they exist
+      let fullMessage = contactForm.message;
+      if (contactForm.company) {
+        fullMessage = `Company: ${contactForm.company}\n${fullMessage}`;
+      }
+      if (contactForm.address) {
+        fullMessage = `Address: ${contactForm.address}\n${fullMessage}`;
+      }
+      
+      const response = await fetch('https://api.infinitelaundrysolutions.com.au/api/contact', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: contactForm.name,
+          email: contactForm.email,
+          phone: contactForm.phone,
+          message: fullMessage
+        }),
+      });
+
+      if (response.ok) {
+        setSubmitStatus('success');
+        setContactForm({ name: '', email: '', phone: '', message: '', company: '', address: '' });
+        setTimeout(() => setSubmitStatus(''), 5000);
+      } else {
+        setSubmitStatus('error');
+        setTimeout(() => setSubmitStatus(''), 5000);
+      }
+    } catch (error) {
+      console.error('Error submitting form:', error);
+      setSubmitStatus('error');
+      setTimeout(() => setSubmitStatus(''), 5000);
+    }
   };
 
   const handleLoginClick = () => {
@@ -449,10 +484,15 @@ function LandingPage() {
                 <label className="block text-sm font-bold mb-2 text-gray-900">Services Required / Message</label>
                 <Textarea rows={5} value={contactForm.message} onChange={(e) => setContactForm({...contactForm, message: e.target.value})} style={{backgroundColor: GREY_LIGHT}} className="border-none" />
               </div>
-              <Button type="submit" className="w-full bg-gray-800 hover:bg-gray-700 text-white py-4 sm:py-5 rounded-lg font-bold text-base sm:text-lg shadow-md transition-colors">
-                Submit Quote Request
+              <Button 
+                type="submit" 
+                disabled={submitStatus === 'sending'}
+                className="w-full bg-gray-800 hover:bg-gray-700 text-white py-4 sm:py-5 rounded-lg font-bold text-base sm:text-lg shadow-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {submitStatus === 'sending' ? 'Sending...' : 'Submit Quote Request'}
               </Button>
-              {submitStatus === 'success' && <p className="text-green-600 text-center font-bold text-base sm:text-lg">Message sent successfully! We'll be in touch soon.</p>}
+              {submitStatus === 'success' && <p className="text-green-600 text-center font-bold text-base sm:text-lg">✓ Message sent successfully! We'll be in touch soon.</p>}
+              {submitStatus === 'error' && <p className="text-red-600 text-center font-bold text-base sm:text-lg">✗ Failed to send message. Please try again or contact us directly.</p>}
             </form>
           </div>
         </div>
